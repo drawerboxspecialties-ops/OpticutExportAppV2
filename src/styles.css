@@ -1153,8 +1153,8 @@ tr:hover td {
 .stack-order-card {
   display: inline-block;
   vertical-align: top;
-  width: 3.3in;
-  margin: 0 0.1in 0.12in 0;
+  width: 3.25in;
+  margin: 0 0.08in 0.1in 0;
   font-size: 0.78rem;
   line-height: 1.2;
   break-inside: avoid;
@@ -1199,24 +1199,23 @@ tr:hover td {
   text-align: left !important;
 }
 
-/* Repeating batch header: thead repeats atop every printed page of a batch. */
-.print-batch-sheet {
-  width: 100%;
-  border-collapse: collapse;
+.stack-batch-ribbon {
+  font-size: 7px;
+  font-weight: 800;
+  text-align: left;
+  background: #dbeafe;
+  color: #1e3a8a !important;
+  border-bottom: 1px solid #94a3b8;
+  padding: 2px 4px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.print-batch-sheet thead {
-  display: table-header-group;
-}
-
-.print-batch-head-cell,
-.print-batch-body-cell {
-  padding: 0;
-  border: 0;
-}
-
-.print-batch-body-cell {
-  padding-top: 0.1in;
+.stack-order-card--continued {
+  break-before: avoid;
+  page-break-before: avoid;
 }
 
 .print-batch-index {
@@ -1291,6 +1290,19 @@ tr:hover td {
 
   body.print-all-active #all-print-container {
     display: block !important;
+  }
+
+  .print-batch-header {
+    margin-bottom: 0.08in;
+  }
+
+  .print-batch-meta {
+    padding: 5px 8px;
+  }
+
+  .print-meta-chip,
+  .print-stat-chip {
+    padding: 2px 5px;
   }
 
   /*

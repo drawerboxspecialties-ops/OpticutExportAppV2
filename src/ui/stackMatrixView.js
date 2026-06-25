@@ -79,16 +79,28 @@ export function renderStackMatrixRows(batch, colIndices, printMode = false) {
   return html;
 }
 
-function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount) {
+function formatBatchRibbon(batchMeta) {
+  if (!batchMeta) return '';
+  const key = escapeHTML(batchMeta.batchKey || '');
+  const mat = batchMeta.materialName
+    ? escapeHTML(getExportMaterialName(batchMeta.materialName))
+    : '—';
+  const edge = batchMeta.topEdge ? escapeHTML(batchMeta.topEdge) : '—';
+  return `<tr><th colspan="3" class="stack-batch-ribbon">${key} · ${mat} · ${edge}</th></tr>`;
+}
+
+function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount, batchMeta) {
   const orderLabel =
     chunkCount > 1
       ? `Order ${section.order} ${chunkIndex === 0 ? '(1 of ' + chunkCount + ')' : 'Continued (' + (chunkIndex + 1) + ' of ' + chunkCount + ')'}`
       : `Order ${section.order}`;
+  const continuedClass = chunkIndex > 0 ? ' stack-order-card--continued' : '';
   let seq = chunk.startSeq;
   let html = `
-    <div class="stack-order-card">
+    <div class="stack-order-card${continuedClass}">
       <table class="stack-order-table" cellpadding="4" cellspacing="0">
         <thead>
+          ${formatBatchRibbon(batchMeta)}
           <tr><th colspan="3" class="stack-order-title">${escapeHTML(orderLabel)}</th></tr>
           <tr class="stack-order-columns-row">
             <th class="seq-col">Seq</th>
@@ -126,13 +138,13 @@ function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount) {
   return html;
 }
 
-export function renderStackMatrixOrderCards(batch, colIndices) {
+export function renderStackMatrixOrderCards(batch, colIndices, batchMeta = null) {
   const sections = getStackMatrixSections(batch, colIndices);
   const cards = [];
   sections.forEach((section) => {
     const chunks = splitSectionForPrint(section);
     chunks.forEach((chunk, idx) => {
-      cards.push(renderPrintOrderCard(section, chunk, idx, chunks.length));
+      cards.push(renderPrintOrderCard(section, chunk, idx, chunks.length, batchMeta));
     });
   });
   return sections.length
@@ -192,16 +204,13 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
     </div>
   `;
 
-  // A table wrapper lets the batch header (thead) repeat at the top of every
-  // printed page when a batch spans multiple pages.
-  return `
-    <table class="print-batch-sheet">
-      <thead>
-        <tr><td class="print-batch-head-cell">${headerBanner}</td></tr>
-      </thead>
-      <tbody>
-        <tr><td class="print-batch-body-cell">${renderStackMatrixOrderCards(batch, colIndices)}</td></tr>
-      </tbody>
-    </table>
-  `;
+  const batchMeta = {
+    batchKey: safeBatchKey,
+    materialName: batch.materialName,
+    topEdge: batch.topEdge,
+  };
+
+  // Full banner once at the top; each order card carries a compact batch ribbon so
+  // later pages still show material/edge without wasting a header-only first page.
+  return `${headerBanner}${renderStackMatrixOrderCards(batch, colIndices, batchMeta)}`;
 }
