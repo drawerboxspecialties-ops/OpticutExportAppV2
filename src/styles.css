@@ -1138,13 +1138,25 @@ tr:hover td {
   font-weight: 900;
 }
 
+/*
+ * Print card packing uses inline-block columns rather than CSS grid.
+ * Grid/flex containers fragment badly in Chrome's print engine (an oversized
+ * grid gets pushed wholesale to the next page, leaving a big blank gap under
+ * the header). Inline-block cards flow left-to-right and break across pages
+ * cleanly, one intact card at a time.
+ */
 .stack-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(3.1in, 1fr));
-  gap: 0.12in;
+  font-size: 0;
+  line-height: 0;
 }
 
 .stack-order-card {
+  display: inline-block;
+  vertical-align: top;
+  width: 3.3in;
+  margin: 0 0.1in 0.12in 0;
+  font-size: 0.78rem;
+  line-height: 1.2;
   break-inside: avoid;
   page-break-inside: avoid;
 }
