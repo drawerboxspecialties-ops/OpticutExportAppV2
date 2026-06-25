@@ -163,18 +163,18 @@
                 <datalist id="top-edge-options"></datalist>
 
                 <div class="modern-row">
-                  <input
-                    id="exclude-order-input"
-                    class="modern-input"
-                    type="text"
-                    placeholder="Order #..."
-                    list=""
-                  />
+                  <select
+                    id="exclude-order-select"
+                    class="modern-input modern-select"
+                    title="Choose an order to remove from its batch"
+                  >
+                    <option value="">Select order to remove…</option>
+                  </select>
                   <button
                     class="mini-danger-btn"
                     id="btn-exclude-order"
                     type="button"
-                    title="Remove Order"
+                    title="Remove Selected Order"
                   >
                     −
                   </button>

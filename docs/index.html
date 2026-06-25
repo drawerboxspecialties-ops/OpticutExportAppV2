@@ -10,8 +10,8 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="./assets/index-B0SVy9ce.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-kziXwpMw.css">
+    <script type="module" crossorigin src="./assets/index-XV1eHlE9.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-sZxvSf1L.css">
   </head>
   <body>
     <header class="app-header">
@@ -165,18 +165,18 @@
                 <datalist id="top-edge-options"></datalist>
 
                 <div class="modern-row">
-                  <input
-                    id="exclude-order-input"
-                    class="modern-input"
-                    type="text"
-                    placeholder="Order #..."
-                    list=""
-                  />
+                  <select
+                    id="exclude-order-select"
+                    class="modern-input modern-select"
+                    title="Choose an order to remove from its batch"
+                  >
+                    <option value="">Select order to remove…</option>
+                  </select>
                   <button
                     class="mini-danger-btn"
                     id="btn-exclude-order"
                     type="button"
-                    title="Remove Order"
+                    title="Remove Selected Order"
                   >
                     −
                   </button>

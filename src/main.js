@@ -311,6 +311,7 @@ function renderCurrentView() {
 function updateExclusionOptions() {
   const materialOptions = $('material-options');
   const topEdgeOptions = $('top-edge-options');
+  const orderSelect = $('exclude-order-select');
   const materials = Array.from(
     new Set(state.originalParsedRows.map(rowMaterialName).filter(Boolean))
   ).sort();
@@ -323,6 +324,31 @@ function updateExclusionOptions() {
   topEdgeOptions.innerHTML = topEdges
     .map((e) => `<option value="${escapeAttr(e)}"></option>`)
     .join('');
+
+  if (orderSelect) {
+    // Orders still in the batches (excluded ones drop out automatically).
+    const orders = Array.from(
+      new Set(
+        state.parsedRows
+          .map((r) => String(r[state.colIndices.orderNumber] || '').trim())
+          .filter(Boolean)
+      )
+    ).sort(orderSortComparator);
+    const previous = orderSelect.value;
+    orderSelect.innerHTML =
+      '<option value="">Select order to remove…</option>' +
+      orders
+        .map((o) => `<option value="${escapeAttr(o)}">Order #${escapeHTML(o)}</option>`)
+        .join('');
+    if (orders.includes(previous)) orderSelect.value = previous;
+  }
+}
+
+function orderSortComparator(a, b) {
+  const na = parseFloat(a);
+  const nb = parseFloat(b);
+  if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) return na - nb;
+  return String(a).localeCompare(String(b));
 }
 
 function applyExclusionsAndRebuild() {
@@ -364,10 +390,10 @@ function renderExcludedBadges() {
 }
 
 function excludeOrder() {
-  const input = $('exclude-order-input');
-  const orderToExclude = input.value.trim();
+  const select = $('exclude-order-select');
+  const orderToExclude = (select?.value || '').trim();
   if (!orderToExclude) {
-    alert('Please enter an Order Number to remove.');
+    alert('Please choose an Order Number to remove.');
     return;
   }
   const exists = state.originalParsedRows.some(
@@ -381,7 +407,7 @@ function excludeOrder() {
     state.excludedOrders.push(orderToExclude);
     applyExclusionsAndRebuild();
   }
-  input.value = '';
+  if (select) select.value = '';
 }
 
 function excludeMaterial() {
@@ -694,9 +720,6 @@ function wireEvents() {
   $('btn-exclude-order').addEventListener('click', excludeOrder);
   $('btn-exclude-material').addEventListener('click', excludeMaterial);
   $('btn-exclude-top-edge').addEventListener('click', excludeTopEdge);
-  $('exclude-order-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') excludeOrder();
-  });
   $('exclude-material-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') excludeMaterial();
   });
