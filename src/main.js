@@ -1,7 +1,7 @@
 import './styles.css';
 import { parseCSV, convertToCSV, escapeHTML, escapeAttr } from './logic/csv.js';
 import { mapHeaders } from './logic/headers.js';
-import { cleanMaterialName, getExportMaterialName } from './logic/materialNames.js';
+import { cleanMaterialName } from './logic/materialNames.js';
 import { normalizeTopEdgeName } from './logic/topEdges.js';
 import {
   splitDataIntoGroups,
@@ -10,7 +10,7 @@ import {
   applyExclusions,
 } from './logic/grouping.js';
 import { getCutListRowsForExport } from './logic/exportRows.js';
-import { getSummaryHeight, formatDecimalForDisplay } from './logic/widths.js';
+import { formatDecimalForDisplay } from './logic/widths.js';
 import { loadSettings, saveSettings, rememberFile } from './logic/settingsStore.js';
 import { DEMO_CSV } from './logic/demoData.js';
 import {
@@ -509,14 +509,14 @@ function getExportGroups() {
       state.excludedMaterials.length > 0 ||
       state.excludedTopEdges.length > 0)
   ) {
-    const tempParsedRows = state.parsedRows;
-    const tempSplitGroups = state.splitGroups;
-    state.parsedRows = [...state.originalParsedRows];
-    rebuild();
-    const exportGroups = state.splitGroups;
-    state.parsedRows = tempParsedRows;
-    state.splitGroups = tempSplitGroups;
-    return exportGroups;
+    // Compute groups from the full (un-excluded) dataset without touching the
+    // visible workspace. splitDataIntoGroups is pure, so no re-render is needed.
+    return splitDataIntoGroups(
+      state.originalParsedRows,
+      state.colIndices,
+      state.maxOrdersPerBatch,
+      state.groupSplitLimits
+    );
   }
   return state.splitGroups;
 }
