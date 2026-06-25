@@ -1294,15 +1294,16 @@ tr:hover td {
   }
 
   /*
-   * Pack batches continuously so boxes fill each page instead of every batch
-   * claiming its own sheet. A batch only spills to the next page when it runs
-   * past the bottom, and its header (thead) repeats there. Consecutive batches
-   * are separated by a top rule rather than a page break.
+   * Each batch prints on its own sheet (never mixed with another batch). A
+   * batch still spills to additional pages when it runs past the bottom, and
+   * its header (thead) repeats on each of those pages.
    */
-  body.print-all-active .category-card + .category-card {
-    margin-top: 0.16in;
-    border-top: 2px solid #94a3b8;
-    padding-top: 0.12in;
+  body.print-all-active .category-card {
+    page-break-after: always;
+  }
+
+  body.print-all-active .category-card:last-child {
+    page-break-after: avoid;
   }
 }
 
