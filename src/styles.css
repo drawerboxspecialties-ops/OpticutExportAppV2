@@ -1293,12 +1293,16 @@ tr:hover td {
     display: block !important;
   }
 
-  body.print-all-active .category-card {
-    page-break-after: always;
-  }
-
-  body.print-all-active .category-card:last-child {
-    page-break-after: avoid;
+  /*
+   * Pack batches continuously so boxes fill each page instead of every batch
+   * claiming its own sheet. A batch only spills to the next page when it runs
+   * past the bottom, and its header (thead) repeats there. Consecutive batches
+   * are separated by a top rule rather than a page break.
+   */
+  body.print-all-active .category-card + .category-card {
+    margin-top: 0.16in;
+    border-top: 2px solid #94a3b8;
+    padding-top: 0.12in;
   }
 }
 
