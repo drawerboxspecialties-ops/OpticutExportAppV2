@@ -1199,6 +1199,60 @@ tr:hover td {
   text-align: left !important;
 }
 
+/* Repeating batch header: thead repeats atop every printed page of a batch. */
+.print-batch-sheet {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.print-batch-sheet thead {
+  display: table-header-group;
+}
+
+.print-batch-head-cell,
+.print-batch-body-cell {
+  padding: 0;
+  border: 0;
+}
+
+.print-batch-body-cell {
+  padding-top: 0.1in;
+}
+
+.print-batch-index {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #1e293b;
+  color: #fff !important;
+  font-size: 10px;
+  font-weight: 800;
+  vertical-align: middle;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Printable check box (renders reliably regardless of form-control printing). */
+.print-check {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 1.4px solid #000;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+/* Zebra striping for faster row scanning on the shop floor. */
+.stack-order-table {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.stack-row-alt td {
+  background: #f1f5f9;
+}
+
 /* ── Print media ──────────────────────────────────────── */
 @media print {
   @page {

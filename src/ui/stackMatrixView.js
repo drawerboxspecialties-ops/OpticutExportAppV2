@@ -99,16 +99,19 @@ function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount) {
         <tbody>
   `;
 
+  let rowOrdinal = 0;
   chunk.widthGroups.forEach((widthGroup) => {
     html += `
       <tr><td colspan="3" class="stack-width-row">${formatWidthHeader(widthGroup)}</td></tr>
     `;
     const rowCount = Math.max(widthGroup.frontBack.length, widthGroup.sides.length);
     for (let i = 0; i < rowCount; i++) {
+      const altClass = rowOrdinal % 2 === 1 ? ' stack-row-alt' : '';
+      rowOrdinal++;
       html += `
-        <tr>
+        <tr class="stack-data-row${altClass}">
           <td class="stack-seq">
-            <input type="checkbox" class="check-box" />
+            <span class="print-check" aria-hidden="true"></span>
             <span>S${String(seq).padStart(3, '0')}</span>
           </td>
           <td>${formatStackCell(widthGroup.frontBack[i], true, widthGroup.width)}</td>
@@ -137,7 +140,7 @@ export function renderStackMatrixOrderCards(batch, colIndices) {
     : `<div class="stack-cell-empty" style="padding:1rem;">No stack matrix rows available.</div>`;
 }
 
-export function buildCompactPrintCard(batchKey, batch, colIndices) {
+export function buildCompactPrintCard(batchKey, batch, colIndices, position = null) {
   const safeBatchKey = escapeHTML(batchKey);
   const safePrintedAt = escapeHTML(
     new Date().toLocaleString('en-US', {
@@ -155,11 +158,15 @@ export function buildCompactPrintCard(batchKey, batch, colIndices) {
   const topEdgeDisplay = batch.topEdge
     ? `<b>${escapeHTML(batch.topEdge)}</b>`
     : `<span class="badge badge--danger">⚠️ MISSING TOP EDGE</span>`;
+  const batchTag =
+    position && position.count > 1
+      ? `<span class="print-batch-index">Batch ${position.index} of ${position.count}</span>`
+      : '';
 
-  return `
+  const headerBanner = `
     <div class="print-batch-header">
       <div class="print-batch-header-row">
-        <div class="print-batch-title">${safeBatchKey}.csv</div>
+        <div class="print-batch-title">${safeBatchKey}.csv${batchTag}</div>
         <div class="print-batch-time">Printed: ${safePrintedAt}</div>
       </div>
       <div class="print-batch-meta">
@@ -183,6 +190,18 @@ export function buildCompactPrintCard(batchKey, batch, colIndices) {
         </div>
       </div>
     </div>
-    ${renderStackMatrixOrderCards(batch, colIndices)}
+  `;
+
+  // A table wrapper lets the batch header (thead) repeat at the top of every
+  // printed page when a batch spans multiple pages.
+  return `
+    <table class="print-batch-sheet">
+      <thead>
+        <tr><td class="print-batch-head-cell">${headerBanner}</td></tr>
+      </thead>
+      <tbody>
+        <tr><td class="print-batch-body-cell">${renderStackMatrixOrderCards(batch, colIndices)}</td></tr>
+      </tbody>
+    </table>
   `;
 }

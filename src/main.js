@@ -623,15 +623,17 @@ function printAllSummaries() {
   const printContainer = $('all-print-container');
   if (!printContainer) return;
   printContainer.innerHTML = '';
-  Object.keys(state.splitGroups)
-    .sort()
-    .forEach((batchKey) => {
-      const batch = state.splitGroups[batchKey];
-      const cardDiv = document.createElement('div');
-      cardDiv.className = 'category-card';
-      cardDiv.innerHTML = buildCompactPrintCard(batchKey, batch, state.colIndices);
-      printContainer.appendChild(cardDiv);
+  const keys = Object.keys(state.splitGroups).sort();
+  keys.forEach((batchKey, idx) => {
+    const batch = state.splitGroups[batchKey];
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'category-card';
+    cardDiv.innerHTML = buildCompactPrintCard(batchKey, batch, state.colIndices, {
+      index: idx + 1,
+      count: keys.length,
     });
+    printContainer.appendChild(cardDiv);
+  });
   document.body.classList.add('print-all-active');
   window.print();
   setTimeout(() => {
