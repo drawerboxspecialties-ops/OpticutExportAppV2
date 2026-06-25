@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DBS Drawers — OptiCut CSV Splitter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <h1 class="brand-title">DBS Drawers</h1>
+        <p class="brand-subtitle">Weinig OptiCut S90 CSV Splitter &amp; Summary Tool</p>
+      </div>
+      <button id="btn-share" class="btn btn-ghost" type="button" title="Copy app URL">
+        <span aria-hidden="true">🔗</span> Share
+      </button>
+    </header>
+
+    <main class="container">
+      <aside class="sidebar">
+        <section class="card" aria-label="Import CSV">
+          <h2 class="card-title">📁 Import CSV</h2>
+
+          <input type="file" id="file-input" accept=".csv" hidden />
+          <button id="drop-zone" class="drop-zone" type="button">
+            <span class="drop-icon" aria-hidden="true">📥</span>
+            <span class="drop-text">
+              <strong>Drag &amp; drop Allmoxy export CSV</strong>
+              <small>or click to browse from computer</small>
+            </span>
+          </button>
+
+          <div id="stats-section" class="stats-section" hidden>
+            <h2 class="card-title">📊 Statistics</h2>
+            <div class="stats-grid">
+              <div class="stat-box">
+                <div class="stat-val" id="stat-total-rows">0</div>
+                <div class="stat-lbl">Total Parts</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-val" id="stat-orders">0</div>
+                <div class="stat-lbl">Orders</div>
+              </div>
+              <div class="stat-box stat-box--wide">
+                <div class="stat-val" id="stat-total-boxes">0</div>
+                <div class="stat-lbl">Total Boxes</div>
+              </div>
+            </div>
+            <div class="stats-actions">
+              <button id="btn-reset" class="btn btn-danger" type="button">
+                <span aria-hidden="true">🗑️</span> Clear
+              </button>
+            </div>
+          </div>
+
+          <div id="side-error-notification" class="error-notification" hidden>
+            <button
+              id="error-toggle"
+              class="error-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="side-error-details"
+            >
+              <span class="error-label">⚠️ Missing Data Warnings</span>
+              <span id="error-toggle-icon" class="error-icon" aria-hidden="true">▼</span>
+            </button>
+            <ul id="error-list" class="error-list" hidden></ul>
+          </div>
+
+          <div id="demo-section" class="demo-section">
+            <p class="demo-text">
+              Don't have a file?
+              <button id="demo-link" class="demo-link" type="button">Load Demo CSV</button>
+            </p>
+          </div>
+        </section>
+      </aside>
+
+      <section class="workspace" id="workspace">
+        <div id="workspace-placeholder" class="placeholder">
+          <div class="placeholder-icon" aria-hidden="true">📑</div>
+          <h3>No CSV Data Loaded</h3>
+          <p>
+            Upload your primary Allmoxy import CSV file on the left panel or load the demo dataset to
+            view interactive splits, summary sheets, and export options.
+          </p>
+        </div>
+
+        <div id="active-workspace" class="active-workspace" hidden>
+          <div class="workspace-grid">
+            <section class="card card--main">
+              <div class="sub-nav">
+                <span class="sub-tab active">📋 Current Batch</span>
+                <div class="sub-nav-actions">
+                  <button id="btn-print-all-summaries" class="btn btn-secondary" type="button">
+                    <span aria-hidden="true">🖨️</span> Print All
+                  </button>
+                  <button id="btn-download-all" class="btn btn-success" type="button">
+                    <span aria-hidden="true">📦</span> Export ZIP
+                  </button>
+                </div>
+              </div>
+
+              <div class="view-actions">
+                <h3 id="current-view-title" class="view-title">Current Batch</h3>
+                <div class="view-actions-buttons">
+                  <button id="btn-print-summary" class="btn btn-secondary" type="button">
+                    <span aria-hidden="true">🖨️</span> Print Stack Matrix
+                  </button>
+                  <button id="btn-pdf-summary" class="btn btn-secondary" type="button">
+                    <span aria-hidden="true">💾</span> Save as PDF
+                  </button>
+                  <button id="btn-export-current" class="btn btn-secondary" type="button">
+                    <span aria-hidden="true">💾</span> Download Current CSV
+                  </button>
+                </div>
+              </div>
+
+              <h4 class="section-heading">Cut List Preview</h4>
+              <div class="grid-container">
+                <table id="data-table">
+                  <thead id="table-head"></thead>
+                  <tbody id="table-body"></tbody>
+                </table>
+              </div>
+
+              <h4 class="section-heading">Stack Matrix</h4>
+              <div class="grid-container">
+                <table id="stack-matrix-table">
+                  <thead id="stack-table-head"></thead>
+                  <tbody id="stack-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <aside class="card card--sidebar" id="batches-sidebar-card" hidden>
+              <h2 class="card-title">📦 Split Batches</h2>
+
+              <div id="split-batches-config" class="split-config" hidden>
+                <label for="max-orders-input" class="split-config-label">Max Orders per Batch</label>
+                <div class="split-config-row">
+                  <input type="number" id="max-orders-input" class="input input--small" value="999" min="1" />
+                  <button id="btn-apply-max-orders" class="btn btn-secondary btn--sm" type="button">Apply</button>
+                </div>
+              </div>
+
+              <label for="batch-search-input" class="sr-only">Search by Order #</label>
+              <input type="text" id="batch-search-input" class="input" placeholder="🔍 Search by Order #..." />
+
+              <div id="exclude-order-section" class="control-panel" hidden>
+                <div class="control-panel-header">
+                  <span>Filter Out Rows</span>
+                  <span class="control-panel-remove">Remove</span>
+                </div>
+
+                <datalist id="material-options"></datalist>
+                <datalist id="top-edge-options"></datalist>
+
+                <div class="modern-row">
+                  <input
+                    id="exclude-order-input"
+                    class="modern-input"
+                    type="text"
+                    placeholder="Order #..."
+                    list=""
+                  />
+                  <button
+                    class="mini-danger-btn"
+                    id="btn-exclude-order"
+                    type="button"
+                    title="Remove Order"
+                  >
+                    −
+                  </button>
+                </div>
+                <div class="modern-row">
+                  <input
+                    id="exclude-material-input"
+                    class="modern-input"
+                    type="text"
+                    placeholder="Material..."
+                    list="material-options"
+                  />
+                  <button
+                    class="mini-danger-btn"
+                    id="btn-exclude-material"
+                    type="button"
+                    title="Remove Material"
+                  >
+                    −
+                  </button>
+                </div>
+                <div class="modern-row">
+                  <input
+                    id="exclude-top-edge-input"
+                    class="modern-input"
+                    type="text"
+                    placeholder="Top Edge..."
+                    list="top-edge-options"
+                  />
+                  <button
+                    class="mini-danger-btn"
+                    id="btn-exclude-top-edge"
+                    type="button"
+                    title="Remove Top Edge"
+                  >
+                    −
+                  </button>
+                </div>
+
+                <div id="excluded-list-container" class="excluded-list" hidden>
+                  <div class="excluded-list-title">Removed Items</div>
+                  <div id="excluded-orders-bag" class="excluded-bag"></div>
+                </div>
+
+                <label class="checkbox-row checkbox-row--bordered">
+                  <input type="checkbox" id="chk-include-excluded-in-export" />
+                  Add removed rows back to CSV export
+                </label>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="chk-round-export-widths" checked />
+                  Round export Width up to whole numbers
+                </label>
+              </div>
+
+              <div id="category-tabs" class="category-tabs"></div>
+            </aside>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">DBS Drawers • High Quality Custom Drawer Boxes</footer>
+
+    <div id="all-print-container" class="print-only" aria-hidden="true"></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
