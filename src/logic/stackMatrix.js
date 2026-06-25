@@ -151,7 +151,7 @@ export function slicePrintWidthGroup(widthGroup, start, end) {
  * @param {number} maxRowsPerCard
  * @returns {Array<{ widthGroups: object[], startSeq: number }>}
  */
-export function splitSectionForPrint(section, maxRowsPerCard = 24) {
+export function splitSectionForPrint(section, maxRowsPerCard = 18) {
   const chunks = [];
   let current = [];
   let currentRows = 0;

@@ -1294,6 +1294,11 @@ tr:hover td {
 
   .print-batch-header {
     margin-bottom: 0.08in;
+    /* Never strand the banner alone: keep it with the first order card. */
+    break-after: avoid;
+    page-break-after: avoid;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .print-batch-meta {
