@@ -13,9 +13,11 @@
     "lint": "eslint . --ext .js,.mjs",
     "lint:fix": "eslint . --ext .js,.mjs --fix",
     "format": "prettier --write \"**/*.{js,mjs,css,html,md,json}\"",
-    "format:check": "prettier --check \"**/*.{js,mjs,css,html,md,json}\""
+    "format:check": "prettier --check \"**/*.{js,mjs,css,html,md,json}\"",
+    "deploy": "npm run build && gh-pages -d dist"
   },
   "devDependencies": {
+    "gh-pages": "^6.1.1",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
     "jszip": "^3.10.1",
