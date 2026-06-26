@@ -56,7 +56,7 @@ export function buildOrderGroupBoxTotals(batch, colIndices) {
 }
 
 /**
- * Print label for an order: "1 - 2 bx, 2 - 3 bx" when multiple GroupIDs exist.
+ * Print label: per-GroupID box counts as "1-2, 2-3" next to the sales order.
  *
  * @param {string} order
  * @param {object} batch
@@ -65,10 +65,9 @@ export function buildOrderGroupBoxTotals(batch, colIndices) {
  */
 export function formatOrderGroupBoxLabel(order, batch, colIndices) {
   const groups = buildOrderGroupBoxTotals(batch, colIndices)[order];
-  // Per shop request: split label only when an order has exactly two GroupIDs.
-  if (groups?.length === 2) {
-    return groups.map((g) => `${g.groupId} - ${g.boxes} bx`).join(', ');
+  if (groups?.length) {
+    return groups.map((g) => `${g.groupId}-${g.boxes}`).join(', ');
   }
   const boxes = batch?.orderColTotals?.[order] ?? 0;
-  return `${boxes} bx`;
+  return String(boxes);
 }

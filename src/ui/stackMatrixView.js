@@ -18,14 +18,20 @@ function formatOrderHeading(order, batch, colIndices, printMode = false) {
   if (!printMode) {
     return `Order ${order}`;
   }
-  const boxLabel = formatOrderGroupBoxLabel(order, batch, colIndices);
-  return `Order ${order} · ${boxLabel}`;
+  const groupQty = formatOrderGroupBoxLabel(order, batch, colIndices);
+  return `${order} ${groupQty}`;
 }
 
-function formatPrintBatchOrders(batch) {
+function formatPrintBatchOrders(batch, colIndices) {
   const orders = batch?.sortedOrders || [];
   if (!orders.length) return '';
-  return orders.map((o) => escapeHTML(String(o))).join(', ');
+  return orders
+    .map((o) => {
+      const order = String(o).trim();
+      const groupQty = formatOrderGroupBoxLabel(order, batch, colIndices);
+      return escapeHTML(`${order} ${groupQty}`);
+    })
+    .join(' · ');
 }
 
 function getOrderBoxesForStackWidth(batch, order, stackWidth) {
@@ -107,21 +113,7 @@ export function renderStackMatrixRows(batch, colIndices, printMode = false) {
   return html;
 }
 
-function formatBatchRibbon(batchMeta) {
-  if (!batchMeta) return '';
-  const key = escapeHTML(batchMeta.batchKey || '');
-  const mat = batchMeta.materialName
-    ? escapeHTML(getExportMaterialName(batchMeta.materialName))
-    : '—';
-  const edge = batchMeta.topEdge ? escapeHTML(batchMeta.topEdge) : '—';
-  const ship =
-    batchMeta.shipDateLabel != null
-      ? ` · Ship ${escapeHTML(batchMeta.shipDateLabel)}`
-      : '';
-  return `<tr><th colspan="3" class="stack-batch-ribbon">${key} · ${mat} · ${edge}${ship}</th></tr>`;
-}
-
-function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount, batchMeta, batch, colIndices) {
+function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount, batch, colIndices) {
   const baseLabel = formatOrderHeading(section.order, batch, colIndices, true);
   const orderLabel =
     chunkCount > 1
@@ -135,7 +127,6 @@ function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount, batchMeta,
     <div class="stack-order-card${continuedClass}">
       <table class="stack-order-table" cellpadding="4" cellspacing="0">
         <thead>
-          ${formatBatchRibbon(batchMeta)}
           <tr><th colspan="3" class="stack-order-title">${escapeHTML(orderLabel)}</th></tr>
           <tr class="stack-order-columns-row">
             <th class="seq-col">Seq</th>
@@ -173,13 +164,13 @@ function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount, batchMeta,
   return html;
 }
 
-export function renderStackMatrixOrderCards(batch, colIndices, batchMeta = null) {
+export function renderStackMatrixOrderCards(batch, colIndices) {
   const sections = getStackMatrixSections(batch, colIndices);
   const cards = [];
   sections.forEach((section) => {
     const chunks = splitSectionForPrint(section);
     chunks.forEach((chunk, idx) => {
-      cards.push(renderPrintOrderCard(section, chunk, idx, chunks.length, batchMeta, batch, colIndices));
+      cards.push(renderPrintOrderCard(section, chunk, idx, chunks.length, batch, colIndices));
     });
   });
   return sections.length
@@ -224,7 +215,7 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
         <div class="print-batch-title">
           ${safeBatchKey}.csv${batchTag}
           <span class="print-batch-boxes-total">${batch.totalBoxes} Boxes</span>
-          <span class="print-batch-orders-list">${formatPrintBatchOrders(batch)}</span>
+          <span class="print-batch-orders-list">${formatPrintBatchOrders(batch, colIndices)}</span>
         </div>
         <div class="print-batch-time">Printed: ${safePrintedAt}</div>
       </div>
@@ -242,14 +233,6 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
     </div>
   `;
 
-  const batchMeta = {
-    batchKey: safeBatchKey,
-    materialName: batch.materialName,
-    topEdge: batch.topEdge,
-    shipDateLabel,
-  };
-
-  // Full banner once at the top; each order card carries a compact batch ribbon so
-  // later pages still show material/edge without wasting a header-only first page.
-  return `${headerBanner}${renderStackMatrixOrderCards(batch, colIndices, batchMeta)}`;
+  // Full banner once at the top; each order card shows order + GroupID box counts only.
+  return `${headerBanner}${renderStackMatrixOrderCards(batch, colIndices)}`;
 }

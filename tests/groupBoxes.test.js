@@ -31,15 +31,15 @@ describe('buildOrderGroupBoxTotals', () => {
     ]);
   });
 
-  it('formats multiple groups as "id - bx" pairs when exactly two groups', () => {
+  it('formats each GroupID as groupId-boxes pairs', () => {
     const batch = {
       rows: [row('602350', '1', 8), row('602350', '2', 4)],
       orderColTotals: { 602350: 3 },
     };
-    expect(formatOrderGroupBoxLabel('602350', batch, cols)).toBe('1 - 2 bx, 2 - 1 bx');
+    expect(formatOrderGroupBoxLabel('602350', batch, cols)).toBe('1-2, 2-1');
   });
 
-  it('shows order total when an order has one or three-plus GroupIDs', () => {
+  it('lists all groups for orders with three or more GroupIDs', () => {
     const batch = {
       rows: [row('602336', '1', 8), row('602336', '2', 4), row('602336', '3', 4)],
       orderColTotals: { 602336: 5 },
@@ -51,7 +51,7 @@ describe('buildOrderGroupBoxTotals', () => {
         ],
       },
     };
-    expect(formatOrderGroupBoxLabel('602336', batch, cols)).toBe('5 bx');
+    expect(formatOrderGroupBoxLabel('602336', batch, cols)).toBe('1-2, 2-1, 3-1');
   });
 
   it('falls back to order total boxes when GroupID column is absent', () => {
@@ -59,7 +59,7 @@ describe('buildOrderGroupBoxTotals', () => {
       'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge',
     ]);
     const batch = { rows: [['602350', 'Mat', 'F', '6', '25', '8', '', '6', 'Edge']], orderColTotals: { 602350: 2 } };
-    expect(formatOrderGroupBoxLabel('602350', batch, basicCols)).toBe('2 bx');
+    expect(formatOrderGroupBoxLabel('602350', batch, basicCols)).toBe('2');
   });
 
   it('uses pre-merge orderGroupBoxTotals when rows merged across GroupIDs', () => {
@@ -74,6 +74,6 @@ describe('buildOrderGroupBoxTotals', () => {
         ],
       },
     };
-    expect(formatOrderGroupBoxLabel('602336', batch, cols)).toBe('18 bx');
+    expect(formatOrderGroupBoxLabel('602336', batch, cols)).toBe('1-15, 2-3, 3-4');
   });
 });
