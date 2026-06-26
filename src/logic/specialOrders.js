@@ -1,6 +1,6 @@
 /**
  * Secondary-operation columns that flag an order as "special".
- * Laser is intentionally excluded per shop rules.
+ * Laser and GroupID are intentionally excluded per shop rules.
  *
  * These keys correspond to optional columns detected by mapHeaders.
  */
@@ -32,6 +32,8 @@ export function isSpecialOrderValue(value) {
  * entire order is special — all of its rows batch together in SPECIAL_ groups.
  * Orders are never split between normal and special batches.
  *
+ * Laser and GroupID are never read for this check.
+ *
  * @param {string[][]} rows
  * @param {object} colIndices
  * @returns {Set<string>} set of trimmed order numbers
@@ -41,8 +43,10 @@ export function getSpecialOrderNumbers(rows, colIndices) {
   if (!colIndices || colIndices.orderNumber === -1) return special;
 
   const laserIdx = colIndices.laser;
+  const groupIdIdx = colIndices.groupId;
+  const skipIndices = new Set([laserIdx, groupIdIdx].filter((idx) => typeof idx === 'number' && idx !== -1));
   const specialCols = SPECIAL_ORDER_COLUMN_KEYS.map((key) => colIndices[key]).filter(
-    (idx) => typeof idx === 'number' && idx !== -1 && idx !== laserIdx
+    (idx) => typeof idx === 'number' && idx !== -1 && !skipIndices.has(idx)
   );
   if (specialCols.length === 0) return special;
 

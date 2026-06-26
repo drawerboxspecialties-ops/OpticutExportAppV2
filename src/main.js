@@ -417,12 +417,17 @@ function renderCurrentView() {
 
   $('current-view-title').innerText = `${state.activeGroupKey}.csv`;
 
+  const previewOrders = new Set((batch.sortedOrders || []).map((o) => String(o).trim()));
+  const previewRows = state.parsedRows.filter((row) =>
+    previewOrders.has(String(row[ci.orderNumber] ?? '').trim())
+  );
+
   tableHead.innerHTML = `<tr>${state.parsedHeaders
     .map((h) => `<th>${escapeHTML(h)}</th>`)
     .join('')}</tr>`;
 
   let bodyHTML = '';
-  batch.rows.forEach((row) => {
+  previewRows.forEach((row) => {
     bodyHTML += '<tr>';
     row.forEach((cell, idx) => {
       if (idx === ci.materialName) {

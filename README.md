@@ -12,7 +12,7 @@ high-risk business rule.
 - Parses Allmoxy CSV files in the browser.
 - Normalizes material names and top edge names.
 - Groups rows into material/top-edge/**ship-date** batches.
-- Separates **special orders** (Scoop, Slope, Dividers, DrillFront, FileSlots) into `SPECIAL_` batches when enabled (default ON).
+- Separates **special orders** (Scoop, Slope, Dividers, DrillFront, FileSlots) into `SPECIAL_` batches when enabled (default ON). Laser and GroupID are not special triggers.
 - Strips batching-only columns (`GroupID`, `Laser`, Ship Date, and all secondary-operation columns) from exported CSVs.
 - Exports cut-list CSV files for OptiCut.
 - Prints operator-friendly stack matrix sheets with whole-number rounded widths,

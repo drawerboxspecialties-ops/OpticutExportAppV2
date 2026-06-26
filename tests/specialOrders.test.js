@@ -37,11 +37,32 @@ describe('getSpecialOrderNumbers', () => {
     [order, 'PF: 12MM Baltic Birch Ply', 'F', '6', '25', '1', '', '6', 'Clear Foil Bullnose',
       'Yes', 'None', 'None', 'None', 'None', 'None', 'None'];
 
-  it('flags an order special when scoop has any non-none value', () => {
-    const rows = [
-      [...normalRow('602336')].map((v, i) => (i === cols.scoop ? '#4     4" x 1"' : v)),
+  it('flags an order special when any row has scoop set (602336 pattern)', () => {
+    const headersWithGroup = [
+      'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge',
+      'Laser', 'Scoop', 'Slope', 'DrillFront', 'DividersFB', 'DividersSS', 'FileSlots', 'GroupID',
     ];
-    expect(getSpecialOrderNumbers(rows, cols).has('602336')).toBe(true);
+    const colsWithGroup = mapHeaders(headersWithGroup);
+    const rows = [
+      ['602336', 'PF: 12MM Baltic Birch Ply', 'F', '5', '33.938', '4', '', '5', 'Clear Foil Bullnose',
+        'Yes', '#4     4" x 1"', 'None', 'None', 'None', 'None', 'None', '3'],
+      ['602336', 'PF: 12MM Baltic Birch Ply', 'F', '5', '17.938', '2', '', '5', 'Clear Foil Bullnose',
+        'Yes', 'None', 'None', 'None', 'None', 'None', 'None', '1'],
+    ];
+    expect(getSpecialOrderNumbers(rows, colsWithGroup).has('602336')).toBe(true);
+  });
+
+  it('does not flag an order special for laser or groupId values alone', () => {
+    const headersWithGroup = [
+      'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge',
+      'Laser', 'Scoop', 'Slope', 'DrillFront', 'DividersFB', 'DividersSS', 'FileSlots', 'GroupID',
+    ];
+    const colsWithGroup = mapHeaders(headersWithGroup);
+    const rows = [
+      ['602336', 'PF: 12MM Baltic Birch Ply', 'F', '5', '33.938', '4', '', '5', 'Clear Foil Bullnose',
+        'Yes', 'None', 'None', 'None', 'None', 'None', 'None', '3'],
+    ];
+    expect(getSpecialOrderNumbers(rows, colsWithGroup).has('602336')).toBe(false);
   });
 
   it('flags an order special when any row has a non-none special value', () => {
@@ -76,11 +97,12 @@ describe('getSpecialOrderNumbers', () => {
     expect(getSpecialOrderNumbers(rows, basicCols).size).toBe(0);
   });
 
-  it('exposes the documented special column keys (excluding laser)', () => {
+  it('exposes the documented special column keys (excluding laser and groupId)', () => {
     expect(SPECIAL_ORDER_COLUMN_KEYS).toEqual([
       'scoop', 'slope', 'dividersFB', 'dividersSS', 'drillFront', 'fileSlots',
     ]);
     expect(SPECIAL_ORDER_COLUMN_KEYS).not.toContain('laser');
+    expect(SPECIAL_ORDER_COLUMN_KEYS).not.toContain('groupId');
   });
 });
 
