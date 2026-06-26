@@ -120,6 +120,22 @@ describe('splitDataIntoGroups (integration via demo CSV)', () => {
       { groupId: '2', parts: 3, boxes: 1 },
       { groupId: '3', parts: 4, boxes: 1 },
     ]);
+    expect(batch.orderColTotals['602336']).toBe(2);
+  });
+
+  it('matches orderColTotals to the sum of GroupID box counts', () => {
+    const headers = [
+      'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge', 'GroupID',
+    ];
+    const cols = mapHeaders(headers);
+    const mk = (groupId) =>
+      ['O1', 'PF: 12MM Baltic Birch Ply', 'F', '5', '10', '1', '', '5', 'Clear Foil Bullnose', groupId];
+    const rows = [mk('1'), mk('2'), mk('3')];
+    const groups = splitDataIntoGroups(rows, cols, 999, {}, false);
+    const batch = Object.values(groups)[0];
+    const groupSum = batch.orderGroupBoxTotals.O1.reduce((s, g) => s + g.boxes, 0);
+    expect(batch.orderColTotals.O1).toBe(groupSum);
+    expect(batch.orderColTotals.O1).toBe(3);
   });
 });
 

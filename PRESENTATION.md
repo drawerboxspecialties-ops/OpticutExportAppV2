@@ -86,19 +86,22 @@ Within each bucket, orders can be **split** into multiple batches (max orders pe
 The stack matrix summarizes parts by **drawer height** (`Width` column) and **order number**.
 
 ```
-boxes per cell  = ceil(parts ÷ 4)
-order column    = ceil(total parts for that order ÷ 4)
-batch total     = sum of order column boxes
+per height cell   = ceil(parts in that height ÷ 4)
+per GroupID       = ceil(parts in that group ÷ 4)
+order total       = sum of per-GroupID boxes (when GroupID column exists)
+                  = ceil(total parts for order ÷ 4) when no GroupID
+batch total       = sum of order totals
 ```
 
 This `÷ 4` rule is fixed shop logic — it drives every box count on screen and on print.
 
 **Print layout:**
 
-- Batch header shows total boxes and a comma-separated list of all order numbers.
-- Ship Date appears only when the batch has a date; blank dates stay empty on print.
-- Each order line shows box counts per `GroupID` when an order spans multiple groups (e.g. `1 - 2 bx, 2 - 3 bx`).
+- Batch header: total boxes + each order with GroupID breakdown (e.g. `602336 1-15, 2-3, 3-4`).
+- Ship Date chip only when set — blank dates stay empty on print.
+- Small order cards show order + GroupID-qty only (no material/edge ribbon per card).
 - Width rows show box count for that height (e.g. `Width 6" · 2 bx`).
+- Order total always equals the sum of its GroupID-qty values.
 
 Widths shown to operators are **rounded up to whole numbers** for readability. Export can optionally do the same.
 
@@ -126,7 +129,7 @@ index.html          UI shell
 src/main.js         Controller — state, DOM events, download/print
 src/ui/             HTML render helpers (stack matrix, print cards)
 src/logic/          Pure business rules — no DOM, fully unit-tested
-tests/              159 Vitest tests lock every critical rule
+tests/              169 Vitest tests lock every critical rule
 ```
 
 **Development process:**
@@ -148,7 +151,7 @@ tests/              159 Vitest tests lock every critical rule
 | `src/logic/grouping.js` | Batch creation, merging, splitting, exclusions |
 | `src/logic/specialOrders.js` | Special-order detection |
 | `src/logic/shipDate.js` | Ship-date batch grouping + print labels |
-| `src/logic/groupBoxes.js` | Per-GroupID box totals for print |
+| `src/logic/groupBoxes.js` | Per-GroupID box totals + order-total reconcile |
 | `src/logic/boxMath.js` | `ceil(parts/4)` box matrix |
 | `src/logic/exportRows.js` | Cut-list row prep, width rounding merge |
 | `src/logic/materialNames.js` | OptiCut material name formatting |
@@ -171,7 +174,7 @@ tests/              159 Vitest tests lock every critical rule
 
 - **Vite** — build & dev server
 - **Vanilla JS** — no framework; runs offline after load
-- **Vitest** — 159 automated tests
+- **Vitest** — 169 automated tests
 - **ESLint + Prettier** — code quality
 - **GitHub Pages** — hosting from `/docs` on `main`
 - **JSZip** — lazy-loaded for ZIP export

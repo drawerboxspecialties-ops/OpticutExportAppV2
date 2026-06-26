@@ -136,12 +136,12 @@
         <div class="box">
           <strong>Print sheets</strong>
           <ul>
-            <li>Batch header: <b>total boxes</b> + <b>all order numbers</b> next to batch name</li>
+            <li>Batch header: <b>total boxes</b> + each order with GroupID-qty (e.g. <span class="mono">602336 1-15, 2-3, 3-4</span>)</li>
             <li>Ship Date chip only when set — blank dates stay empty on print</li>
-            <li>Each order with <b>two</b> GroupIDs: <span class="mono">Order 602346 · 1 - 7 bx, 2 - 3 bx</span></li>
-            <li>One or three+ GroupIDs: order total only, e.g. <span class="mono">Order 602336 · 18 bx</span></li>
-            <li>Width rows: <span class="mono">Width 6" · 2 bx</span></li>
-            <li>Box math: <span class="mono">ceil(parts ÷ 4)</span></li>
+            <li>Small order cards: order + GroupID-qty only (no per-card material ribbon)</li>
+            <li>Order total = sum of GroupID-qty; batch total = sum of order totals</li>
+            <li>Width rows: <span class="mono">Width 6" · 2 bx</span> (per-height ceil)</li>
+            <li>Box math: <span class="mono">ceil(parts ÷ 4)</span> per group and per height</li>
           </ul>
         </div>
         <div class="box">
@@ -169,7 +169,7 @@
 
       <div class="footer">
         <span>DBS Drawers — Drawer Box Specialties</span>
-        <span>v2 · 159 tests</span>
+        <span>v2 · 169 tests</span>
       </div>
     </article>
   </body>

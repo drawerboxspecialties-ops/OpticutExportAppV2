@@ -10,7 +10,11 @@ import {
   getShipDateFromRow,
   shipDateGroupingToken,
 } from './shipDate.js';
-import { buildOrderGroupBoxTotalsFromRows } from './groupBoxes.js';
+import {
+  buildOrderGroupBoxTotalsFromRows,
+  reconcileOrderColTotals,
+  sumOrderColTotals,
+} from './groupBoxes.js';
 
 /**
  * Front/back top-edge priority rule:
@@ -316,8 +320,11 @@ export function splitDataIntoGroups(
         colIndices
       );
 
-      const { heightOrderBoxes, heightRowTotals, orderPartTotals, orderColTotals, totalBoxes } =
+      const { heightOrderBoxes, heightRowTotals, orderPartTotals, orderColTotals } =
         computeBoxMatrix(sortedHeights, sortedOrders, summaryData);
+
+      const reconciledOrderColTotals = reconcileOrderColTotals(orderColTotals, orderGroupBoxTotals);
+      const reconciledTotalBoxes = sumOrderColTotals(reconciledOrderColTotals, sortedOrders);
 
       finalizedGroups[finalKey] = {
         rows: finalRows,
@@ -333,8 +340,8 @@ export function splitDataIntoGroups(
         heightOrderBoxes,
         heightRowTotals,
         orderPartTotals,
-        orderColTotals,
-        totalBoxes,
+        orderColTotals: reconciledOrderColTotals,
+        totalBoxes: reconciledTotalBoxes,
         totalParts,
       };
     });

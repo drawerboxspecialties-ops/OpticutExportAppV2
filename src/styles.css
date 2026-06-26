@@ -1391,20 +1391,6 @@ tr:hover td {
   text-align: left !important;
 }
 
-.stack-batch-ribbon {
-  font-size: 7px;
-  font-weight: 800;
-  text-align: left;
-  background: #dbeafe;
-  color: #1e3a8a !important;
-  border-bottom: 1px solid #94a3b8;
-  padding: 2px 4px;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .stack-order-card--continued {
   break-before: avoid;
   page-break-before: avoid;

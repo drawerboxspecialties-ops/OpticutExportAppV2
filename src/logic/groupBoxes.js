@@ -41,6 +41,35 @@ export function buildOrderGroupBoxTotalsFromRows(rows, colIndices) {
 }
 
 /**
+ * Align per-order box totals with GroupID breakdown: each order's box count is the
+ * sum of ceil(parts/4) per group (not ceil of all parts together).
+ *
+ * @param {Record<string, number>} orderColTotals
+ * @param {Record<string, Array<{ boxes: number }>>} orderGroupBoxTotals
+ * @returns {Record<string, number>}
+ */
+export function reconcileOrderColTotals(orderColTotals, orderGroupBoxTotals) {
+  const reconciled = { ...orderColTotals };
+  Object.entries(orderGroupBoxTotals || {}).forEach(([order, groups]) => {
+    if (groups?.length) {
+      reconciled[order] = groups.reduce((sum, g) => sum + g.boxes, 0);
+    }
+  });
+  return reconciled;
+}
+
+/**
+ * Sum box counts for the given orders (batch total).
+ *
+ * @param {Record<string, number>} orderColTotals
+ * @param {string[]} sortedOrders
+ * @returns {number}
+ */
+export function sumOrderColTotals(orderColTotals, sortedOrders) {
+  return (sortedOrders || []).reduce((sum, order) => sum + (orderColTotals[order] ?? 0), 0);
+}
+
+/**
  * Sum parts per (order, GroupID) and convert each group to box count.
  * Uses pre-merge totals on the batch when present (rows may merge across GroupIDs).
  *

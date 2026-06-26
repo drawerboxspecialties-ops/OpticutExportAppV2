@@ -1,6 +1,6 @@
 import { computeBoxMatrix } from './boxMath.js';
 import { getSummaryHeight } from './widths.js';
-import { buildOrderGroupBoxTotalsFromRows } from './groupBoxes.js';
+import { buildOrderGroupBoxTotalsFromRows, reconcileOrderColTotals, sumOrderColTotals } from './groupBoxes.js';
 
 /**
  * Unique key for per-batch order inclusion/exclusion overrides.
@@ -51,7 +51,7 @@ export function applyBatchOrderExclusions(groups, exclusions, colIndices) {
 
     const sortedHeights = Array.from(uniqueHeights).sort((a, b) => parseFloat(b) - parseFloat(a));
     const sortedOrders = Array.from(uniqueOrders).sort();
-    const { heightOrderBoxes, heightRowTotals, orderPartTotals, orderColTotals, totalBoxes } =
+    const { heightOrderBoxes, heightRowTotals, orderPartTotals, orderColTotals } =
       computeBoxMatrix(sortedHeights, sortedOrders, summaryData);
 
     const orderGroupBoxTotals = batch.orderGroupBoxTotals
@@ -62,6 +62,9 @@ export function applyBatchOrderExclusions(groups, exclusions, colIndices) {
         )
       : buildOrderGroupBoxTotalsFromRows(rows, colIndices);
 
+    const reconciledOrderColTotals = reconcileOrderColTotals(orderColTotals, orderGroupBoxTotals);
+    const reconciledTotalBoxes = sumOrderColTotals(reconciledOrderColTotals, sortedOrders);
+
     result[batchKey] = {
       ...batch,
       rows,
@@ -70,8 +73,8 @@ export function applyBatchOrderExclusions(groups, exclusions, colIndices) {
       heightOrderBoxes,
       heightRowTotals,
       orderPartTotals,
-      orderColTotals,
-      totalBoxes,
+      orderColTotals: reconciledOrderColTotals,
+      totalBoxes: reconciledTotalBoxes,
       totalParts,
       orderGroupBoxTotals,
     };

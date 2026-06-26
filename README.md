@@ -16,8 +16,9 @@ high-risk business rule.
 - Strips batching-only columns (`GroupID`, `Laser`, Ship Date, and all secondary-operation columns) from exported CSVs.
 - Exports cut-list CSV files for OptiCut.
 - Prints operator-friendly stack matrix sheets with whole-number rounded widths,
-  per-GroupID box counts on order lines, all order numbers on the batch header,
-  blank ship dates on print, continuation cards, and compact page packing.
+  GroupID box counts beside each order (`602336 1-15, 2-3, 3-4`), all orders on the
+  batch header, blank ship dates on print, continuation cards, and compact page packing.
+- Cut-list preview shows full imported rows (Scoop, GroupID, etc.); export strips batching columns.
 - Export rounding is checked by default; it rounds `Width` up to whole numbers,
   merges matching rows, and records original width quantities in `Label`.
 - Supports excluding orders, materials, and top edges before export.
@@ -44,7 +45,7 @@ src/
     grouping.js         splitDataIntoGroups, B-edge priority, exclusions
     specialOrders.js    Special-order detection from secondary-operation columns
     shipDate.js         Ship-date batch grouping + print labels
-    groupBoxes.js       Per-GroupID box totals for print
+    groupBoxes.js       Per-GroupID box totals + order-total reconcile for print
     batchOrders.js      Per-batch order exclusions (sidebar panel)
     stackMatrix.js      Stack matrix sections + print packing
     exportRows.js       Cut-list export rows, rounded-width merge + Label
@@ -95,6 +96,8 @@ These rules are encoded in the logic modules and protected by tests. Changing
 them may break shop-floor operations:
 
 - `Math.ceil(parts / 4)` box math (`src/logic/boxMath.js`)
+- When GroupID exists, order box total = sum of per-group `ceil(parts/4)` so print
+  GroupID-qty always matches the order total (`src/logic/groupBoxes.js`)
 - Grouping by `Width` (drawer height) instead of `W` (`src/logic/widths.js`)
 - Rounding stack matrix `Width` up to whole numbers for operator guidance
 - Rounded-width export checked ON by default, original widths recorded in `Label`

@@ -2,7 +2,6 @@
  * Generates public/PRESENTATION.pdf from public/presentation.html
  * using Puppeteer (print-to-PDF). Run: npm run presentation:pdf
  */
-import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';

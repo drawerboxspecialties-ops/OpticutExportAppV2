@@ -3,6 +3,7 @@ import { mapHeaders } from '../src/logic/headers.js';
 import {
   buildOrderGroupBoxTotals,
   formatOrderGroupBoxLabel,
+  reconcileOrderColTotals,
 } from '../src/logic/groupBoxes.js';
 
 const headers = [
@@ -65,7 +66,7 @@ describe('buildOrderGroupBoxTotals', () => {
   it('uses pre-merge orderGroupBoxTotals when rows merged across GroupIDs', () => {
     const batch = {
       rows: [row('602336', '2', 7, 'F')],
-      orderColTotals: { 602336: 18 },
+      orderColTotals: { 602336: 22 },
       orderGroupBoxTotals: {
         602336: [
           { groupId: '1', parts: 58, boxes: 15 },
@@ -75,5 +76,24 @@ describe('buildOrderGroupBoxTotals', () => {
       },
     };
     expect(formatOrderGroupBoxLabel('602336', batch, cols)).toBe('1-15, 2-3, 3-4');
+  });
+});
+
+describe('reconcileOrderColTotals', () => {
+  it('sets order total to the sum of per-GroupID box counts', () => {
+    const orderGroupBoxTotals = {
+      O1: [
+        { groupId: '1', parts: 1, boxes: 1 },
+        { groupId: '2', parts: 1, boxes: 1 },
+        { groupId: '3', parts: 1, boxes: 1 },
+      ],
+    };
+    const reconciled = reconcileOrderColTotals({ O1: 1 }, orderGroupBoxTotals);
+    expect(reconciled.O1).toBe(3);
+  });
+
+  it('leaves orders without GroupID data on ceil(parts/4) totals', () => {
+    const reconciled = reconcileOrderColTotals({ O2: 5 }, {});
+    expect(reconciled.O2).toBe(5);
   });
 });

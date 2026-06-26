@@ -1,11 +1,13 @@
 /**
  * Box math for the stack matrix and batch totals.
  *
- * Critical business rule (from docs/Development Notes.md):
+ * Critical business rule:
  *   boxes = Math.ceil(parts / 4)
  *
- * Do NOT change the divisor or the rounding without explicit sign-off —
- * this drives operator box counts and printed stack sheets.
+ * Per-height cells use ceil(parts/4) per cell. When GroupID data exists,
+ * per-order totals are reconciled to the sum of per-group boxes (see groupBoxes.js).
+ *
+ * Do NOT change the divisor or the rounding without explicit sign-off.
  */
 
 /**
@@ -25,8 +27,8 @@ export function boxesForParts(parts) {
  *   - boxes = Math.ceil(parts / 4).
  *   - heightRowTotals[h] = sum of boxes across orders for that height.
  *   - orderPartTotals[order] = sum of raw parts across heights.
- *   - orderColTotals[order] = Math.ceil(orderPartTotals[order] / 4).
- *   - totalBoxes = sum of orderColTotals.
+ *   - orderColTotals[order] = Math.ceil(orderPartTotals[order] / 4) before GroupID reconcile.
+ *   - After batching, grouping.js may replace orderColTotals with sum of per-GroupID boxes.
  *
  * @param {string[]} sortedHeights
  * @param {string[]} sortedOrders
