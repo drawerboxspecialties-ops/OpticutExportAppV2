@@ -23,6 +23,45 @@ import {
 
 const $ = (id) => document.getElementById(id);
 
+const TOAST_ICONS = {
+  success: '✅',
+  info: 'ℹ️',
+  warning: '⚠️',
+  danger: '⛔',
+};
+
+/**
+ * Show a non-blocking toast notification. Falls back to no-op if the container
+ * is missing (e.g. during tests). Errors and required-acknowledgment warnings
+ * still use alert() so the user must see them.
+ *
+ * @param {string} message
+ * @param {'success'|'info'|'warning'|'danger'} [type='info']
+ * @param {number} [duration=3500] milliseconds before auto-dismiss
+ */
+function showToast(message, type = 'info', duration = 3500) {
+  const container = $('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.setAttribute('role', type === 'danger' ? 'alert' : 'status');
+  toast.innerHTML = `
+    <span class="toast-icon" aria-hidden="true">${TOAST_ICONS[type] || 'ℹ️'}</span>
+    <span class="toast-message"></span>
+    <button type="button" class="toast-close" aria-label="Dismiss notification">×</button>
+  `;
+  toast.querySelector('.toast-message').textContent = message;
+  container.appendChild(toast);
+
+  const close = () => {
+    if (!toast.parentNode) return;
+    toast.classList.add('fade-out');
+    setTimeout(() => toast.remove(), 250);
+  };
+  toast.querySelector('.toast-close').addEventListener('click', close);
+  if (duration > 0) setTimeout(close, duration);
+}
+
 const state = {
   parsedHeaders: [],
   parsedRows: [],
@@ -101,6 +140,10 @@ function parseAndLoad(text) {
   state.expandedBatches = new Set();
   validateRows();
   rebuild();
+  const batchCount = Object.keys(state.splitGroups).length;
+  if (batchCount > 0) {
+    showToast(`Loaded ${rows.length} rows into ${batchCount} batch${batchCount === 1 ? '' : 'es'}.`, 'success');
+  }
 }
 
 function validateRows() {
@@ -324,9 +367,12 @@ function renderBatchOrdersPanel(batchKey, batch) {
 function renderBatchTabs() {
   const container = $('category-tabs');
   container.innerHTML = '';
-  Object.keys(state.splitGroups)
-    .sort()
-    .forEach((batchKey) => {
+  const batchKeys = Object.keys(state.splitGroups).sort();
+  if (batchKeys.length === 0) {
+    container.innerHTML = `<div class="batch-empty-state">No batches match the current filters or exclusions.<br>Adjust filters above or load a different CSV.</div>`;
+    return;
+  }
+  batchKeys.forEach((batchKey) => {
       const batch = state.splitGroups[batchKey];
       const wrapper = document.createElement('div');
       wrapper.className = 'batch-item';
@@ -355,7 +401,10 @@ function renderBatchTabs() {
         ? '<span class="batch-special-badge">SPECIAL</span>'
         : '';
       const shipMeta = formatBatchShipMeta(batch);
-      btn.innerHTML = `<span class="batch-name">${escapeHTML(batchKey)}${specialBadge}</span><span class="batch-meta">${batch.totalBoxes} Boxes • ${batch.sortedOrders.length} Orders${escapeHTML(shipMeta)}</span>`;
+      const orderCount = batch.sortedOrders.length;
+      const boxLabel = `${batch.totalBoxes} ${batch.totalBoxes === 1 ? 'Box' : 'Boxes'}`;
+      const orderLabel = `${orderCount} ${orderCount === 1 ? 'Order' : 'Orders'}`;
+      btn.innerHTML = `<span class="batch-name">${escapeHTML(batchKey)}${specialBadge}</span><span class="batch-meta">${boxLabel} • ${orderLabel}${escapeHTML(shipMeta)}</span>`;
       btn.addEventListener('click', () => selectGroup(batchKey));
 
       const splitBtn = document.createElement('button');
@@ -650,14 +699,18 @@ function deleteBatch(batchKey) {
   const batch = state.splitGroups[batchKey];
   if (!batch) return;
   if (confirm(`Are you sure you want to delete the batch "${batchKey}"? This will exclude all orders in this batch.`)) {
-    (batch.sortedOrders || []).forEach((order) => {
+    const orders = batch.sortedOrders || [];
+    orders.forEach((order) => {
       const orderStr = String(order).trim();
       if (!state.excludedOrders.includes(orderStr)) {
         state.excludedOrders.push(orderStr);
       }
     });
     applyExclusionsAndRebuild();
-    alert(`Batch "${batchKey}" deleted (Orders excluded: ${(batch.sortedOrders || []).join(', ')}).`);
+    showToast(
+      `Batch "${batchKey}" deleted. ${orders.length} order${orders.length === 1 ? '' : 's'} excluded.`,
+      'success'
+    );
   }
 }
 
@@ -817,10 +870,10 @@ function shareApplication() {
   const url = window.location.href;
   navigator.clipboard
     .writeText(url)
-    .then(() => alert('Application URL successfully copied to clipboard!'))
+    .then(() => showToast('Application URL copied to clipboard!', 'success'))
     .catch((err) => {
       console.error('Could not copy text: ', err);
-      alert('Failed to copy URL automatically. Here is the link: ' + url);
+      showToast('Could not copy URL automatically. Link: ' + url, 'warning', 6000);
     });
 }
 
@@ -866,7 +919,20 @@ function wireEvents() {
   $('demo-link').addEventListener('click', loadDemoData);
   $('btn-apply-max-orders').addEventListener('click', updateMaxOrdersSplit);
   $('max-orders-input').value = String(state.maxOrdersPerBatch);
+  $('max-orders-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      updateMaxOrdersSplit();
+    }
+  });
   $('batch-search-input').addEventListener('input', filterBatches);
+  $('batch-search-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.target.value = '';
+      filterBatches();
+      e.target.blur();
+    }
+  });
 
   $('btn-exclude-order').addEventListener('click', excludeOrder);
   $('btn-exclude-material').addEventListener('click', excludeMaterial);

@@ -153,6 +153,7 @@
                   <input type="number" id="max-orders-input" class="input input--small" value="999" min="1" />
                   <button id="btn-apply-max-orders" class="btn btn-secondary btn--sm" type="button">Apply</button>
                 </div>
+                <p class="split-config-hint">Batches with more orders than this split into multiple files.</p>
               </div>
 
               <label for="batch-search-input" class="sr-only">Search by Order #</label>
@@ -161,8 +162,8 @@
               <div id="exclude-order-section" class="control-panel" hidden>
                 <div class="control-panel-header">
                   <span>Filter Out Rows</span>
-                  <span class="control-panel-remove">Remove</span>
                 </div>
+                <p class="control-panel-hint">Pick an order, material, or top edge, then press <b>−</b> to remove it from the batches.</p>
 
                 <datalist id="material-options"></datalist>
                 <datalist id="top-edge-options"></datalist>
@@ -224,17 +225,28 @@
                   <div id="excluded-orders-bag" class="excluded-bag"></div>
                 </div>
 
-                <label class="checkbox-row checkbox-row--bordered">
+                <div class="options-divider">Options</div>
+
+                <label class="checkbox-row">
                   <input type="checkbox" id="chk-separate-special-orders" checked />
-                  Separate special orders (Scoop, Slope, Dividers, Drill, File Slots — not Laser/GroupID) into SPECIAL batches
-                </label>
-                <label class="checkbox-row checkbox-row--bordered">
-                  <input type="checkbox" id="chk-include-excluded-in-export" />
-                  Add removed rows back to CSV export
+                  <span class="checkbox-text">
+                    <span class="checkbox-title">Separate special orders</span>
+                    <span class="checkbox-help">Scoop, Slope, Dividers, Drill, File Slots go to <b>SPECIAL</b> batches (Laser &amp; GroupID ignored).</span>
+                  </span>
                 </label>
                 <label class="checkbox-row">
                   <input type="checkbox" id="chk-round-export-widths" checked />
-                  Round export Width up to whole numbers
+                  <span class="checkbox-text">
+                    <span class="checkbox-title">Round export Width to whole numbers</span>
+                    <span class="checkbox-help">Merges matching rows; originals recorded in Label.</span>
+                  </span>
+                </label>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="chk-include-excluded-in-export" />
+                  <span class="checkbox-text">
+                    <span class="checkbox-title">Add removed rows back to CSV export</span>
+                    <span class="checkbox-help">Keeps filtered-out rows in exported files only.</span>
+                  </span>
                 </label>
               </div>
 
@@ -246,6 +258,8 @@
     </main>
 
     <footer class="app-footer">DBS Drawers • High Quality Custom Drawer Boxes</footer>
+
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
     <div id="all-print-container" class="print-only" aria-hidden="true"></div>
 
