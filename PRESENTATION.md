@@ -58,7 +58,9 @@ An order is **special** when **any row** has a real value (not blank, not `None`
 
 `Scoop`, `Slope`, `DividersFB`, `DividersSS`, `DrillFront`, or `FileSlots`
 
-Special orders get **`SPECIAL_`** batches using the same rules as normal batches: **material + top edge + ship date**. They never share a batch with normal orders of the same material/edge/date. **GroupID is not used** for batching — whole sales orders stay together. Detection uses Scoop, Slope, Dividers, DrillFront, and FileSlots at the order level; catalog scoop sizes like `#4 4" x 1"` are normal. **Laser is ignored.**
+Special orders get **`SPECIAL_`** batches using the same rules as normal batches: **material + top edge + ship date**. They never share a batch with normal orders of the same material/edge/date.
+
+**Whole sales order rule:** if **any row** on an order has a non-`None` value in Scoop, Slope, DividersFB, DividersSS, DrillFront, or FileSlots, the **entire order** is special — every row batches in `SPECIAL_`, never split across normal and special. **Laser** and **GroupID** are ignored for detection.
 
 ### Step 4 — Batch grouping
 

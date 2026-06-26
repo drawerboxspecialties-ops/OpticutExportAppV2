@@ -119,8 +119,9 @@
           <strong>Batch rules</strong>
           <ul>
             <li>Split by material category + top edge + <b>ship date</b></li>
-            <li><b>Special</b> batches: material + top edge + ship date + <span class="mono">SPECIAL_</span> (never mixed with normal; GroupID ignored)</li>
-            <li><b>Laser is ignored</b> for special batches (Yes/No does not matter)</li>
+            <li><b>Special</b> batches: <span class="mono">SPECIAL_</span> + material + top edge + ship date (never mixed with normal)</li>
+            <li>If <b>any row</b> on a sales order has Scoop/Slope/Dividers/Drill/FileSlots ≠ None → <b>whole order</b> is special (not split by row or GroupID)</li>
+            <li><b>Laser is ignored</b> for special detection</li>
             <li>Each order in exactly one batch; max-orders split available</li>
           </ul>
         </div>

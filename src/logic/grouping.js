@@ -231,8 +231,8 @@ function buildSummaryData(finalRows, colIndices) {
  * index.html implementation.
  *
  * When separateSpecialOrders is true, special orders batch by material + top edge +
- * ship date (SPECIAL_ prefix) — same rules as normal batches, never mixed with normal
- * orders. GroupID is not used for batching; whole sales orders stay together.
+ * ship date (SPECIAL_ prefix). If any row on a sales order is special, the entire
+ * order is special — rows are never split between normal and SPECIAL batches.
  *
  * @param {string[][]} rows
  * @param {object} colIndices

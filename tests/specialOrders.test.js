@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   isSpecialOrderValue,
-  isCatalogScoopSpec,
   getSpecialOrderNumbers,
   SPECIAL_ORDER_COLUMN_KEYS,
 } from '../src/logic/specialOrders.js';
@@ -21,14 +20,9 @@ describe('isSpecialOrderValue', () => {
   it('treats any other value as special', () => {
     expect(isSpecialOrderValue('Type #1')).toBe(true);
     expect(isSpecialOrderValue('#1     2 Hole')).toBe(true);
+    expect(isSpecialOrderValue('#4     4" x 1"')).toBe(true);
     expect(isSpecialOrderValue('1 - Removable')).toBe(true);
     expect(isSpecialOrderValue('Yes')).toBe(true);
-  });
-
-  it('treats catalog scoop size specs as not special', () => {
-    expect(isCatalogScoopSpec('#4     4" x 1"')).toBe(true);
-    expect(isSpecialOrderValue('#4     4" x 1"', 'scoop')).toBe(false);
-    expect(isSpecialOrderValue('#4     4" x 1"')).toBe(true);
   });
 });
 
@@ -43,11 +37,11 @@ describe('getSpecialOrderNumbers', () => {
     [order, 'PF: 12MM Baltic Birch Ply', 'F', '6', '25', '1', '', '6', 'Clear Foil Bullnose',
       'Yes', 'None', 'None', 'None', 'None', 'None', 'None'];
 
-  it('does not flag orders when only catalog scoop sizes are set', () => {
+  it('flags an order special when scoop has any non-none value', () => {
     const rows = [
       [...normalRow('602336')].map((v, i) => (i === cols.scoop ? '#4     4" x 1"' : v)),
     ];
-    expect(getSpecialOrderNumbers(rows, cols).has('602336')).toBe(false);
+    expect(getSpecialOrderNumbers(rows, cols).has('602336')).toBe(true);
   });
 
   it('flags an order special when any row has a non-none special value', () => {
@@ -156,5 +150,21 @@ describe('splitDataIntoGroups with special-order separation', () => {
     expect(specialKeys).toHaveLength(1);
     expect(groups[specialKeys[0]].sortedOrders).toEqual(['601882', '601883']);
     expect(groups[specialKeys[0]].isSpecial).toBe(true);
+  });
+
+  it('routes every row of a mixed order to SPECIAL when any row is special', () => {
+    const rows = [
+      row('602336'),
+      row('602336', { scoop: '#4     4" x 1"' }),
+      row('601881'),
+    ];
+    const groups = splitDataIntoGroups(rows, cols, 999, {}, true);
+    const specialKeys = Object.keys(groups).filter((k) => k.startsWith('SPECIAL_'));
+    const normalKeys = Object.keys(groups).filter((k) => !k.startsWith('SPECIAL_'));
+    expect(specialKeys).toHaveLength(1);
+    expect(normalKeys).toHaveLength(1);
+    expect(groups[specialKeys[0]].sortedOrders).toEqual(['602336']);
+    expect(groups[specialKeys[0]].totalParts).toBe(2);
+    expect(groups[normalKeys[0]].sortedOrders).toEqual(['601881']);
   });
 });
