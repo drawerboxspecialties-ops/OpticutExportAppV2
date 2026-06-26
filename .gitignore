@@ -8,3 +8,5 @@ coverage
 !docs/PRESENTATION.pdf
 .vscode/*
 !.vscode/extensions.json
+
+._walkthrough.csv
