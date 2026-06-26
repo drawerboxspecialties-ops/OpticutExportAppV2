@@ -1,6 +1,7 @@
 import { getExportMaterialName } from './materialNames.js';
 import { roundWidthUpToWhole, formatDecimalForDisplay } from './widths.js';
 import { formatWidthQtyNote } from './stackMatrix.js';
+import { getBatchingOnlyColumnIndices } from './headers.js';
 
 /**
  * Build a base export row: clean material name, optionally round Width up,
@@ -32,12 +33,20 @@ export function prepareBaseExportRow(row, colIndices, roundWidth = false) {
  * Merge key for rounded-width export: all columns except Quantity and Label.
  * @param {string[]} exportRow
  * @param {object} colIndices
+ * @param {number[]} [excludedIndices=[]] column indices omitted from the merge key
  * @returns {string}
  */
-export function getRoundedExportMergeKey(exportRow, colIndices) {
+export function getRoundedExportMergeKey(exportRow, colIndices, excludedIndices = []) {
+  const excluded = new Set(excludedIndices);
   return exportRow
     .map((value, idx) => {
-      if (idx === colIndices.quantity || idx === colIndices.label) return '';
+      if (
+        idx === colIndices.quantity ||
+        idx === colIndices.label ||
+        excluded.has(idx)
+      ) {
+        return '';
+      }
       return String(value ?? '').trim();
     })
     .join('|');
@@ -63,16 +72,19 @@ function addCountToMap(map, key, qty) {
  * @param {string[][]} rows
  * @param {object} colIndices
  * @param {boolean} roundExportWidths
+ * @param {string[]} [headers] when provided, batching-only columns are excluded from merge keys
  * @returns {string[][]}
  */
-export function getCutListRowsForExport(rows, colIndices, roundExportWidths) {
+export function getCutListRowsForExport(rows, colIndices, roundExportWidths, headers = null) {
   if (colIndices.materialName === -1) return rows;
+
+  const excludedIndices = headers ? getBatchingOnlyColumnIndices(headers) : [];
 
   if (roundExportWidths && colIndices.width !== -1) {
     const merged = {};
     rows.forEach((row) => {
       const exportRow = prepareBaseExportRow(row, colIndices, true);
-      const key = getRoundedExportMergeKey(exportRow, colIndices);
+      const key = getRoundedExportMergeKey(exportRow, colIndices, excludedIndices);
       const qty = parseInt(row[colIndices.quantity]) || 0;
       const originalWidth =
         colIndices.width !== -1 && colIndices.width < row.length

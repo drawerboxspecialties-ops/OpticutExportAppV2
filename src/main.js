@@ -1,6 +1,6 @@
 import './styles.css';
 import { parseCSV, convertToCSV, escapeHTML, escapeAttr } from './logic/csv.js';
-import { mapHeaders } from './logic/headers.js';
+import { mapHeaders, filterForExport } from './logic/headers.js';
 import { cleanMaterialName } from './logic/materialNames.js';
 import { normalizeTopEdgeName } from './logic/topEdges.js';
 import {
@@ -58,6 +58,11 @@ function rowTopEdgeName(row) {
 
 function shouldRoundExportWidths() {
   return !!$('chk-round-export-widths')?.checked;
+}
+
+function shouldSeparateSpecialOrders() {
+  const el = $('chk-separate-special-orders');
+  return el ? !!el.checked : true;
 }
 
 function processFile(file) {
@@ -128,7 +133,8 @@ function rebuild() {
     state.parsedRows,
     state.colIndices,
     state.maxOrdersPerBatch,
-    state.groupSplitLimits
+    state.groupSplitLimits,
+    shouldSeparateSpecialOrders()
   );
   showWorkspace();
 }
@@ -214,7 +220,10 @@ function renderBatchTabs() {
       btn.type = 'button';
       btn.className = 'batch-btn';
       btn.id = `tab-${batchKey}`;
-      btn.innerHTML = `<span class="batch-name">${escapeHTML(batchKey)}</span><span class="batch-meta">${batch.totalBoxes} Boxes • ${batch.sortedOrders.length} Orders</span>`;
+      const specialBadge = batch.isSpecial
+        ? '<span class="batch-special-badge">SPECIAL</span>'
+        : '';
+      btn.innerHTML = `<span class="batch-name">${escapeHTML(batchKey)}${specialBadge}</span><span class="batch-meta">${batch.totalBoxes} Boxes • ${batch.sortedOrders.length} Orders</span>`;
       btn.addEventListener('click', () => selectGroup(batchKey));
 
       const splitBtn = document.createElement('button');
@@ -541,7 +550,8 @@ function getExportGroups() {
       state.originalParsedRows,
       state.colIndices,
       state.maxOrdersPerBatch,
-      state.groupSplitLimits
+      state.groupSplitLimits,
+      shouldSeparateSpecialOrders()
     );
   }
   return state.splitGroups;
@@ -554,10 +564,14 @@ function downloadCurrentFile() {
     alert('Batch not found for export.');
     return;
   }
-  const csv = convertToCSV(
-    state.parsedHeaders,
-    getCutListRowsForExport(batch.rows, state.colIndices, shouldRoundExportWidths())
+  const cutRows = getCutListRowsForExport(
+    batch.rows,
+    state.colIndices,
+    shouldRoundExportWidths(),
+    state.parsedHeaders
   );
+  const { headers, rows } = filterForExport(state.parsedHeaders, cutRows);
+  const csv = convertToCSV(headers, rows);
   triggerDownload(csv, `${state.activeGroupKey}.csv`);
 }
 
@@ -580,13 +594,14 @@ async function downloadAllZip() {
   let added = false;
   Object.keys(exportGroups).forEach((batchKey) => {
     const batch = exportGroups[batchKey];
-    zip.file(
-      `${batchKey}.csv`,
-      convertToCSV(
-        state.parsedHeaders,
-        getCutListRowsForExport(batch.rows, state.colIndices, shouldRoundExportWidths())
-      )
+    const cutRows = getCutListRowsForExport(
+      batch.rows,
+      state.colIndices,
+      shouldRoundExportWidths(),
+      state.parsedHeaders
     );
+    const { headers, rows } = filterForExport(state.parsedHeaders, cutRows);
+    zip.file(`${batchKey}.csv`, convertToCSV(headers, rows));
     added = true;
   });
   if (added) {
@@ -732,6 +747,10 @@ function wireEvents() {
   $('chk-round-export-widths').addEventListener('change', (e) =>
     handleRoundExportWidthToggle(e.target)
   );
+
+  $('chk-separate-special-orders').addEventListener('change', () => {
+    if (state.colIndices) rebuild();
+  });
 
   $('error-toggle').addEventListener('click', toggleErrorDetails);
 

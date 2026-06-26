@@ -12,6 +12,8 @@ high-risk business rule.
 - Parses Allmoxy CSV files in the browser.
 - Normalizes material names and top edge names.
 - Groups rows into material/top-edge batches.
+- Separates **special orders** (Scoop, Slope, Dividers, DrillFront, FileSlots) into `SPECIAL_` batches when enabled (default ON).
+- Strips batching-only columns (`GroupID`, `Laser`, and all secondary-operation columns) from exported CSVs.
 - Exports cut-list CSV files for OptiCut.
 - Prints operator-friendly stack matrix sheets with whole-number rounded widths,
   `W` quantity notes, continuation cards, and compact page packing.
@@ -39,6 +41,7 @@ src/
     topEdges.js         Top edge normalization + edge codes
     splitOrders.js      Round-robin split-batch distribution + validation
     grouping.js         splitDataIntoGroups, B-edge priority, exclusions
+    specialOrders.js    Special-order detection from secondary-operation columns
     stackMatrix.js      Stack matrix sections + print packing
     exportRows.js       Cut-list export rows, rounded-width merge + Label
     settingsStore.js    Persistent settings (localStorage)
@@ -94,6 +97,8 @@ them may break shop-floor operations:
 - Warning before turning rounded-width export OFF
 - `B` top-edge priority for matching `F` rows (`src/logic/grouping.js`)
 - Each order appears in exactly one split batch (`src/logic/splitOrders.js`)
+- Special orders never share a batch with normal orders of the same material/edge (`src/logic/specialOrders.js`)
+- Batching-only columns are excluded from export CSV (`src/logic/headers.js` → `filterForExport`)
 - Print-only continuation cards for tall single orders (`src/logic/stackMatrix.js`)
 - Export material names ≤ 32 chars, thickness at end, PF/HRM/12mm rules
   (`src/logic/materialNames.js`)

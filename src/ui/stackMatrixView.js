@@ -3,7 +3,6 @@ import { formatDecimalForDisplay } from '../logic/widths.js';
 import {
   getStackMatrixSections,
   getStackItemWItems,
-  formatWidthQtyNote,
   splitSectionForPrint,
 } from '../logic/stackMatrix.js';
 import { getExportMaterialName } from '../logic/materialNames.js';
@@ -17,7 +16,7 @@ function formatWidthHeader(widthGroup) {
   return `<span>Width ${escapeHTML(formatDecimalForDisplay(widthGroup.width))}"</span>`;
 }
 
-function formatStackCell(item, printMode, roundedWidth, onToggleFnName) {
+function formatStackCell(item, printMode, roundedWidth) {
   if (!item) {
     return `<span class="stack-cell-empty">-</span>`;
   }
@@ -25,7 +24,6 @@ function formatStackCell(item, printMode, roundedWidth, onToggleFnName) {
   const wNote = wItems.length
     ? `<div class="w-note">${wItems.map((w) => `W: ${escapeHTML(w.value)} (${w.qty})`).join('<br>')}</div>`
     : '';
-  const onToggle = onToggleFnName ? `onclick="${onToggleFnName}(this, '${'__rowId__'}')"` : '';
   if (printMode) {
     return `<div><b>${escapeHTML(formatDecimalForDisplay(item.length))}"</b> x${item.qty}</div>${wNote}`;
   }

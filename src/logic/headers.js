@@ -1,3 +1,57 @@
+/** Normalize a header for comparison (case/spacing insensitive). */
+export function normalizeHeaderName(header) {
+  return String(header ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_-]/g, '');
+}
+
+/**
+ * Columns used only for in-app batching / special-order detection — never written to export CSV.
+ */
+export const BATCHING_ONLY_NORMALIZED_HEADERS = new Set([
+  'groupid',
+  'laser',
+  'scoop',
+  'slope',
+  'dividersfb',
+  'dividersss',
+  'drillfront',
+  'fileslots',
+]);
+
+/** @param {string} header */
+export function isBatchingOnlyHeader(header) {
+  return BATCHING_ONLY_NORMALIZED_HEADERS.has(normalizeHeaderName(header));
+}
+
+/**
+ * @param {string[]} headers
+ * @returns {number[]} indices of batching-only columns
+ */
+export function getBatchingOnlyColumnIndices(headers) {
+  return headers
+    .map((header, idx) => (isBatchingOnlyHeader(header) ? idx : -1))
+    .filter((idx) => idx !== -1);
+}
+
+/**
+ * Strip batching-only columns from headers and rows for OptiCut export.
+ *
+ * @param {string[]} headers
+ * @param {string[][]} rows
+ * @returns {{ headers: string[], rows: string[][] }}
+ */
+export function filterForExport(headers, rows) {
+  const keptIndices = headers
+    .map((header, idx) => (isBatchingOnlyHeader(header) ? -1 : idx))
+    .filter((idx) => idx !== -1);
+  return {
+    headers: keptIndices.map((idx) => headers[idx]),
+    rows: rows.map((row) => keptIndices.map((idx) => row[idx] ?? '')),
+  };
+}
+
 /**
  * Map CSV header names to column indices.
  *
@@ -21,7 +75,7 @@
  * }}
  */
 export function mapHeaders(headers) {
-  const headersLower = headers.map((h) => h.toLowerCase().trim().replace(/[\s_-]/g, ''));
+  const headersLower = headers.map((h) => normalizeHeaderName(h));
 
   const colIndices = {
     orderNumber: headersLower.findIndex((h) => h.includes('ordernumber') || h.includes('order') || h.includes('invoice')),
@@ -35,6 +89,16 @@ export function mapHeaders(headers) {
     // earlier "width" header — mirrors the original implementation exactly.
     width: headersLower.lastIndexOf('width'),
     topEdge: headersLower.findIndex((h) => h.includes('topedge') || h.includes('edge')),
+    // Optional secondary-operation columns used to flag "special" orders.
+    // No positional fallback: they stay -1 when absent.
+    scoop: headersLower.findIndex((h) => h === 'scoop'),
+    slope: headersLower.findIndex((h) => h === 'slope'),
+    dividersFB: headersLower.findIndex((h) => h === 'dividersfb'),
+    dividersSS: headersLower.findIndex((h) => h === 'dividersss'),
+    drillFront: headersLower.findIndex((h) => h === 'drillfront'),
+    fileSlots: headersLower.findIndex((h) => h === 'fileslots'),
+    laser: headersLower.findIndex((h) => h === 'laser'),
+    groupId: headersLower.findIndex((h) => h === 'groupid'),
   };
 
   if (colIndices.orderNumber === -1) colIndices.orderNumber = 0;

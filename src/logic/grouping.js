@@ -4,6 +4,7 @@ import { scatterOrdersIntoChunks } from './splitOrders.js';
 import { CATEGORY_CODES, getMaterialCategory } from './categories.js';
 import { getSummaryHeight, getNumericSortValue, getFractionalSortValue } from './widths.js';
 import { computeBoxMatrix } from './boxMath.js';
+import { getSpecialOrderNumbers } from './specialOrders.js';
 
 /**
  * Front/back top-edge priority rule:
@@ -223,13 +224,28 @@ function buildSummaryData(finalRows, colIndices) {
  * This is the heart of the app. Behavior is preserved exactly from the original
  * index.html implementation.
  *
+ * When separateSpecialOrders is true, any order with a special secondary-operation
+ * value (Scoop, Slope, Dividers, DrillFront, FileSlots) is kept in SPECIAL_-prefixed
+ * batches so it never shares a batch with a normal order of the same material/edge.
+ *
  * @param {string[][]} rows
  * @param {object} colIndices
  * @param {number} maxOrdersPerBatch
  * @param {Record<string, number>} groupSplitLimits  keyed by raw tempKey
+ * @param {boolean} separateSpecialOrders
  * @returns {Record<string, object>} finalized groups keyed by batchKey
  */
-export function splitDataIntoGroups(rows, colIndices, maxOrdersPerBatch, groupSplitLimits = {}) {
+export function splitDataIntoGroups(
+  rows,
+  colIndices,
+  maxOrdersPerBatch,
+  groupSplitLimits = {},
+  separateSpecialOrders = false
+) {
+  const specialOrders = separateSpecialOrders
+    ? getSpecialOrderNumbers(rows, colIndices)
+    : new Set();
+
   const rawGroups = {};
   rows.forEach((row) => {
     const rawMaterial = row[colIndices.materialName] || '';
@@ -238,10 +254,13 @@ export function splitDataIntoGroups(rows, colIndices, maxOrdersPerBatch, groupSp
     const cat = getMaterialCategory(material, topEdge);
     const catCode = CATEGORY_CODES[cat];
     const edgeCode = getEdgeCode(topEdge);
-    const tempKey = `${catCode}_${edgeCode}_${material}_${topEdge}`;
+    const orderNum = String(row[colIndices.orderNumber] ?? '').trim();
+    const isSpecial = specialOrders.has(orderNum);
+    const prefix = isSpecial ? 'SPECIAL_' : '';
+    const tempKey = `${prefix}${catCode}_${edgeCode}_${material}_${topEdge}`;
 
     if (!rawGroups[tempKey]) {
-      rawGroups[tempKey] = { rows: [], materialName: material, topEdge, categoryName: cat };
+      rawGroups[tempKey] = { rows: [], materialName: material, topEdge, categoryName: cat, isSpecial };
     }
     rawGroups[tempKey].rows.push(row);
   });
@@ -265,7 +284,7 @@ export function splitDataIntoGroups(rows, colIndices, maxOrdersPerBatch, groupSp
       const firstOrder = chunk[0];
       const catCode = CATEGORY_CODES[g.categoryName];
       const edgeCode = getEdgeCode(g.topEdge);
-      const baseBatchKey = `${catCode}_${edgeCode}_${firstOrder}`;
+      const baseBatchKey = `${g.isSpecial ? 'SPECIAL_' : ''}${catCode}_${edgeCode}_${firstOrder}`;
 
       let finalKey = baseBatchKey;
       let counter = 1;
@@ -280,7 +299,7 @@ export function splitDataIntoGroups(rows, colIndices, maxOrdersPerBatch, groupSp
         colIndices
       );
 
-      const { heightOrderBoxes, heightRowTotals, orderPartTotals, orderColTotals, totalBoxes } =
+      const { heightOrderBoxes, heightRowTotals, orderColTotals, totalBoxes } =
         computeBoxMatrix(sortedHeights, sortedOrders, summaryData);
 
       finalizedGroups[finalKey] = {
@@ -289,6 +308,7 @@ export function splitDataIntoGroups(rows, colIndices, maxOrdersPerBatch, groupSp
         materialName: g.materialName,
         topEdge: g.topEdge,
         categoryName: g.categoryName,
+        isSpecial: g.isSpecial,
         sortedHeights,
         sortedOrders,
         heightOrderBoxes,

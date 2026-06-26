@@ -4,7 +4,7 @@ import {
   getRoundedExportMergeKey,
   getCutListRowsForExport,
 } from '../src/logic/exportRows.js';
-import { mapHeaders } from '../src/logic/headers.js';
+import { mapHeaders, filterForExport } from '../src/logic/headers.js';
 
 const cols = mapHeaders([
   'OrderNumber',
@@ -106,5 +106,37 @@ describe('getCutListRowsForExport — non-rounded export', () => {
     expect(out).toHaveLength(2);
     expect(out[0][cols.width]).toBe('3.937');
     expect(out[0][cols.label]).toBe('');
+  });
+});
+
+describe('filterForExport', () => {
+  const headers = [
+    'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge',
+    'GroupID', 'Laser', 'Scoop', 'Slope', 'DrillFront', 'DividersFB', 'DividersSS', 'FileSlots',
+  ];
+  const row = [
+    '602350', 'PF: 12MM Baltic Birch Ply', 'F', '6', '25', '1', '', '6', 'Clear Foil Bullnose',
+    'GRP-1', 'Yes', 'None', 'Type #1', '#1 2 Hole', '1 - Removable', '1 - Fixed', '1" Letter',
+  ];
+
+  it('removes GroupID and all batching-only secondary-operation columns', () => {
+    const { headers: outHeaders, rows } = filterForExport(headers, [row]);
+    expect(outHeaders).toEqual([
+      'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge',
+    ]);
+    expect(rows[0]).toHaveLength(9);
+    expect(rows[0][0]).toBe('602350');
+  });
+
+  it('merges rows that differ only in batching-only columns when rounding export', () => {
+    const extendedCols = mapHeaders(headers);
+    const rowA = [...row];
+    const rowB = [...row];
+    rowB[extendedCols.laser] = 'No';
+    rowB[extendedCols.scoop] = 'Type #2';
+    const out = getCutListRowsForExport([rowA, rowB], extendedCols, true, headers);
+    const filtered = filterForExport(headers, out);
+    expect(filtered.rows).toHaveLength(1);
+    expect(filtered.rows[0][extendedCols.quantity]).toBe('2');
   });
 });
