@@ -31,12 +31,27 @@ describe('buildOrderGroupBoxTotals', () => {
     ]);
   });
 
-  it('formats multiple groups as "id - bx" pairs', () => {
+  it('formats multiple groups as "id - bx" pairs when exactly two groups', () => {
     const batch = {
       rows: [row('602350', '1', 8), row('602350', '2', 4)],
       orderColTotals: { 602350: 3 },
     };
     expect(formatOrderGroupBoxLabel('602350', batch, cols)).toBe('1 - 2 bx, 2 - 1 bx');
+  });
+
+  it('shows order total when an order has one or three-plus GroupIDs', () => {
+    const batch = {
+      rows: [row('602336', '1', 8), row('602336', '2', 4), row('602336', '3', 4)],
+      orderColTotals: { 602336: 5 },
+      orderGroupBoxTotals: {
+        602336: [
+          { groupId: '1', parts: 8, boxes: 2 },
+          { groupId: '2', parts: 4, boxes: 1 },
+          { groupId: '3', parts: 4, boxes: 1 },
+        ],
+      },
+    };
+    expect(formatOrderGroupBoxLabel('602336', batch, cols)).toBe('5 bx');
   });
 
   it('falls back to order total boxes when GroupID column is absent', () => {
@@ -59,6 +74,6 @@ describe('buildOrderGroupBoxTotals', () => {
         ],
       },
     };
-    expect(formatOrderGroupBoxLabel('602336', batch, cols)).toBe('1 - 15 bx, 2 - 3 bx, 3 - 4 bx');
+    expect(formatOrderGroupBoxLabel('602336', batch, cols)).toBe('18 bx');
   });
 });

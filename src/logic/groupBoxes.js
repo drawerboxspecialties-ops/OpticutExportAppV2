@@ -65,7 +65,8 @@ export function buildOrderGroupBoxTotals(batch, colIndices) {
  */
 export function formatOrderGroupBoxLabel(order, batch, colIndices) {
   const groups = buildOrderGroupBoxTotals(batch, colIndices)[order];
-  if (groups?.length) {
+  // Per shop request: split label only when an order has exactly two GroupIDs.
+  if (groups?.length === 2) {
     return groups.map((g) => `${g.groupId} - ${g.boxes} bx`).join(', ');
   }
   const boxes = batch?.orderColTotals?.[order] ?? 0;

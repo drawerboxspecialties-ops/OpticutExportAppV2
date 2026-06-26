@@ -230,9 +230,9 @@ function buildSummaryData(finalRows, colIndices) {
  * This is the heart of the app. Behavior is preserved exactly from the original
  * index.html implementation.
  *
- * When separateSpecialOrders is true, any order with a special secondary-operation
- * value (Scoop, Slope, Dividers, DrillFront, FileSlots) is kept in SPECIAL_-prefixed
- * batches so it never shares a batch with a normal order of the same material/edge.
+ * When separateSpecialOrders is true, special orders batch by material + top edge +
+ * ship date (SPECIAL_ prefix) — same rules as normal batches, never mixed with normal
+ * orders. GroupID is not used for batching; whole sales orders stay together.
  *
  * @param {string[][]} rows
  * @param {object} colIndices

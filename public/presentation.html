@@ -119,7 +119,7 @@
           <strong>Batch rules</strong>
           <ul>
             <li>Split by material category + top edge + <b>ship date</b></li>
-            <li><b>Special</b> orders (SPECIAL_ prefix) when Scoop/Slope/Dividers/Drill/FileSlots ≠ None</li>
+            <li><b>Special</b> batches: material + top edge + ship date + <span class="mono">SPECIAL_</span> (never mixed with normal; GroupID ignored)</li>
             <li><b>Laser is ignored</b> for special batches (Yes/No does not matter)</li>
             <li>Each order in exactly one batch; max-orders split available</li>
           </ul>
@@ -136,7 +136,8 @@
           <ul>
             <li>Batch header: <b>total boxes</b> + <b>all order numbers</b> next to batch name</li>
             <li>Ship Date chip only when set — blank dates stay empty on print</li>
-            <li>Each order: <span class="mono">Order 602350 · 1 - 2 bx, 2 - 3 bx</span> (per GroupID when multiple)</li>
+            <li>Each order with <b>two</b> GroupIDs: <span class="mono">Order 602346 · 1 - 7 bx, 2 - 3 bx</span></li>
+            <li>One or three+ GroupIDs: order total only, e.g. <span class="mono">Order 602336 · 18 bx</span></li>
             <li>Width rows: <span class="mono">Width 6" · 2 bx</span></li>
             <li>Box math: <span class="mono">ceil(parts ÷ 4)</span></li>
           </ul>

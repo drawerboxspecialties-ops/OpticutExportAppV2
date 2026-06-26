@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isSpecialOrderValue,
+  isCatalogScoopSpec,
   getSpecialOrderNumbers,
   SPECIAL_ORDER_COLUMN_KEYS,
 } from '../src/logic/specialOrders.js';
@@ -23,6 +24,12 @@ describe('isSpecialOrderValue', () => {
     expect(isSpecialOrderValue('1 - Removable')).toBe(true);
     expect(isSpecialOrderValue('Yes')).toBe(true);
   });
+
+  it('treats catalog scoop size specs as not special', () => {
+    expect(isCatalogScoopSpec('#4     4" x 1"')).toBe(true);
+    expect(isSpecialOrderValue('#4     4" x 1"', 'scoop')).toBe(false);
+    expect(isSpecialOrderValue('#4     4" x 1"')).toBe(true);
+  });
 });
 
 describe('getSpecialOrderNumbers', () => {
@@ -35,6 +42,13 @@ describe('getSpecialOrderNumbers', () => {
   const normalRow = (order) =>
     [order, 'PF: 12MM Baltic Birch Ply', 'F', '6', '25', '1', '', '6', 'Clear Foil Bullnose',
       'Yes', 'None', 'None', 'None', 'None', 'None', 'None'];
+
+  it('does not flag orders when only catalog scoop sizes are set', () => {
+    const rows = [
+      [...normalRow('602336')].map((v, i) => (i === cols.scoop ? '#4     4" x 1"' : v)),
+    ];
+    expect(getSpecialOrderNumbers(rows, cols).has('602336')).toBe(false);
+  });
 
   it('flags an order special when any row has a non-none special value', () => {
     const rows = [
@@ -129,5 +143,18 @@ describe('splitDataIntoGroups with special-order separation', () => {
     expect(special.has('701')).toBe(false);
     const groups = splitDataIntoGroups(rows, cols, 999, {}, true);
     expect(Object.keys(groups).every((k) => !k.startsWith('SPECIAL_'))).toBe(true);
+  });
+
+  it('groups special orders by material, top edge, and ship date', () => {
+    const rows = [
+      row('601881'),
+      row('601882', { drillFront: '#1     2 Hole' }),
+      row('601883', { slope: 'Type #1' }),
+    ];
+    const groups = splitDataIntoGroups(rows, cols, 999, {}, true);
+    const specialKeys = Object.keys(groups).filter((k) => k.startsWith('SPECIAL_'));
+    expect(specialKeys).toHaveLength(1);
+    expect(groups[specialKeys[0]].sortedOrders).toEqual(['601882', '601883']);
+    expect(groups[specialKeys[0]].isSpecial).toBe(true);
   });
 });
