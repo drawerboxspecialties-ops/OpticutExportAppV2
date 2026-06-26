@@ -14,16 +14,18 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,mjs,css,html,md,json}\"",
     "format:check": "prettier --check \"**/*.{js,mjs,css,html,md,json}\"",
-    "deploy": "npm run build && node scripts/publish-docs.mjs"
+    "deploy": "npm run build && node scripts/publish-docs.mjs",
+    "presentation:pdf": "node scripts/generate-presentation-pdf.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
-    "gh-pages": "^6.1.1",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
+    "gh-pages": "^6.1.1",
     "globals": "^15.0.0",
     "jszip": "^3.10.1",
     "prettier": "^3.3.0",
+    "puppeteer": "^25.2.1",
     "vite": "^5.3.0",
     "vitest": "^2.0.0"
   }

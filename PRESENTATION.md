@@ -11,6 +11,8 @@ This app runs entirely in the browser. No server, no upload. You drop in a CSV a
 
 **Live app:** https://drawerboxspecialties-ops.github.io/OpticutExportAppV2/
 
+**One-page PDF guide:** open **Guide** in the app header, or download [PRESENTATION.pdf](public/PRESENTATION.pdf). Regenerate with `npm run presentation:pdf`.
+
 ---
 
 ## What you get

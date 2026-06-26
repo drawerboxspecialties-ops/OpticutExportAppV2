@@ -4,5 +4,7 @@ coverage
 .DS_Store
 *.local
 *.pdf
+!public/PRESENTATION.pdf
+!docs/PRESENTATION.pdf
 .vscode/*
 !.vscode/extensions.json

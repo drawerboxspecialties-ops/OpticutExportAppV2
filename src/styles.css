@@ -79,6 +79,17 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.header-actions .btn {
+  text-decoration: none;
+}
+
 .brand {
   display: flex;
   flex-direction: column;
