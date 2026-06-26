@@ -37,9 +37,10 @@ export function getSpecialOrderNumbers(rows, colIndices) {
   const special = new Set();
   if (!colIndices || colIndices.orderNumber === -1) return special;
 
-  const specialCols = SPECIAL_ORDER_COLUMN_KEYS
-    .map((key) => colIndices[key])
-    .filter((idx) => typeof idx === 'number' && idx !== -1);
+  const laserIdx = colIndices.laser;
+  const specialCols = SPECIAL_ORDER_COLUMN_KEYS.map((key) => colIndices[key]).filter(
+    (idx) => typeof idx === 'number' && idx !== -1 && idx !== laserIdx
+  );
   if (specialCols.length === 0) return special;
 
   rows.forEach((row) => {

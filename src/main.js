@@ -278,7 +278,10 @@ function renderBatchOrdersPanel(batchKey, batch) {
     const li = document.createElement('li');
     li.className = 'batch-order-row';
     li.innerHTML = `
-      <span class="batch-order-label">#${escapeHTML(order)} <span class="batch-order-qty">${parts} pts · ${boxes} bx</span></span>
+      <span class="batch-order-label">
+        <span class="batch-order-num">#${escapeHTML(order)}</span>
+        <span class="batch-order-qty">${parts} pts · ${boxes} bx</span>
+      </span>
       <button type="button" class="batch-order-remove" title="Remove from this batch">−</button>
     `;
     li.querySelector('.batch-order-remove').addEventListener('click', (e) => {
@@ -294,24 +297,25 @@ function renderBatchOrdersPanel(batchKey, batch) {
   if (restorable.length > 0) {
     const addRow = document.createElement('div');
     addRow.className = 'batch-orders-add';
-    const select = document.createElement('select');
-    select.className = 'modern-select batch-orders-select';
-    select.innerHTML =
-      '<option value="">Add order back…</option>' +
-      restorable.map((o) => `<option value="${escapeAttr(o)}">Order #${escapeHTML(o)}</option>`).join('');
-    const addBtn = document.createElement('button');
-    addBtn.type = 'button';
-    addBtn.className = 'mini-success-btn';
-    addBtn.textContent = '+';
-    addBtn.title = 'Add order back to this batch';
-    addBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const order = select.value.trim();
-      if (!order) return;
-      restoreOrderToBatch(batchKey, order);
+    const addLabel = document.createElement('div');
+    addLabel.className = 'batch-orders-add-label';
+    addLabel.textContent = 'Add back:';
+    addRow.appendChild(addLabel);
+    const chipRow = document.createElement('div');
+    chipRow.className = 'batch-orders-restore-row';
+    restorable.forEach((order) => {
+      const restoreBtn = document.createElement('button');
+      restoreBtn.type = 'button';
+      restoreBtn.className = 'batch-order-restore';
+      restoreBtn.textContent = `#${order}`;
+      restoreBtn.title = `Add order #${order} back to this batch`;
+      restoreBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        restoreOrderToBatch(batchKey, order);
+      });
+      chipRow.appendChild(restoreBtn);
     });
-    addRow.appendChild(select);
-    addRow.appendChild(addBtn);
+    addRow.appendChild(chipRow);
     panel.appendChild(addRow);
   }
 
@@ -329,6 +333,7 @@ function renderBatchTabs() {
       wrapper.className = 'batch-item';
       wrapper.id = `batch-item-${batchKey}`;
       if (batchKey === state.activeGroupKey) wrapper.classList.add('active');
+      if (state.expandedBatches.has(batchKey)) wrapper.classList.add('expanded');
 
       const row = document.createElement('div');
       row.className = 'batch-item-row';

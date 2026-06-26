@@ -118,4 +118,16 @@ describe('splitDataIntoGroups with special-order separation', () => {
     const keys = Object.keys(groups);
     expect(keys.some((k) => k.startsWith('SPECIAL_'))).toBe(false);
   });
+
+  it('does not mark an order special when only Laser is Yes and all ops are None', () => {
+    const rows = [
+      row('700', { laser: 'Yes' }),
+      row('701', { laser: 'Yes', scoop: 'None', slope: 'None', drillFront: 'None', dividersFB: 'None', dividersSS: 'None', fileSlots: 'None' }),
+    ];
+    const special = getSpecialOrderNumbers(rows, cols);
+    expect(special.has('700')).toBe(false);
+    expect(special.has('701')).toBe(false);
+    const groups = splitDataIntoGroups(rows, cols, 999, {}, true);
+    expect(Object.keys(groups).every((k) => !k.startsWith('SPECIAL_'))).toBe(true);
+  });
 });

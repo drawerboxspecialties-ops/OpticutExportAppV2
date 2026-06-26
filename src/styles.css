@@ -197,6 +197,14 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
+.card--sidebar {
+  overflow: visible;
+}
+
+#batches-sidebar-card {
+  overflow: visible;
+}
+
 .card::before {
   content: '';
   position: absolute;
@@ -967,7 +975,8 @@ tr:hover td {
   flex-direction: column;
   gap: 0.55rem;
   margin-top: 0.75rem;
-  max-height: 600px;
+  max-height: min(70vh, 720px);
+  overflow-x: visible;
   overflow-y: auto;
   padding-right: 2px;
 }
@@ -979,8 +988,14 @@ tr:hover td {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.2s var(--ease);
+  flex-shrink: 0;
+}
+
+.batch-item.expanded {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-glow);
 }
 
 .batch-item-row {
@@ -1008,7 +1023,11 @@ tr:hover td {
 .batch-orders-panel {
   border-top: 1px solid var(--border);
   background: var(--surface);
-  padding: 0.45rem 0.55rem 0.55rem;
+  padding: 0.5rem 0.55rem 0.6rem;
+}
+
+.batch-orders-panel[hidden] {
+  display: none !important;
 }
 
 .batch-orders-list {
@@ -1031,15 +1050,23 @@ tr:hover td {
 }
 
 .batch-order-label {
-  font-size: 0.74rem;
-  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.batch-order-num {
+  font-size: 0.76rem;
+  font-weight: 800;
   color: var(--text);
 }
 
 .batch-order-qty {
+  font-size: 0.68rem;
   font-weight: 600;
   color: var(--text-muted);
-  margin-left: 0.25rem;
 }
 
 .batch-order-remove {
@@ -1060,27 +1087,42 @@ tr:hover td {
 
 .batch-orders-add {
   display: flex;
+  flex-direction: column;
   gap: 0.35rem;
-  margin-top: 0.45rem;
+  margin-top: 0.5rem;
+  padding-top: 0.45rem;
+  border-top: 1px dashed var(--border);
 }
 
-.batch-orders-select {
-  flex: 1;
-  min-width: 0;
-  font-size: 0.74rem;
-}
-
-.mini-success-btn {
-  background: var(--success-gradient);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  width: 32px;
-  height: 32px;
+.batch-orders-add-label {
+  font-size: 0.68rem;
   font-weight: 800;
-  font-size: 1rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.batch-orders-restore-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.batch-order-restore {
+  background: #ecfdf5;
+  color: var(--success);
+  border: 1px solid #a7f3d0;
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
   cursor: pointer;
-  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.batch-order-restore:hover {
+  background: var(--success);
+  color: #fff;
 }
 
 .batch-item:hover {

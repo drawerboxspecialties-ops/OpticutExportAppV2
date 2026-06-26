@@ -58,7 +58,7 @@ An order is **special** when **any row** has a real value (not blank, not `None`
 
 `Scoop`, `Slope`, `DividersFB`, `DividersSS`, `DrillFront`, or `FileSlots`
 
-`Laser` and `GroupID` are ignored for this check.
+**`Laser` and `GroupID` are never used for special-order detection** — Laser Yes/No does not create a SPECIAL batch.
 
 Special orders still split by material + top edge, but get their own **`SPECIAL_`** batches so they never share a batch with normal orders of the same material/edge.
 
