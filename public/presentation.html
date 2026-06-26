@@ -131,14 +131,13 @@
       <div class="cols-3" style="margin-top:0.28rem">
         <div class="box">
           <strong>Batch sidebar ▸ panel</strong>
-          <p>Click <b>▸</b> on any batch to expand orders. Each row shows <span class="mono">#order · pts · bx</span>. Use <b>−</b> to remove from batch; click <b>+#order</b> chips to add back.</p>
+          <p>Click <b>▸</b> on any batch to expand orders. Each row shows <span class="mono">#order · bx</span>. Use <b>−</b> to remove from batch; click <b>+#order</b> chips to add back.</p>
         </div>
         <div class="box">
           <strong>Print sheets</strong>
           <ul>
-            <li>Batch header: <b>total boxes</b> + each order with GroupID-qty (e.g. <span class="mono">602336 1-15, 2-3, 3-4</span>)</li>
-            <li>Ship Date chip only when set — blank dates stay empty on print</li>
-            <li>Small order cards: order + GroupID-qty only (no per-card material ribbon)</li>
+            <li>Batch header: <b>total boxes</b> + comma-separated <b>order numbers only</b></li>
+            <li>Each small order card: order + GroupID-qty (e.g. <span class="mono">602336 1-15, 2-3, 3-4</span>)</li>
             <li>Order total = sum of GroupID-qty; batch total = sum of order totals</li>
             <li>Width rows: <span class="mono">Width 6" · 2 bx</span> (per-height ceil)</li>
             <li>Box math: <span class="mono">ceil(parts ÷ 4)</span> per group and per height</li>

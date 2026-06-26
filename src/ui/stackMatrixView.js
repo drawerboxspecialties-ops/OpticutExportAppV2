@@ -22,16 +22,10 @@ function formatOrderHeading(order, batch, colIndices, printMode = false) {
   return `${order} ${groupQty}`;
 }
 
-function formatPrintBatchOrders(batch, colIndices) {
+function formatPrintBatchOrders(batch) {
   const orders = batch?.sortedOrders || [];
   if (!orders.length) return '';
-  return orders
-    .map((o) => {
-      const order = String(o).trim();
-      const groupQty = formatOrderGroupBoxLabel(order, batch, colIndices);
-      return escapeHTML(`${order} ${groupQty}`);
-    })
-    .join(' · ');
+  return orders.map((o) => escapeHTML(String(o).trim())).join(', ');
 }
 
 function getOrderBoxesForStackWidth(batch, order, stackWidth) {
@@ -215,7 +209,7 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
         <div class="print-batch-title">
           ${safeBatchKey}.csv${batchTag}
           <span class="print-batch-boxes-total">${batch.totalBoxes} Boxes</span>
-          <span class="print-batch-orders-list">${formatPrintBatchOrders(batch, colIndices)}</span>
+          <span class="print-batch-orders-list">${formatPrintBatchOrders(batch)}</span>
         </div>
         <div class="print-batch-time">Printed: ${safePrintedAt}</div>
       </div>

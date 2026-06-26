@@ -273,14 +273,13 @@ function renderBatchOrdersPanel(batchKey, batch) {
   list.className = 'batch-orders-list';
 
   (batch.sortedOrders || []).forEach((order) => {
-    const parts = batch.orderPartTotals?.[order] ?? 0;
     const boxes = batch.orderColTotals?.[order] ?? 0;
     const li = document.createElement('li');
     li.className = 'batch-order-row';
     li.innerHTML = `
       <span class="batch-order-label">
         <span class="batch-order-num">#${escapeHTML(order)}</span>
-        <span class="batch-order-qty">${parts} pts · ${boxes} bx</span>
+        <span class="batch-order-qty">${boxes} bx</span>
       </span>
       <button type="button" class="batch-order-remove" title="Remove from this batch">−</button>
     `;

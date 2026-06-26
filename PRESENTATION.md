@@ -97,9 +97,8 @@ This `÷ 4` rule is fixed shop logic — it drives every box count on screen and
 
 **Print layout:**
 
-- Batch header: total boxes + each order with GroupID breakdown (e.g. `602336 1-15, 2-3, 3-4`).
-- Ship Date chip only when set — blank dates stay empty on print.
-- Small order cards show order + GroupID-qty only (no material/edge ribbon per card).
+- Batch header: total boxes and comma-separated order numbers (no GroupID breakdown at top).
+- Each small order card: order + GroupID-qty (e.g. `602336 1-15, 2-3, 3-4`).
 - Width rows show box count for that height (e.g. `Width 6" · 2 bx`).
 - Order total always equals the sum of its GroupID-qty values.
 
