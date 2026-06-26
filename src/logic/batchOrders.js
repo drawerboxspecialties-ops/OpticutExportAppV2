@@ -1,5 +1,6 @@
 import { computeBoxMatrix } from './boxMath.js';
 import { getSummaryHeight } from './widths.js';
+import { buildOrderGroupBoxTotalsFromRows } from './groupBoxes.js';
 
 /**
  * Unique key for per-batch order inclusion/exclusion overrides.
@@ -53,6 +54,14 @@ export function applyBatchOrderExclusions(groups, exclusions, colIndices) {
     const { heightOrderBoxes, heightRowTotals, orderPartTotals, orderColTotals, totalBoxes } =
       computeBoxMatrix(sortedHeights, sortedOrders, summaryData);
 
+    const orderGroupBoxTotals = batch.orderGroupBoxTotals
+      ? Object.fromEntries(
+          Object.entries(batch.orderGroupBoxTotals).filter(([order]) =>
+            sortedOrders.includes(order)
+          )
+        )
+      : buildOrderGroupBoxTotalsFromRows(rows, colIndices);
+
     result[batchKey] = {
       ...batch,
       rows,
@@ -64,6 +73,7 @@ export function applyBatchOrderExclusions(groups, exclusions, colIndices) {
       orderColTotals,
       totalBoxes,
       totalParts,
+      orderGroupBoxTotals,
     };
   });
 

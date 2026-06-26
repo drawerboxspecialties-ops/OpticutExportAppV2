@@ -1,20 +1,20 @@
 import { boxesForParts } from './boxMath.js';
 
 /**
- * Sum parts per (order, GroupID) and convert each group to box count.
+ * Sum parts per (order, GroupID) from raw rows and convert each group to box count.
  *
- * @param {{ rows: string[][] }} batch
+ * @param {string[][]} rows
  * @param {object} colIndices
  * @returns {Record<string, Array<{ groupId: string, boxes: number, parts: number }>>}
  */
-export function buildOrderGroupBoxTotals(batch, colIndices) {
+export function buildOrderGroupBoxTotalsFromRows(rows, colIndices) {
   const result = {};
-  if (!colIndices || colIndices.groupId === -1 || !batch?.rows?.length) {
+  if (!colIndices || colIndices.groupId === -1 || !rows?.length) {
     return result;
   }
 
   const partsMap = {};
-  batch.rows.forEach((row) => {
+  rows.forEach((row) => {
     const order = String(row[colIndices.orderNumber] ?? '').trim();
     const groupId = String(row[colIndices.groupId] ?? '').trim();
     const qty = parseInt(row[colIndices.quantity]) || 0;
@@ -38,6 +38,21 @@ export function buildOrderGroupBoxTotals(batch, colIndices) {
   });
 
   return result;
+}
+
+/**
+ * Sum parts per (order, GroupID) and convert each group to box count.
+ * Uses pre-merge totals on the batch when present (rows may merge across GroupIDs).
+ *
+ * @param {{ rows: string[][], orderGroupBoxTotals?: Record<string, Array<{ groupId: string, boxes: number, parts: number }>> }} batch
+ * @param {object} colIndices
+ * @returns {Record<string, Array<{ groupId: string, boxes: number, parts: number }>>}
+ */
+export function buildOrderGroupBoxTotals(batch, colIndices) {
+  if (batch?.orderGroupBoxTotals) {
+    return batch.orderGroupBoxTotals;
+  }
+  return buildOrderGroupBoxTotalsFromRows(batch?.rows, colIndices);
 }
 
 /**

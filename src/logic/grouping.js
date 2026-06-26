@@ -10,6 +10,7 @@ import {
   getShipDateFromRow,
   shipDateGroupingToken,
 } from './shipDate.js';
+import { buildOrderGroupBoxTotalsFromRows } from './groupBoxes.js';
 
 /**
  * Front/back top-edge priority rule:
@@ -308,6 +309,7 @@ export function splitDataIntoGroups(
         finalKey = `${baseBatchKey}_${counter}`;
       }
 
+      const orderGroupBoxTotals = buildOrderGroupBoxTotalsFromRows(chunkRows, colIndices);
       const finalRows = sortRowsDescending(mergeChunkRows(chunkRows, colIndices), colIndices);
       const { sortedHeights, sortedOrders, summaryData, totalParts } = buildSummaryData(
         finalRows,
@@ -325,6 +327,7 @@ export function splitDataIntoGroups(
         categoryName: g.categoryName,
         isSpecial: g.isSpecial,
         shipDate: g.shipDate,
+        orderGroupBoxTotals,
         sortedHeights,
         sortedOrders,
         heightOrderBoxes,

@@ -46,4 +46,19 @@ describe('buildOrderGroupBoxTotals', () => {
     const batch = { rows: [['602350', 'Mat', 'F', '6', '25', '8', '', '6', 'Edge']], orderColTotals: { 602350: 2 } };
     expect(formatOrderGroupBoxLabel('602350', batch, basicCols)).toBe('2 bx');
   });
+
+  it('uses pre-merge orderGroupBoxTotals when rows merged across GroupIDs', () => {
+    const batch = {
+      rows: [row('602336', '2', 7, 'F')],
+      orderColTotals: { 602336: 18 },
+      orderGroupBoxTotals: {
+        602336: [
+          { groupId: '1', parts: 58, boxes: 15 },
+          { groupId: '2', parts: 12, boxes: 3 },
+          { groupId: '3', parts: 16, boxes: 4 },
+        ],
+      },
+    };
+    expect(formatOrderGroupBoxLabel('602336', batch, cols)).toBe('1 - 15 bx, 2 - 3 bx, 3 - 4 bx');
+  });
 });

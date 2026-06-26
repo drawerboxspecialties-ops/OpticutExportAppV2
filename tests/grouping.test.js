@@ -104,6 +104,23 @@ describe('splitDataIntoGroups (integration via demo CSV)', () => {
       expect(groups[k].sortedOrders.length).toBeLessThanOrEqual(1);
     });
   });
+
+  it('stores pre-merge orderGroupBoxTotals when same dimensions span GroupIDs', () => {
+    const headers = [
+      'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge', 'GroupID',
+    ];
+    const cols = mapHeaders(headers);
+    const mk = (groupId, qty) =>
+      ['602336', 'PF: 12MM Baltic Birch Ply', 'F', '5', '33.938', String(qty), '', '5', 'Clear Foil Bullnose', groupId];
+    const rows = [mk('2', 3), mk('3', 4)];
+    const groups = splitDataIntoGroups(rows, cols, 999, {}, false);
+    const batch = Object.values(groups)[0];
+    expect(batch.rows).toHaveLength(1);
+    expect(batch.orderGroupBoxTotals['602336']).toEqual([
+      { groupId: '2', parts: 3, boxes: 1 },
+      { groupId: '3', parts: 4, boxes: 1 },
+    ]);
+  });
 });
 
 describe('applyExclusions', () => {
