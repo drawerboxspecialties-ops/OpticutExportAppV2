@@ -44,7 +44,7 @@ flowchart LR
 - Reads comma- or tab-delimited CSV with quoted fields.
 - Detects columns by header name (case/spacing insensitive).
 - Core columns: `OrderNumber`, `MaterialName`, `PartName`, `W`, `Length`, `Quantity`, `Label`, `Width`, `TopEdge`.
-- Optional batching-only columns (read but **not exported**): `GroupID`, `Laser`, `Scoop`, `Slope`, `DrillFront`, `DividersFB`, `DividersSS`, `FileSlots`.
+- Optional batching-only columns (read but **not exported**): `GroupID`, `Laser`, `Scoop`, `Slope`, `DrillFront`, `DividersFB`, `DividersSS`, `FileSlots`, `Ship Date`.
 
 ### Step 2 — Normalize
 
@@ -67,8 +67,10 @@ Special orders still split by material + top edge, but get their own **`SPECIAL_
 Each row is assigned a batch bucket:
 
 ```
-[SPECIAL_] + CategoryCode + EdgeCode + Material + TopEdge
+[SPECIAL_] + CategoryCode + EdgeCode + Material + TopEdge + ShipDate
 ```
+
+Rows with the same material and edge but different ship dates land in separate batches. Blank ship dates group together internally but print with no ship-date label.
 
 | Category | Code | Examples |
 |----------|------|----------|
@@ -90,6 +92,13 @@ batch total     = sum of order column boxes
 ```
 
 This `÷ 4` rule is fixed shop logic — it drives every box count on screen and on print.
+
+**Print layout:**
+
+- Batch header shows total boxes and a comma-separated list of all order numbers.
+- Ship Date appears only when the batch has a date; blank dates stay empty on print.
+- Each order line shows box counts per `GroupID` when an order spans multiple groups (e.g. `1 - 2 bx, 2 - 3 bx`).
+- Width rows show box count for that height (e.g. `Width 6" · 2 bx`).
 
 Widths shown to operators are **rounded up to whole numbers** for readability. Export can optionally do the same.
 
@@ -117,7 +126,7 @@ index.html          UI shell
 src/main.js         Controller — state, DOM events, download/print
 src/ui/             HTML render helpers (stack matrix, print cards)
 src/logic/          Pure business rules — no DOM, fully unit-tested
-tests/              146 Vitest tests lock every critical rule
+tests/              159 Vitest tests lock every critical rule
 ```
 
 **Development process:**
@@ -138,6 +147,8 @@ tests/              146 Vitest tests lock every critical rule
 | `src/logic/headers.js` | Column detection + export column filtering |
 | `src/logic/grouping.js` | Batch creation, merging, splitting, exclusions |
 | `src/logic/specialOrders.js` | Special-order detection |
+| `src/logic/shipDate.js` | Ship-date batch grouping + print labels |
+| `src/logic/groupBoxes.js` | Per-GroupID box totals for print |
 | `src/logic/boxMath.js` | `ceil(parts/4)` box matrix |
 | `src/logic/exportRows.js` | Cut-list row prep, width rounding merge |
 | `src/logic/materialNames.js` | OptiCut material name formatting |
@@ -160,7 +171,7 @@ tests/              146 Vitest tests lock every critical rule
 
 - **Vite** — build & dev server
 - **Vanilla JS** — no framework; runs offline after load
-- **Vitest** — 146 automated tests
+- **Vitest** — 159 automated tests
 - **ESLint + Prettier** — code quality
 - **GitHub Pages** — hosting from `/docs` on `main`
 - **JSZip** — lazy-loaded for ZIP export

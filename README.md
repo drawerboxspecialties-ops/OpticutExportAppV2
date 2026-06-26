@@ -11,12 +11,13 @@ high-risk business rule.
 
 - Parses Allmoxy CSV files in the browser.
 - Normalizes material names and top edge names.
-- Groups rows into material/top-edge batches.
+- Groups rows into material/top-edge/**ship-date** batches.
 - Separates **special orders** (Scoop, Slope, Dividers, DrillFront, FileSlots) into `SPECIAL_` batches when enabled (default ON).
-- Strips batching-only columns (`GroupID`, `Laser`, and all secondary-operation columns) from exported CSVs.
+- Strips batching-only columns (`GroupID`, `Laser`, Ship Date, and all secondary-operation columns) from exported CSVs.
 - Exports cut-list CSV files for OptiCut.
 - Prints operator-friendly stack matrix sheets with whole-number rounded widths,
-  `W` quantity notes, continuation cards, and compact page packing.
+  per-GroupID box counts on order lines, all order numbers on the batch header,
+  blank ship dates on print, continuation cards, and compact page packing.
 - Export rounding is checked by default; it rounds `Width` up to whole numbers,
   merges matching rows, and records original width quantities in `Label`.
 - Supports excluding orders, materials, and top edges before export.
@@ -42,6 +43,9 @@ src/
     splitOrders.js      Round-robin split-batch distribution + validation
     grouping.js         splitDataIntoGroups, B-edge priority, exclusions
     specialOrders.js    Special-order detection from secondary-operation columns
+    shipDate.js         Ship-date batch grouping + print labels
+    groupBoxes.js       Per-GroupID box totals for print
+    batchOrders.js      Per-batch order exclusions (sidebar panel)
     stackMatrix.js      Stack matrix sections + print packing
     exportRows.js       Cut-list export rows, rounded-width merge + Label
     settingsStore.js    Persistent settings (localStorage)

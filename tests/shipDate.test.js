@@ -75,4 +75,13 @@ describe('formatShipDateLabel', () => {
     const basic = mapHeaders(['OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge']);
     expect(formatShipDateLabel('6/15/2026', basic)).toBeNull();
   });
+
+  it('returns null when ship date is blank (print stays empty)', () => {
+    expect(formatShipDateLabel('', cols)).toBeNull();
+    expect(formatShipDateLabel('   ', cols)).toBeNull();
+  });
+
+  it('returns the date when present', () => {
+    expect(formatShipDateLabel('6/15/2026', cols)).toBe('6/15/2026');
+  });
 });

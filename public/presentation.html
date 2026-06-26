@@ -134,8 +134,10 @@
         <div class="box">
           <strong>Print sheets</strong>
           <ul>
-            <li>Batch header shows <b>Ship Date</b></li>
-            <li>Each order: <span class="mono">Order 602350 · 20 pts · 5 bx</span></li>
+            <li>Batch header: <b>total boxes</b> + <b>all order numbers</b> next to batch name</li>
+            <li>Ship Date chip only when set — blank dates stay empty on print</li>
+            <li>Each order: <span class="mono">Order 602350 · 1 - 2 bx, 2 - 3 bx</span> (per GroupID when multiple)</li>
+            <li>Width rows: <span class="mono">Width 6" · 2 bx</span></li>
             <li>Box math: <span class="mono">ceil(parts ÷ 4)</span></li>
           </ul>
         </div>
@@ -164,7 +166,7 @@
 
       <div class="footer">
         <span>DBS Drawers — Drawer Box Specialties</span>
-        <span>v2 · 153+ tests</span>
+        <span>v2 · 159 tests</span>
       </div>
     </article>
   </body>

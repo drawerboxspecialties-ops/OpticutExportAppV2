@@ -7,34 +7,25 @@ import {
 } from '../logic/stackMatrix.js';
 import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
+import { formatOrderGroupBoxLabel } from '../logic/groupBoxes.js';
 
 let checkboxIdCounter = 0;
 export function resetCheckboxCounter() {
   checkboxIdCounter = 0;
 }
 
-function buildOrderGroupIds(batch, colIndices) {
-  const map = {};
-  if (!colIndices || colIndices.groupId === -1) return map;
-  (batch?.rows || []).forEach((row) => {
-    const order = String(row[colIndices.orderNumber] ?? '').trim();
-    const groupId = String(row[colIndices.groupId] ?? '').trim();
-    if (order && groupId && map[order] === undefined) {
-      map[order] = groupId;
-    }
-  });
-  return map;
-}
-
 function formatOrderHeading(order, batch, colIndices, printMode = false) {
   if (!printMode) {
     return `Order ${order}`;
   }
-  const boxes = batch?.orderColTotals?.[order] ?? 0;
-  const groupIds = buildOrderGroupIds(batch, colIndices);
-  const groupId = groupIds[order];
-  const groupNote = groupId ? ` · ${groupId}` : '';
-  return `Order ${order}${groupNote} · ${boxes} bx`;
+  const boxLabel = formatOrderGroupBoxLabel(order, batch, colIndices);
+  return `Order ${order} · ${boxLabel}`;
+}
+
+function formatPrintBatchOrders(batch) {
+  const orders = batch?.sortedOrders || [];
+  if (!orders.length) return '';
+  return orders.map((o) => escapeHTML(String(o))).join(', ');
 }
 
 function getOrderBoxesForStackWidth(batch, order, stackWidth) {
@@ -233,6 +224,7 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
         <div class="print-batch-title">
           ${safeBatchKey}.csv${batchTag}
           <span class="print-batch-boxes-total">${batch.totalBoxes} Boxes</span>
+          <span class="print-batch-orders-list">${formatPrintBatchOrders(batch)}</span>
         </div>
         <div class="print-batch-time">Printed: ${safePrintedAt}</div>
       </div>

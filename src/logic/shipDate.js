@@ -59,5 +59,5 @@ export function shipDateGroupingToken(order, orderShipDates, colIndices) {
 export function formatShipDateLabel(shipDate, colIndices) {
   if (colIndices.shipDate === -1) return null;
   const v = normalizeShipDate(shipDate);
-  return v || 'No Ship Date';
+  return v || null;
 }

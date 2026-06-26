@@ -1,0 +1,49 @@
+import { describe, expect, it } from 'vitest';
+import { mapHeaders } from '../src/logic/headers.js';
+import {
+  buildOrderGroupBoxTotals,
+  formatOrderGroupBoxLabel,
+} from '../src/logic/groupBoxes.js';
+
+const headers = [
+  'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge', 'GroupID',
+];
+const cols = mapHeaders(headers);
+
+const row = (order, groupId, qty = 1, part = 'F') =>
+  [order, 'PF: 12MM Baltic Birch Ply', part, '6', '25', String(qty), '', '6', 'Clear Foil Bullnose', groupId];
+
+describe('buildOrderGroupBoxTotals', () => {
+  it('returns separate box counts per GroupID within one order', () => {
+    const batch = {
+      rows: [
+        row('602350', '1', 4),
+        row('602350', '1', 4, 'B'),
+        row('602350', '2', 8),
+        row('602350', '2', 4, 'B'),
+      ],
+      orderColTotals: { 602350: 5 },
+    };
+    const totals = buildOrderGroupBoxTotals(batch, cols);
+    expect(totals['602350']).toEqual([
+      { groupId: '1', parts: 8, boxes: 2 },
+      { groupId: '2', parts: 12, boxes: 3 },
+    ]);
+  });
+
+  it('formats multiple groups as "id - bx" pairs', () => {
+    const batch = {
+      rows: [row('602350', '1', 8), row('602350', '2', 4)],
+      orderColTotals: { 602350: 3 },
+    };
+    expect(formatOrderGroupBoxLabel('602350', batch, cols)).toBe('1 - 2 bx, 2 - 1 bx');
+  });
+
+  it('falls back to order total boxes when GroupID column is absent', () => {
+    const basicCols = mapHeaders([
+      'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge',
+    ]);
+    const batch = { rows: [['602350', 'Mat', 'F', '6', '25', '8', '', '6', 'Edge']], orderColTotals: { 602350: 2 } };
+    expect(formatOrderGroupBoxLabel('602350', batch, basicCols)).toBe('2 bx');
+  });
+});
