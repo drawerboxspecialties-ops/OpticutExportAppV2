@@ -1,5 +1,5 @@
 import { escapeHTML } from '../logic/csv.js';
-import { formatDecimalForDisplay } from '../logic/widths.js';
+import { formatDecimalForDisplay, roundWidthUpToWhole } from '../logic/widths.js';
 import {
   getStackMatrixSections,
   getStackItemWItems,
@@ -13,8 +13,46 @@ export function resetCheckboxCounter() {
   checkboxIdCounter = 0;
 }
 
-function formatWidthHeader(widthGroup) {
-  return `<span>Width ${escapeHTML(formatDecimalForDisplay(widthGroup.width))}"</span>`;
+function buildOrderGroupIds(batch, colIndices) {
+  const map = {};
+  if (!colIndices || colIndices.groupId === -1) return map;
+  (batch?.rows || []).forEach((row) => {
+    const order = String(row[colIndices.orderNumber] ?? '').trim();
+    const groupId = String(row[colIndices.groupId] ?? '').trim();
+    if (order && groupId && map[order] === undefined) {
+      map[order] = groupId;
+    }
+  });
+  return map;
+}
+
+function formatOrderHeading(order, batch, colIndices, printMode = false) {
+  if (!printMode) {
+    return `Order ${order}`;
+  }
+  const boxes = batch?.orderColTotals?.[order] ?? 0;
+  const groupIds = buildOrderGroupIds(batch, colIndices);
+  const groupId = groupIds[order];
+  const groupNote = groupId ? ` · ${groupId}` : '';
+  return `Order ${order}${groupNote} · ${boxes} bx`;
+}
+
+function getOrderBoxesForStackWidth(batch, order, stackWidth) {
+  if (!batch?.heightOrderBoxes) return 0;
+  const target = String(stackWidth);
+  return Object.keys(batch.heightOrderBoxes).reduce((sum, height) => {
+    if (roundWidthUpToWhole(height) !== target) return sum;
+    return sum + (batch.heightOrderBoxes[height]?.[order] ?? 0);
+  }, 0);
+}
+
+function formatWidthHeader(widthGroup, batch, order, printMode = false) {
+  const label = `Width ${escapeHTML(formatDecimalForDisplay(widthGroup.width))}"`;
+  if (!printMode || !batch?.heightOrderBoxes || !order) {
+    return `<span>${label}</span>`;
+  }
+  const boxes = getOrderBoxesForStackWidth(batch, order, widthGroup.width);
+  return `<span>${label} · ${boxes} bx</span>`;
 }
 
 function formatStackCell(item, printMode, roundedWidth) {
@@ -31,13 +69,6 @@ function formatStackCell(item, printMode, roundedWidth) {
   return `<div class="stack-cell"><b>${escapeHTML(formatDecimalForDisplay(item.length))}"</b> <span class="qty-label">Qty</span> <b>${item.qty}</b></div>${wNote}`;
 }
 
-function formatOrderHeading(order, batch, printMode = false) {
-  const parts = batch?.orderPartTotals?.[order] ?? 0;
-  const boxes = batch?.orderColTotals?.[order] ?? 0;
-  const qtyNote = printMode ? ` · ${parts} pts · ${boxes} bx` : '';
-  return `Order ${order}${qtyNote}`;
-}
-
 /**
  * Render the interactive stack matrix tbody HTML for the current batch.
  * Uses data-tsr-toggle so main.js can attach a single delegated listener instead
@@ -50,14 +81,14 @@ export function renderStackMatrixRows(batch, colIndices, printMode = false) {
   sections.forEach((section) => {
     html += `
       <tr class="pivot-header-row">
-        <td colspan="3">${escapeHTML(formatOrderHeading(section.order, batch, printMode))}</td>
+        <td colspan="3">${escapeHTML(formatOrderHeading(section.order, batch, colIndices, printMode))}</td>
       </tr>
     `;
 
     section.widths.forEach((widthGroup) => {
       html += `
         <tr class="pivot-width-row">
-          <td colspan="3">${formatWidthHeader(widthGroup)}</td>
+          <td colspan="3">${formatWidthHeader(widthGroup, batch, section.order, printMode)}</td>
         </tr>
       `;
 
@@ -99,8 +130,8 @@ function formatBatchRibbon(batchMeta) {
   return `<tr><th colspan="3" class="stack-batch-ribbon">${key} · ${mat} · ${edge}${ship}</th></tr>`;
 }
 
-function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount, batchMeta, batch) {
-  const baseLabel = formatOrderHeading(section.order, batch, true);
+function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount, batchMeta, batch, colIndices) {
+  const baseLabel = formatOrderHeading(section.order, batch, colIndices, true);
   const orderLabel =
     chunkCount > 1
       ? chunkIndex === 0
@@ -127,7 +158,7 @@ function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount, batchMeta,
   let rowOrdinal = 0;
   chunk.widthGroups.forEach((widthGroup) => {
     html += `
-      <tr><td colspan="3" class="stack-width-row">${formatWidthHeader(widthGroup)}</td></tr>
+      <tr><td colspan="3" class="stack-width-row">${formatWidthHeader(widthGroup, batch, section.order, true)}</td></tr>
     `;
     const rowCount = Math.max(widthGroup.frontBack.length, widthGroup.sides.length);
     for (let i = 0; i < rowCount; i++) {
@@ -157,7 +188,7 @@ export function renderStackMatrixOrderCards(batch, colIndices, batchMeta = null)
   sections.forEach((section) => {
     const chunks = splitSectionForPrint(section);
     chunks.forEach((chunk, idx) => {
-      cards.push(renderPrintOrderCard(section, chunk, idx, chunks.length, batchMeta, batch));
+      cards.push(renderPrintOrderCard(section, chunk, idx, chunks.length, batchMeta, batch, colIndices));
     });
   });
   return sections.length
@@ -199,7 +230,10 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
   const headerBanner = `
     <div class="print-batch-header">
       <div class="print-batch-header-row">
-        <div class="print-batch-title">${safeBatchKey}.csv${batchTag}</div>
+        <div class="print-batch-title">
+          ${safeBatchKey}.csv${batchTag}
+          <span class="print-batch-boxes-total">${batch.totalBoxes} Boxes</span>
+        </div>
         <div class="print-batch-time">Printed: ${safePrintedAt}</div>
       </div>
       <div class="print-batch-meta">
@@ -212,16 +246,6 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
           <div>${topEdgeDisplay}</div>
         </div>
         ${shipDateChip}
-        <div class="print-batch-stats">
-          <div class="print-stat-chip">
-            <div class="print-meta-label">Boxes</div>
-            <div class="print-stat-val">${batch.totalBoxes}</div>
-          </div>
-          <div class="print-stat-chip">
-            <div class="print-meta-label">Parts</div>
-            <div class="print-stat-val">${batch.totalParts}</div>
-          </div>
-        </div>
       </div>
     </div>
   `;
