@@ -32,6 +32,7 @@ describe('mapHeaders', () => {
       fileSlots: -1,
       laser: -1,
       groupId: -1,
+      shipDate: -1,
     });
   });
 

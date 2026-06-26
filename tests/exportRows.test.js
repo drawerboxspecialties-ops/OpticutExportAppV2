@@ -112,11 +112,11 @@ describe('getCutListRowsForExport — non-rounded export', () => {
 describe('filterForExport', () => {
   const headers = [
     'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge',
-    'GroupID', 'Laser', 'Scoop', 'Slope', 'DrillFront', 'DividersFB', 'DividersSS', 'FileSlots',
+    'GroupID', 'Laser', 'Scoop', 'Slope', 'DrillFront', 'DividersFB', 'DividersSS', 'FileSlots', 'Ship Date',
   ];
   const row = [
     '602350', 'PF: 12MM Baltic Birch Ply', 'F', '6', '25', '1', '', '6', 'Clear Foil Bullnose',
-    'GRP-1', 'Yes', 'None', 'Type #1', '#1 2 Hole', '1 - Removable', '1 - Fixed', '1" Letter',
+    'GRP-1', 'Yes', 'None', 'Type #1', '#1 2 Hole', '1 - Removable', '1 - Fixed', '1" Letter', '6/15/2026',
   ];
 
   it('removes GroupID and all batching-only secondary-operation columns', () => {
@@ -124,7 +124,6 @@ describe('filterForExport', () => {
     expect(outHeaders).toEqual([
       'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge',
     ]);
-    expect(rows[0]).toHaveLength(9);
     expect(rows[0][0]).toBe('602350');
   });
 

@@ -18,6 +18,7 @@ export const BATCHING_ONLY_NORMALIZED_HEADERS = new Set([
   'dividersss',
   'drillfront',
   'fileslots',
+  'shipdate',
 ]);
 
 /** @param {string} header */
@@ -99,6 +100,7 @@ export function mapHeaders(headers) {
     fileSlots: headersLower.findIndex((h) => h === 'fileslots'),
     laser: headersLower.findIndex((h) => h === 'laser'),
     groupId: headersLower.findIndex((h) => h === 'groupid'),
+    shipDate: headersLower.findIndex((h) => h === 'shipdate'),
   };
 
   if (colIndices.orderNumber === -1) colIndices.orderNumber = 0;

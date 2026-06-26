@@ -6,6 +6,7 @@ import {
   splitSectionForPrint,
 } from '../logic/stackMatrix.js';
 import { getExportMaterialName } from '../logic/materialNames.js';
+import { formatShipDateLabel } from '../logic/shipDate.js';
 
 let checkboxIdCounter = 0;
 export function resetCheckboxCounter() {
@@ -30,6 +31,13 @@ function formatStackCell(item, printMode, roundedWidth) {
   return `<div class="stack-cell"><b>${escapeHTML(formatDecimalForDisplay(item.length))}"</b> <span class="qty-label">Qty</span> <b>${item.qty}</b></div>${wNote}`;
 }
 
+function formatOrderHeading(order, batch, printMode = false) {
+  const parts = batch?.orderPartTotals?.[order] ?? 0;
+  const boxes = batch?.orderColTotals?.[order] ?? 0;
+  const qtyNote = printMode ? ` · ${parts} pts · ${boxes} bx` : '';
+  return `Order ${order}${qtyNote}`;
+}
+
 /**
  * Render the interactive stack matrix tbody HTML for the current batch.
  * Uses data-tsr-toggle so main.js can attach a single delegated listener instead
@@ -42,7 +50,7 @@ export function renderStackMatrixRows(batch, colIndices, printMode = false) {
   sections.forEach((section) => {
     html += `
       <tr class="pivot-header-row">
-        <td colspan="3">Order ${escapeHTML(section.order)}</td>
+        <td colspan="3">${escapeHTML(formatOrderHeading(section.order, batch, printMode))}</td>
       </tr>
     `;
 
@@ -84,14 +92,21 @@ function formatBatchRibbon(batchMeta) {
     ? escapeHTML(getExportMaterialName(batchMeta.materialName))
     : '—';
   const edge = batchMeta.topEdge ? escapeHTML(batchMeta.topEdge) : '—';
-  return `<tr><th colspan="3" class="stack-batch-ribbon">${key} · ${mat} · ${edge}</th></tr>`;
+  const ship =
+    batchMeta.shipDateLabel != null
+      ? ` · Ship ${escapeHTML(batchMeta.shipDateLabel)}`
+      : '';
+  return `<tr><th colspan="3" class="stack-batch-ribbon">${key} · ${mat} · ${edge}${ship}</th></tr>`;
 }
 
-function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount, batchMeta) {
+function renderPrintOrderCard(section, chunk, chunkIndex, chunkCount, batchMeta, batch) {
+  const baseLabel = formatOrderHeading(section.order, batch, true);
   const orderLabel =
     chunkCount > 1
-      ? `Order ${section.order} ${chunkIndex === 0 ? '(1 of ' + chunkCount + ')' : 'Continued (' + (chunkIndex + 1) + ' of ' + chunkCount + ')'}`
-      : `Order ${section.order}`;
+      ? chunkIndex === 0
+        ? `${baseLabel} (1 of ${chunkCount})`
+        : `${baseLabel} — continued (${chunkIndex + 1} of ${chunkCount})`
+      : baseLabel;
   const continuedClass = chunkIndex > 0 ? ' stack-order-card--continued' : '';
   let seq = chunk.startSeq;
   let html = `
@@ -142,7 +157,7 @@ export function renderStackMatrixOrderCards(batch, colIndices, batchMeta = null)
   sections.forEach((section) => {
     const chunks = splitSectionForPrint(section);
     chunks.forEach((chunk, idx) => {
-      cards.push(renderPrintOrderCard(section, chunk, idx, chunks.length, batchMeta));
+      cards.push(renderPrintOrderCard(section, chunk, idx, chunks.length, batchMeta, batch));
     });
   });
   return sections.length
@@ -172,6 +187,14 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
     position && position.count > 1
       ? `<span class="print-batch-index">Batch ${position.index} of ${position.count}</span>`
       : '';
+  const shipDateLabel = formatShipDateLabel(batch.shipDate, colIndices);
+  const shipDateChip = shipDateLabel
+    ? `
+        <div class="print-meta-chip">
+          <div class="print-meta-label">Ship Date</div>
+          <div><b>${escapeHTML(shipDateLabel)}</b></div>
+        </div>`
+    : '';
 
   const headerBanner = `
     <div class="print-batch-header">
@@ -188,6 +211,7 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
           <div class="print-meta-label">Top Edge</div>
           <div>${topEdgeDisplay}</div>
         </div>
+        ${shipDateChip}
         <div class="print-batch-stats">
           <div class="print-stat-chip">
             <div class="print-meta-label">Boxes</div>
@@ -206,6 +230,7 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
     batchKey: safeBatchKey,
     materialName: batch.materialName,
     topEdge: batch.topEdge,
+    shipDateLabel,
   };
 
   // Full banner once at the top; each order card carries a compact batch ribbon so

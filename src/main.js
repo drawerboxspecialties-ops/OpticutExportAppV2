@@ -9,6 +9,8 @@ import {
   normalizeTopEdges,
   applyExclusions,
 } from './logic/grouping.js';
+import { applyBatchOrderExclusions, batchOrderKey } from './logic/batchOrders.js';
+import { formatShipDateLabel } from './logic/shipDate.js';
 import { getCutListRowsForExport } from './logic/exportRows.js';
 import { formatDecimalForDisplay } from './logic/widths.js';
 import { loadSettings, saveSettings, rememberFile } from './logic/settingsStore.js';
@@ -33,6 +35,8 @@ const state = {
   excludedTopEdges: [],
   maxOrdersPerBatch: 999,
   groupSplitLimits: {},
+  batchOrderExclusions: new Set(),
+  expandedBatches: new Set(),
   colIndices: null,
   appSettings: loadSettings(),
 };
@@ -93,6 +97,8 @@ function parseAndLoad(text) {
   state.excludedMaterials = [];
   state.excludedTopEdges = [];
   state.groupSplitLimits = {};
+  state.batchOrderExclusions = new Set();
+  state.expandedBatches = new Set();
   validateRows();
   rebuild();
 }
@@ -128,14 +134,19 @@ function renderErrorBanner() {
   }
 }
 
-function rebuild() {
-  state.splitGroups = splitDataIntoGroups(
-    state.parsedRows,
+function computeSplitGroups(rows) {
+  const groups = splitDataIntoGroups(
+    rows,
     state.colIndices,
     state.maxOrdersPerBatch,
     state.groupSplitLimits,
     shouldSeparateSpecialOrders()
   );
+  return applyBatchOrderExclusions(groups, state.batchOrderExclusions, state.colIndices);
+}
+
+function rebuild() {
+  state.splitGroups = computeSplitGroups(state.parsedRows);
   showWorkspace();
 }
 
@@ -150,6 +161,8 @@ function resetData() {
   state.excludedTopEdges = [];
   state.validationErrors = [];
   state.groupSplitLimits = {};
+  state.batchOrderExclusions = new Set();
+  state.expandedBatches = new Set();
   const fileInput = $('file-input');
   if (fileInput) fileInput.value = '';
   $('workspace-placeholder').style.display = 'flex';
@@ -203,18 +216,132 @@ function showWorkspace() {
   }
 }
 
+function toggleBatchExpanded(batchKey) {
+  if (state.expandedBatches.has(batchKey)) {
+    state.expandedBatches.delete(batchKey);
+  } else {
+    state.expandedBatches.add(batchKey);
+  }
+  renderBatchTabs();
+}
+
+function excludeOrderFromBatch(batchKey, order) {
+  const batch = state.splitGroups[batchKey];
+  if (!batch?.sourceGroupKey) return;
+  state.batchOrderExclusions.add(batchOrderKey(batch.sourceGroupKey, order));
+  rebuild();
+  if (state.activeGroupKey === batchKey && !state.splitGroups[batchKey]) {
+    const keys = Object.keys(state.splitGroups).sort();
+    if (keys.length > 0) selectGroup(keys[0]);
+  }
+}
+
+function restoreOrderToBatch(batchKey, order) {
+  const batch = state.splitGroups[batchKey];
+  if (!batch?.sourceGroupKey) return;
+  state.batchOrderExclusions.delete(batchOrderKey(batch.sourceGroupKey, order));
+  rebuild();
+  selectGroup(batchKey);
+}
+
+function getRestorableOrdersForBatch(batch) {
+  if (!batch?.sourceGroupKey) return [];
+  const restored = [];
+  state.batchOrderExclusions.forEach((key) => {
+    const sep = key.indexOf('|');
+    if (sep === -1) return;
+    const sourceGroupKey = key.slice(0, sep);
+    const order = key.slice(sep + 1);
+    if (sourceGroupKey === batch.sourceGroupKey && order) {
+      restored.push(order);
+    }
+  });
+  return restored.sort(orderSortComparator);
+}
+
+function formatBatchShipMeta(batch) {
+  const label = formatShipDateLabel(batch.shipDate, state.colIndices);
+  return label ? ` · Ship ${label}` : '';
+}
+
+function renderBatchOrdersPanel(batchKey, batch) {
+  const panel = document.createElement('div');
+  panel.className = 'batch-orders-panel';
+  panel.hidden = !state.expandedBatches.has(batchKey);
+
+  const list = document.createElement('ul');
+  list.className = 'batch-orders-list';
+
+  (batch.sortedOrders || []).forEach((order) => {
+    const parts = batch.orderPartTotals?.[order] ?? 0;
+    const boxes = batch.orderColTotals?.[order] ?? 0;
+    const li = document.createElement('li');
+    li.className = 'batch-order-row';
+    li.innerHTML = `
+      <span class="batch-order-label">#${escapeHTML(order)} <span class="batch-order-qty">${parts} pts · ${boxes} bx</span></span>
+      <button type="button" class="batch-order-remove" title="Remove from this batch">−</button>
+    `;
+    li.querySelector('.batch-order-remove').addEventListener('click', (e) => {
+      e.stopPropagation();
+      excludeOrderFromBatch(batchKey, order);
+    });
+    list.appendChild(li);
+  });
+
+  panel.appendChild(list);
+
+  const restorable = getRestorableOrdersForBatch(batch);
+  if (restorable.length > 0) {
+    const addRow = document.createElement('div');
+    addRow.className = 'batch-orders-add';
+    const select = document.createElement('select');
+    select.className = 'modern-select batch-orders-select';
+    select.innerHTML =
+      '<option value="">Add order back…</option>' +
+      restorable.map((o) => `<option value="${escapeAttr(o)}">Order #${escapeHTML(o)}</option>`).join('');
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'mini-success-btn';
+    addBtn.textContent = '+';
+    addBtn.title = 'Add order back to this batch';
+    addBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const order = select.value.trim();
+      if (!order) return;
+      restoreOrderToBatch(batchKey, order);
+    });
+    addRow.appendChild(select);
+    addRow.appendChild(addBtn);
+    panel.appendChild(addRow);
+  }
+
+  return panel;
+}
+
 function renderBatchTabs() {
   const container = $('category-tabs');
   container.innerHTML = '';
-  let firstActive = '';
   Object.keys(state.splitGroups)
     .sort()
     .forEach((batchKey) => {
-      if (!firstActive) firstActive = batchKey;
       const batch = state.splitGroups[batchKey];
       const wrapper = document.createElement('div');
       wrapper.className = 'batch-item';
       wrapper.id = `batch-item-${batchKey}`;
+      if (batchKey === state.activeGroupKey) wrapper.classList.add('active');
+
+      const row = document.createElement('div');
+      row.className = 'batch-item-row';
+
+      const expandBtn = document.createElement('button');
+      expandBtn.type = 'button';
+      expandBtn.className = 'batch-expand-btn';
+      expandBtn.innerText = state.expandedBatches.has(batchKey) ? '▾' : '▸';
+      expandBtn.title = 'Show orders in this batch';
+      expandBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleBatchExpanded(batchKey);
+      });
 
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -223,7 +350,8 @@ function renderBatchTabs() {
       const specialBadge = batch.isSpecial
         ? '<span class="batch-special-badge">SPECIAL</span>'
         : '';
-      btn.innerHTML = `<span class="batch-name">${escapeHTML(batchKey)}${specialBadge}</span><span class="batch-meta">${batch.totalBoxes} Boxes • ${batch.sortedOrders.length} Orders</span>`;
+      const shipMeta = formatBatchShipMeta(batch);
+      btn.innerHTML = `<span class="batch-name">${escapeHTML(batchKey)}${specialBadge}</span><span class="batch-meta">${batch.totalBoxes} Boxes • ${batch.sortedOrders.length} Orders${escapeHTML(shipMeta)}</span>`;
       btn.addEventListener('click', () => selectGroup(batchKey));
 
       const splitBtn = document.createElement('button');
@@ -246,9 +374,12 @@ function renderBatchTabs() {
         deleteBatch(batchKey);
       });
 
-      wrapper.appendChild(btn);
-      wrapper.appendChild(splitBtn);
-      wrapper.appendChild(delBtn);
+      row.appendChild(expandBtn);
+      row.appendChild(btn);
+      row.appendChild(splitBtn);
+      row.appendChild(delBtn);
+      wrapper.appendChild(row);
+      wrapper.appendChild(renderBatchOrdersPanel(batchKey, batch));
       container.appendChild(wrapper);
     });
 }
@@ -546,13 +677,7 @@ function getExportGroups() {
   ) {
     // Compute groups from the full (un-excluded) dataset without touching the
     // visible workspace. splitDataIntoGroups is pure, so no re-render is needed.
-    return splitDataIntoGroups(
-      state.originalParsedRows,
-      state.colIndices,
-      state.maxOrdersPerBatch,
-      state.groupSplitLimits,
-      shouldSeparateSpecialOrders()
-    );
+    return computeSplitGroups(state.originalParsedRows);
   }
   return state.splitGroups;
 }

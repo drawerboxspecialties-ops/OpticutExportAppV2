@@ -5,6 +5,11 @@ import { CATEGORY_CODES, getMaterialCategory } from './categories.js';
 import { getSummaryHeight, getNumericSortValue, getFractionalSortValue } from './widths.js';
 import { computeBoxMatrix } from './boxMath.js';
 import { getSpecialOrderNumbers } from './specialOrders.js';
+import {
+  buildOrderShipDateMap,
+  getShipDateFromRow,
+  shipDateGroupingToken,
+} from './shipDate.js';
 
 /**
  * Front/back top-edge priority rule:
@@ -245,6 +250,7 @@ export function splitDataIntoGroups(
   const specialOrders = separateSpecialOrders
     ? getSpecialOrderNumbers(rows, colIndices)
     : new Set();
+  const orderShipDates = buildOrderShipDateMap(rows, colIndices);
 
   const rawGroups = {};
   rows.forEach((row) => {
@@ -257,10 +263,19 @@ export function splitDataIntoGroups(
     const orderNum = String(row[colIndices.orderNumber] ?? '').trim();
     const isSpecial = specialOrders.has(orderNum);
     const prefix = isSpecial ? 'SPECIAL_' : '';
-    const tempKey = `${prefix}${catCode}_${edgeCode}_${material}_${topEdge}`;
+    const shipToken = shipDateGroupingToken(orderNum, orderShipDates, colIndices);
+    const tempKey = `${prefix}${catCode}_${edgeCode}_${material}_${topEdge}${shipToken}`;
+    const shipDate = getShipDateFromRow(row, colIndices) || orderShipDates[orderNum] || '';
 
     if (!rawGroups[tempKey]) {
-      rawGroups[tempKey] = { rows: [], materialName: material, topEdge, categoryName: cat, isSpecial };
+      rawGroups[tempKey] = {
+        rows: [],
+        materialName: material,
+        topEdge,
+        categoryName: cat,
+        isSpecial,
+        shipDate,
+      };
     }
     rawGroups[tempKey].rows.push(row);
   });
@@ -299,7 +314,7 @@ export function splitDataIntoGroups(
         colIndices
       );
 
-      const { heightOrderBoxes, heightRowTotals, orderColTotals, totalBoxes } =
+      const { heightOrderBoxes, heightRowTotals, orderPartTotals, orderColTotals, totalBoxes } =
         computeBoxMatrix(sortedHeights, sortedOrders, summaryData);
 
       finalizedGroups[finalKey] = {
@@ -309,10 +324,12 @@ export function splitDataIntoGroups(
         topEdge: g.topEdge,
         categoryName: g.categoryName,
         isSpecial: g.isSpecial,
+        shipDate: g.shipDate,
         sortedHeights,
         sortedOrders,
         heightOrderBoxes,
         heightRowTotals,
+        orderPartTotals,
         orderColTotals,
         totalBoxes,
         totalParts,

@@ -974,13 +974,113 @@ tr:hover td {
 
 .batch-item {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   width: 100%;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
   transition: all 0.2s var(--ease);
+}
+
+.batch-item-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.batch-expand-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  margin-left: 0.25rem;
+}
+
+.batch-expand-btn:hover {
+  color: var(--accent);
+}
+
+.batch-orders-panel {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0.45rem 0.55rem 0.55rem;
+}
+
+.batch-orders-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.batch-order-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.batch-order-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.batch-order-qty {
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-left: 0.25rem;
+}
+
+.batch-order-remove {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--danger);
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.batch-order-remove:hover {
+  background: rgba(225, 29, 72, 0.08);
+}
+
+.batch-orders-add {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.batch-orders-select {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.74rem;
+}
+
+.mini-success-btn {
+  background: var(--success-gradient);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  width: 32px;
+  height: 32px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .batch-item:hover {
