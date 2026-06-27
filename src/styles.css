@@ -1638,18 +1638,17 @@ tr:hover td {
   font-size: 7px;
 }
 
+.cutlist-print-flow {
+  width: 100%;
+}
+
 .cutlist-print-columns {
-  column-count: 2;
-  column-gap: 0.06in;
-  column-fill: auto;
   width: 100%;
 }
 
 .cutlist-order-block {
-  break-inside: avoid;
-  page-break-inside: avoid;
   margin-bottom: 0.05in;
-  display: inline-block;
+  display: block;
   width: 100%;
 }
 
@@ -1893,13 +1892,19 @@ tr:hover td {
     page-break-after: avoid;
   }
 
+  .cutlist-print-flow,
   .cutlist-print-columns {
-    column-fill: auto;
+    column-count: 1;
   }
 
   .cutlist-order-block {
-    break-inside: avoid;
-    page-break-inside: avoid;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .cutlist-order-title {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 }
 

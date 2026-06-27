@@ -300,6 +300,7 @@ function cloneCutListSection(section, rows, continued) {
 
 /**
  * Split large orders into chunks that fit one print column; marks continuations.
+ * Optional — cut-list print uses single-column page flow instead.
  *
  * @param {Array<{ order: string, special: boolean, rows: object[] }>} sections
  * @param {number} maxDataRowsPerColumn

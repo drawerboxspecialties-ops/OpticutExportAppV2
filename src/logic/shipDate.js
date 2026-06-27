@@ -35,6 +35,39 @@ export function buildOrderShipDateMap(rows, colIndices) {
 }
 
 /**
+ * Unique ship dates for orders in a batch (one label per order), sorted for display.
+ *
+ * @param {string[][]} rows
+ * @param {object} colIndices
+ * @param {Record<string, string>} orderShipDates
+ * @returns {string[]}
+ */
+export function collectUniqueShipDates(rows, colIndices, orderShipDates = {}) {
+  if (colIndices.shipDate === -1) return [];
+  const seenOrders = new Set();
+  const dates = new Set();
+  rows.forEach((row) => {
+    const order = String(row[colIndices.orderNumber] ?? '').trim();
+    if (!order || seenOrders.has(order)) return;
+    seenOrders.add(order);
+    const date = normalizeShipDate(orderShipDates[order] ?? getShipDateFromRow(row, colIndices));
+    if (date) dates.add(date);
+  });
+  return Array.from(dates).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+/**
+ * @param {string[][]} rows
+ * @param {object} colIndices
+ * @param {Record<string, string>} orderShipDates
+ * @returns {string}
+ */
+export function formatCombinedShipDateLabel(rows, colIndices, orderShipDates = {}) {
+  const dates = collectUniqueShipDates(rows, colIndices, orderShipDates);
+  return dates.join(', ');
+}
+
+/**
  * Token appended to grouping keys when a Ship Date column exists.
  *
  * @param {string} order

@@ -8,7 +8,7 @@ import {
 import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
 import { formatOrderCutListBoxSummary } from '../logic/groupBoxes.js';
-import { getCutListPrintSections, chunkCutListSectionsForPrint } from '../logic/cutListPrint.js';
+import { getCutListPrintSections } from '../logic/cutListPrint.js';
 
 let checkboxIdCounter = 0;
 export function resetCheckboxCounter() {
@@ -336,7 +336,6 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
   const colCount = 6 + (hasGroup ? 1 : 0);
-  const chunks = chunkCutListSectionsForPrint(sections);
 
-  return `<div class="cutlist-print-sheet">${headerBanner}<div class="cutlist-print-columns">${renderCutListFlowBody(chunks, batch, colIndices, hasGroup, anySpecial, colCount)}</div></div>`;
+  return `<div class="cutlist-print-sheet">${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount)}</div></div>`;
 }

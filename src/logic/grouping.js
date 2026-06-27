@@ -7,6 +7,7 @@ import { computeBoxMatrix } from './boxMath.js';
 import { getSpecialOrderNumbers } from './specialOrders.js';
 import {
   buildOrderShipDateMap,
+  formatCombinedShipDateLabel,
   getShipDateFromRow,
   shipDateGroupingToken,
 } from './shipDate.js';
@@ -243,6 +244,7 @@ function buildSummaryData(finalRows, colIndices) {
  * @param {number} maxOrdersPerBatch
  * @param {Record<string, number>} groupSplitLimits  keyed by raw tempKey
  * @param {boolean} separateSpecialOrders
+ * @param {boolean} combineShipDates  when true, ignore ship date in batch keys
  * @returns {Record<string, object>} finalized groups keyed by batchKey
  */
 export function splitDataIntoGroups(
@@ -250,7 +252,8 @@ export function splitDataIntoGroups(
   colIndices,
   maxOrdersPerBatch,
   groupSplitLimits = {},
-  separateSpecialOrders = false
+  separateSpecialOrders = false,
+  combineShipDates = false
 ) {
   const specialOrders = separateSpecialOrders
     ? getSpecialOrderNumbers(rows, colIndices)
@@ -268,7 +271,9 @@ export function splitDataIntoGroups(
     const orderNum = String(row[colIndices.orderNumber] ?? '').trim();
     const isSpecial = specialOrders.has(orderNum);
     const prefix = isSpecial ? 'SPECIAL_' : '';
-    const shipToken = shipDateGroupingToken(orderNum, orderShipDates, colIndices);
+    const shipToken = combineShipDates
+      ? ''
+      : shipDateGroupingToken(orderNum, orderShipDates, colIndices);
     const tempKey = `${prefix}${catCode}_${edgeCode}_${material}_${topEdge}${shipToken}`;
     const shipDate = getShipDateFromRow(row, colIndices) || orderShipDates[orderNum] || '';
 
@@ -334,7 +339,9 @@ export function splitDataIntoGroups(
         topEdge: g.topEdge,
         categoryName: g.categoryName,
         isSpecial: g.isSpecial,
-        shipDate: g.shipDate,
+        shipDate: combineShipDates
+          ? formatCombinedShipDateLabel(chunkRows, colIndices, orderShipDates)
+          : g.shipDate,
         orderGroupBoxTotals,
         sortedHeights,
         sortedOrders,

@@ -4,6 +4,8 @@ import {
   buildOrderShipDateMap,
   shipDateGroupingToken,
   formatShipDateLabel,
+  formatCombinedShipDateLabel,
+  collectUniqueShipDates,
 } from '../src/logic/shipDate.js';
 import { mapHeaders } from '../src/logic/headers.js';
 import { splitDataIntoGroups } from '../src/logic/grouping.js';
@@ -44,6 +46,25 @@ describe('splitDataIntoGroups with ship date', () => {
     expect(keys.length).toBe(2);
     const dates = keys.map((k) => groups[k].shipDate).sort();
     expect(dates).toEqual(['6/15/2026', '6/22/2026']);
+  });
+
+  it('combines orders with different ship dates when combineShipDates is true', () => {
+    const rows = [
+      row('100', '6/15/2026'),
+      row('101', '6/22/2026'),
+    ];
+    const groups = splitDataIntoGroups(rows, cols, 999, {}, false, true);
+    expect(Object.keys(groups).length).toBe(1);
+    expect(groups[Object.keys(groups)[0]].shipDate).toBe('6/15/2026, 6/22/2026');
+  });
+});
+
+describe('formatCombinedShipDateLabel', () => {
+  it('lists unique ship dates sorted for a batch', () => {
+    const rows = [row('100', '6/22/2026'), row('101', '6/15/2026')];
+    const map = buildOrderShipDateMap(rows, cols);
+    expect(formatCombinedShipDateLabel(rows, cols, map)).toBe('6/15/2026, 6/22/2026');
+    expect(collectUniqueShipDates(rows, cols, map)).toEqual(['6/15/2026', '6/22/2026']);
   });
 });
 

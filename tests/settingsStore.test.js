@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadSettings, saveSettings, rememberFile, DEFAULT_SETTINGS } from '../src/logic/settingsStore.js';
+import { loadSettings, saveSettings, rememberFile, DEFAULT_SETTINGS, clearStoredSettings } from '../src/logic/settingsStore.js';
 
 function makeStorage() {
   let store = {};
@@ -46,5 +46,13 @@ describe('settings store', () => {
     s = rememberFile('k', s);
     expect(s.recentFiles[0]).toBe('k');
     expect(s.recentFiles.length).toBe(10);
+  });
+
+  it('clearStoredSettings removes persisted settings', () => {
+    const storage = makeStorage();
+    saveSettings({ maxOrdersPerBatch: 50, recentFiles: ['a.csv'] }, storage);
+    clearStoredSettings(storage);
+    expect(storage.getItem('opticut-export-app-settings')).toBeNull();
+    expect(loadSettings(storage)).toEqual(DEFAULT_SETTINGS);
   });
 });

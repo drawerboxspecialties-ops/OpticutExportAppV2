@@ -13,7 +13,7 @@ import { applyBatchOrderExclusions, batchOrderKey } from './logic/batchOrders.js
 import { formatShipDateLabel } from './logic/shipDate.js';
 import { getCutListRowsForExport } from './logic/exportRows.js';
 import { formatDecimalForDisplay } from './logic/widths.js';
-import { loadSettings, saveSettings, rememberFile } from './logic/settingsStore.js';
+import { loadSettings, saveSettings, rememberFile, clearStoredSettings } from './logic/settingsStore.js';
 import { DEMO_CSV } from './logic/demoData.js';
 import {
   resetCheckboxCounter,
@@ -109,6 +109,10 @@ function shouldSeparateSpecialOrders() {
   return el ? !!el.checked : true;
 }
 
+function shouldCombineShipDates() {
+  return !!$('chk-combine-ship-dates')?.checked;
+}
+
 function processFile(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -184,7 +188,8 @@ function computeSplitGroups(rows) {
     state.colIndices,
     state.maxOrdersPerBatch,
     state.groupSplitLimits,
-    shouldSeparateSpecialOrders()
+    shouldSeparateSpecialOrders(),
+    shouldCombineShipDates()
   );
   return applyBatchOrderExclusions(groups, state.batchOrderExclusions, state.colIndices);
 }
@@ -194,29 +199,17 @@ function rebuild() {
   showWorkspace();
 }
 
-function resetData() {
-  state.parsedHeaders = [];
-  state.parsedRows = [];
-  state.originalParsedRows = [];
-  state.splitGroups = {};
-  state.activeGroupKey = '';
-  state.excludedOrders = [];
-  state.excludedMaterials = [];
-  state.excludedTopEdges = [];
-  state.validationErrors = [];
-  state.groupSplitLimits = {};
-  state.batchOrderExclusions = new Set();
-  state.expandedBatches = new Set();
-  const fileInput = $('file-input');
-  if (fileInput) fileInput.value = '';
-  $('workspace-placeholder').style.display = 'flex';
-  $('active-workspace').hidden = true;
-  $('stats-section').hidden = true;
-  $('demo-section').style.display = 'block';
-  $('side-error-notification').hidden = true;
-  $('batches-sidebar-card').hidden = true;
-  $('exclude-order-section').hidden = true;
-  $('split-batches-config').hidden = true;
+async function hardResetApp() {
+  clearStoredSettings();
+  if ('caches' in window) {
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    } catch {
+      // ignore cache API errors
+    }
+  }
+  window.location.reload();
 }
 
 function showWorkspace() {
@@ -927,7 +920,9 @@ function wireEvents() {
     if (e.target.files.length > 0) processFile(e.target.files[0]);
   });
 
-  $('btn-reset').addEventListener('click', resetData);
+  $('btn-reset').addEventListener('click', () => {
+    void hardResetApp();
+  });
   $('btn-download-all').addEventListener('click', downloadAllZip);
   $('btn-export-current').addEventListener('click', downloadCurrentFile);
   $('btn-print-summary').addEventListener('click', triggerPrintCurrent);
@@ -968,6 +963,10 @@ function wireEvents() {
   );
 
   $('chk-separate-special-orders').addEventListener('change', () => {
+    if (state.colIndices) rebuild();
+  });
+
+  $('chk-combine-ship-dates').addEventListener('change', () => {
     if (state.colIndices) rebuild();
   });
 
