@@ -180,7 +180,7 @@
                     Restore all
                   </button>
                 </div>
-                <p class="control-panel-hint">Pick an order, material, or top edge, then press <b>−</b> to remove it from the batches. Materials and top edges support multi-select (Ctrl+click).</p>
+                <p class="control-panel-hint">Select items in each list, then press <b>−</b> to remove or <b>+</b> to restore. Removed materials and edges show as <i>(removed)</i>.</p>
 
                 <div class="modern-row">
                   <select
@@ -200,88 +200,68 @@
                   </button>
                 </div>
                 <div class="filter-field">
-                  <label class="filter-field-label" for="exclude-material-select">Materials</label>
+                  <label class="filter-field-label" for="material-filter-select">Materials</label>
                   <div class="modern-row modern-row--multi">
                     <select
-                      id="exclude-material-select"
+                      id="material-filter-select"
                       class="modern-input modern-select modern-select--multi"
                       multiple
-                      size="5"
-                      title="Ctrl+click or Shift+click to select multiple materials to remove"
+                      size="6"
+                      title="Ctrl+click to select. Use − to remove or + to restore."
                     ></select>
-                    <button
-                      class="mini-danger-btn"
-                      id="btn-exclude-material"
-                      type="button"
-                      title="Remove Selected Materials"
-                    >
-                      −
-                    </button>
-                  </div>
-                </div>
-                <div id="restore-material-row" class="filter-field" hidden>
-                  <label class="filter-field-label" for="restore-material-select">Removed materials</label>
-                  <div class="modern-row modern-row--multi">
-                    <select
-                      id="restore-material-select"
-                      class="modern-input modern-select modern-select--multi"
-                      multiple
-                      size="4"
-                      title="Select removed materials to add back"
-                    ></select>
-                    <button
-                      class="mini-restore-btn"
-                      id="btn-restore-material"
-                      type="button"
-                      title="Restore Selected Materials"
-                    >
-                      +
-                    </button>
+                    <div class="filter-action-buttons">
+                      <button
+                        class="mini-restore-btn"
+                        id="btn-restore-material"
+                        type="button"
+                        title="Restore Selected Materials"
+                      >
+                        +
+                      </button>
+                      <button
+                        class="mini-danger-btn"
+                        id="btn-exclude-material"
+                        type="button"
+                        title="Remove Selected Materials"
+                      >
+                        −
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div class="filter-field">
-                  <label class="filter-field-label" for="exclude-top-edge-select">Top edges</label>
+                  <label class="filter-field-label" for="top-edge-filter-select">Top edges</label>
                   <div class="modern-row modern-row--multi">
                     <select
-                      id="exclude-top-edge-select"
+                      id="top-edge-filter-select"
                       class="modern-input modern-select modern-select--multi"
                       multiple
-                      size="5"
-                      title="Ctrl+click or Shift+click to select multiple top edges to remove"
+                      size="6"
+                      title="Ctrl+click to select. Use − to remove or + to restore."
                     ></select>
-                    <button
-                      class="mini-danger-btn"
-                      id="btn-exclude-top-edge"
-                      type="button"
-                      title="Remove Selected Top Edges"
-                    >
-                      −
-                    </button>
-                  </div>
-                </div>
-                <div id="restore-top-edge-row" class="filter-field" hidden>
-                  <label class="filter-field-label" for="restore-top-edge-select">Removed top edges</label>
-                  <div class="modern-row modern-row--multi">
-                    <select
-                      id="restore-top-edge-select"
-                      class="modern-input modern-select modern-select--multi"
-                      multiple
-                      size="4"
-                      title="Select removed top edges to add back"
-                    ></select>
-                    <button
-                      class="mini-restore-btn"
-                      id="btn-restore-top-edge"
-                      type="button"
-                      title="Restore Selected Top Edges"
-                    >
-                      +
-                    </button>
+                    <div class="filter-action-buttons">
+                      <button
+                        class="mini-restore-btn"
+                        id="btn-restore-top-edge"
+                        type="button"
+                        title="Restore Selected Top Edges"
+                      >
+                        +
+                      </button>
+                      <button
+                        class="mini-danger-btn"
+                        id="btn-exclude-top-edge"
+                        type="button"
+                        title="Remove Selected Top Edges"
+                      >
+                        −
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 <div id="excluded-list-container" class="excluded-list" hidden>
-                  <div class="excluded-list-title">Removed Items</div>
+                  <div class="excluded-list-title">Removed orders</div>
                   <div id="excluded-orders-bag" class="excluded-bag"></div>
                 </div>
 

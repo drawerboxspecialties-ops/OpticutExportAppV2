@@ -502,95 +502,55 @@ function renderCurrentView() {
   stackBody.innerHTML = renderStackMatrixRows(batch, ci, false);
 }
 
+function isMaterialExcluded(material) {
+  return state.excludedMaterials.some(
+    (excluded) => excluded.toLowerCase() === material.toLowerCase()
+  );
+}
+
+function isTopEdgeExcluded(edge) {
+  return state.excludedTopEdges.some(
+    (excluded) => excluded.toLowerCase() === edge.toLowerCase()
+  );
+}
+
+function populateUnifiedFilterSelect(select, values, isExcludedFn) {
+  if (!select) return;
+  const previouslySelected = new Set(
+    Array.from(select.selectedOptions).map((option) => option.value)
+  );
+  if (values.length === 0) {
+    select.innerHTML = '<option value="" disabled>No items in file</option>';
+    select.disabled = true;
+    return;
+  }
+  select.disabled = false;
+  select.innerHTML = values
+    .map((value) => {
+      const removed = isExcludedFn(value);
+      const label = removed ? `${value} (removed)` : value;
+      const removedClass = removed ? ' class="filter-option--removed"' : '';
+      return `<option value="${escapeAttr(value)}"${removedClass}>${escapeHTML(label)}</option>`;
+    })
+    .join('');
+  Array.from(select.options).forEach((option) => {
+    if (previouslySelected.has(option.value)) option.selected = true;
+  });
+}
+
 function updateExclusionOptions() {
-  const materialSelect = $('exclude-material-select');
-  const restoreMaterialSelect = $('restore-material-select');
-  const restoreMaterialRow = $('restore-material-row');
-  const topEdgeSelect = $('exclude-top-edge-select');
-  const restoreTopEdgeSelect = $('restore-top-edge-select');
-  const restoreTopEdgeRow = $('restore-top-edge-row');
+  const materialSelect = $('material-filter-select');
+  const topEdgeSelect = $('top-edge-filter-select');
   const orderSelect = $('exclude-order-select');
   const allMaterials = Array.from(
     new Set(state.originalParsedRows.map(rowMaterialName).filter(Boolean))
   ).sort();
-  const availableMaterials = allMaterials.filter(
-    (material) =>
-      !state.excludedMaterials.some(
-        (excluded) => excluded.toLowerCase() === material.toLowerCase()
-      )
-  );
   const allTopEdges = Array.from(
     new Set(state.originalParsedRows.map(rowTopEdgeName).filter(Boolean))
   ).sort();
-  const availableTopEdges = allTopEdges.filter(
-    (edge) =>
-      !state.excludedTopEdges.some(
-        (excluded) => excluded.toLowerCase() === edge.toLowerCase()
-      )
-  );
 
-  if (materialSelect) {
-    const previouslySelected = Array.from(materialSelect.selectedOptions).map((option) => option.value);
-    if (availableMaterials.length === 0) {
-      materialSelect.innerHTML = '<option value="" disabled>No materials available</option>';
-      materialSelect.disabled = true;
-    } else {
-      materialSelect.disabled = false;
-      materialSelect.innerHTML = availableMaterials
-        .map((material) => `<option value="${escapeAttr(material)}">${escapeHTML(material)}</option>`)
-        .join('');
-      Array.from(materialSelect.options).forEach((option) => {
-        if (previouslySelected.includes(option.value)) option.selected = true;
-      });
-    }
-  }
-
-  if (restoreMaterialSelect && restoreMaterialRow) {
-    const excludedMaterials = [...state.excludedMaterials].sort((a, b) => a.localeCompare(b));
-    restoreMaterialRow.hidden = excludedMaterials.length === 0;
-    if (excludedMaterials.length === 0) {
-      restoreMaterialSelect.innerHTML = '';
-      restoreMaterialSelect.disabled = true;
-    } else {
-      restoreMaterialSelect.disabled = false;
-      restoreMaterialSelect.innerHTML = excludedMaterials
-        .map(
-          (material) =>
-            `<option value="${escapeAttr(material)}">${escapeHTML(material)}</option>`
-        )
-        .join('');
-    }
-  }
-
-  if (topEdgeSelect) {
-    const previouslySelected = Array.from(topEdgeSelect.selectedOptions).map((option) => option.value);
-    if (availableTopEdges.length === 0) {
-      topEdgeSelect.innerHTML = '<option value="" disabled>No top edges available</option>';
-      topEdgeSelect.disabled = true;
-    } else {
-      topEdgeSelect.disabled = false;
-      topEdgeSelect.innerHTML = availableTopEdges
-        .map((edge) => `<option value="${escapeAttr(edge)}">${escapeHTML(edge)}</option>`)
-        .join('');
-      Array.from(topEdgeSelect.options).forEach((option) => {
-        if (previouslySelected.includes(option.value)) option.selected = true;
-      });
-    }
-  }
-
-  if (restoreTopEdgeSelect && restoreTopEdgeRow) {
-    const excludedTopEdges = [...state.excludedTopEdges].sort((a, b) => a.localeCompare(b));
-    restoreTopEdgeRow.hidden = excludedTopEdges.length === 0;
-    if (excludedTopEdges.length === 0) {
-      restoreTopEdgeSelect.innerHTML = '';
-      restoreTopEdgeSelect.disabled = true;
-    } else {
-      restoreTopEdgeSelect.disabled = false;
-      restoreTopEdgeSelect.innerHTML = excludedTopEdges
-        .map((edge) => `<option value="${escapeAttr(edge)}">${escapeHTML(edge)}</option>`)
-        .join('');
-    }
-  }
+  populateUnifiedFilterSelect(materialSelect, allMaterials, isMaterialExcluded);
+  populateUnifiedFilterSelect(topEdgeSelect, allTopEdges, isTopEdgeExcluded);
 
   if (orderSelect) {
     // Orders still in the batches (excluded ones drop out automatically).
@@ -664,16 +624,6 @@ function renderExcludedBadges() {
       `<button type="button" class="restore-badge restore-badge--order" data-restore="order" data-value="${escapeAttr(order)}" title="Click to Restore Order">Order #${escapeHTML(order)} <span class="restore-plus">+</span></button>`
     );
   });
-  state.excludedMaterials.forEach((material) => {
-    badges.push(
-      `<button type="button" class="restore-badge restore-badge--material" data-restore="material" data-value="${escapeAttr(material)}" title="Click to Restore Material">Material: ${escapeHTML(material)} <span class="restore-plus">+</span></button>`
-    );
-  });
-  state.excludedTopEdges.forEach((edge) => {
-    badges.push(
-      `<button type="button" class="restore-badge restore-badge--edge" data-restore="edge" data-value="${escapeAttr(edge)}" title="Click to Restore Top Edge">Edge: ${escapeHTML(edge)} <span class="restore-plus">+</span></button>`
-    );
-  });
   if (badges.length > 0) {
     container.hidden = false;
     bag.innerHTML = badges.join('');
@@ -706,16 +656,17 @@ function excludeOrder() {
 }
 
 function excludeMaterial() {
-  const select = $('exclude-material-select');
+  const select = $('material-filter-select');
   if (!select || select.disabled) {
-    alert('No materials available to remove.');
+    alert('No materials in the loaded file.');
     return;
   }
   const selected = Array.from(select.selectedOptions)
     .map((option) => cleanMaterialName(option.value.trim()))
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((material) => !isMaterialExcluded(material));
   if (!selected.length) {
-    alert('Please select one or more materials to remove.');
+    alert('Select active materials to remove (not marked removed).');
     return;
   }
 
@@ -724,28 +675,23 @@ function excludeMaterial() {
     const exists = state.originalParsedRows.some(
       (row) => rowMaterialName(row).toLowerCase() === materialToExclude.toLowerCase()
     );
-    if (!exists) return;
-    if (
-      !state.excludedMaterials.some(
-        (material) => material.toLowerCase() === materialToExclude.toLowerCase()
-      )
-    ) {
-      state.excludedMaterials.push(materialToExclude);
-      added = true;
-    }
+    if (!exists || isMaterialExcluded(materialToExclude)) return;
+    state.excludedMaterials.push(materialToExclude);
+    added = true;
   });
 
   if (added) applyExclusionsAndRebuild();
 }
 
 function restoreMaterials() {
-  const select = $('restore-material-select');
+  const select = $('material-filter-select');
   if (!select || select.disabled) return;
   const selected = Array.from(select.selectedOptions)
     .map((option) => option.value)
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((material) => isMaterialExcluded(material));
   if (!selected.length) {
-    alert('Please select one or more removed materials to restore.');
+    alert('Select removed materials to restore (marked removed).');
     return;
   }
 
@@ -757,16 +703,17 @@ function restoreMaterials() {
 }
 
 function excludeTopEdge() {
-  const select = $('exclude-top-edge-select');
+  const select = $('top-edge-filter-select');
   if (!select || select.disabled) {
-    alert('No top edges available to remove.');
+    alert('No top edges in the loaded file.');
     return;
   }
   const selected = Array.from(select.selectedOptions)
     .map((option) => normalizeTopEdgeName(option.value.trim()))
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((edge) => !isTopEdgeExcluded(edge));
   if (!selected.length) {
-    alert('Please select one or more top edges to remove.');
+    alert('Select active top edges to remove (not marked removed).');
     return;
   }
 
@@ -775,28 +722,23 @@ function excludeTopEdge() {
     const exists = state.originalParsedRows.some(
       (row) => rowTopEdgeName(row).toLowerCase() === edgeToExclude.toLowerCase()
     );
-    if (!exists) return;
-    if (
-      !state.excludedTopEdges.some(
-        (edge) => edge.toLowerCase() === edgeToExclude.toLowerCase()
-      )
-    ) {
-      state.excludedTopEdges.push(edgeToExclude);
-      added = true;
-    }
+    if (!exists || isTopEdgeExcluded(edgeToExclude)) return;
+    state.excludedTopEdges.push(edgeToExclude);
+    added = true;
   });
 
   if (added) applyExclusionsAndRebuild();
 }
 
 function restoreTopEdges() {
-  const select = $('restore-top-edge-select');
+  const select = $('top-edge-filter-select');
   if (!select || select.disabled) return;
   const selected = Array.from(select.selectedOptions)
     .map((option) => option.value)
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((edge) => isTopEdgeExcluded(edge));
   if (!selected.length) {
-    alert('Please select one or more removed top edges to restore.');
+    alert('Select removed top edges to restore (marked removed).');
     return;
   }
 

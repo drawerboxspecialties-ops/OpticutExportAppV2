@@ -944,6 +944,16 @@ tr:hover td {
   padding: 0.15rem 0.25rem;
 }
 
+.filter-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.modern-select--multi option.filter-option--removed {
+  color: #be123c;
+}
+
 .mini-danger-btn {
   height: 38px;
   min-width: 40px;
