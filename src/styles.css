@@ -1598,77 +1598,151 @@ tr:hover td {
 }
 
 /* ── Cut List print sheet ─────────────────────────────── */
-.cutlist-table {
+.cutlist-print-sheet {
+  page: cutlist;
   width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  color: #000 !important;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
+}
+
+.cutlist-print-sheet .print-batch-header {
+  margin-bottom: 0.05in;
+}
+
+.cutlist-print-sheet .print-batch-header-row {
+  padding: 4px 6px;
+}
+
+.cutlist-print-sheet .print-batch-meta {
+  padding: 3px 6px;
+  gap: 4px;
+}
+
+.cutlist-print-sheet .print-batch-title {
+  font-size: 11px;
+}
+
+.cutlist-print-sheet .print-batch-boxes-total,
+.cutlist-print-sheet .print-batch-orders-list {
+  font-size: 9px;
+}
+
+.cutlist-print-sheet .print-batch-time {
+  font-size: 8px;
+}
+
+.cutlist-print-sheet .print-meta-chip {
+  min-width: 1.1in;
+  padding: 2px 4px;
+}
+
+.cutlist-print-sheet .print-meta-label {
+  font-size: 7px;
 }
 
 .cutlist-sheet-grid {
   font-size: 0;
   line-height: 0;
+  width: 100%;
 }
 
 .cutlist-sheet-col {
   display: inline-block;
   vertical-align: top;
-  width: calc(50% - 0.06in);
-  margin: 0 0.06in 0 0;
-  font-size: 12px;
-  line-height: 1.2;
-  break-inside: avoid;
-  page-break-inside: avoid;
+  width: calc(50% - 0.03in);
+  margin: 0 0.03in 0 0;
+  font-size: 10px;
+  line-height: 1.15;
 }
 
 .cutlist-sheet-col:last-child {
   margin-right: 0;
 }
 
+.cutlist-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 10px;
+  color: #000 !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.cutlist-col-grp {
+  width: 7%;
+}
+
+.cutlist-col-check {
+  width: 6%;
+}
+
+.cutlist-col-width {
+  width: 9%;
+}
+
+.cutlist-col-length {
+  width: 26%;
+}
+
+.cutlist-col-count {
+  width: 8%;
+}
+
 .cutlist-table th,
 .cutlist-table td {
-  border: 1px solid #94a3b8;
+  border: 1px solid #64748b;
   text-align: center;
-  padding: 3px 5px;
+  padding: 2px 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cutlist-table th {
-  font-weight: bold;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   background: #e5e7eb;
-  border-bottom: 1.5px solid #64748b;
+  border-bottom: 1.5px solid #475569;
 }
 
 .cutlist-check-col {
-  width: 26px;
+  width: 6%;
 }
 
 .cutlist-check {
-  width: 26px;
+  width: 6%;
+}
+
+.cutlist-print-sheet .print-check {
+  width: 11px;
+  height: 11px;
 }
 
 .cutlist-dim {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  font-size: 10px;
 }
 
 .cutlist-qty {
   font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .cutlist-order-header td {
-  border: 1px solid #94a3b8;
+  border: 1px solid #64748b;
   padding: 0;
 }
 
 .cutlist-order-title {
-  text-align: center;
+  text-align: left;
+  font-size: 9px;
   font-weight: 900;
   background: #e5e7eb;
   color: #000 !important;
-  border-bottom: 1.8px solid #64748b;
-  padding: 4px 5px;
+  border-bottom: 1.5px solid #475569;
+  padding: 2px 4px;
+  letter-spacing: 0.01em;
 }
 
 .cutlist-order-special {
@@ -1724,6 +1798,11 @@ tr:hover td {
   @page {
     size: letter landscape;
     margin: 0.22in;
+  }
+
+  @page cutlist {
+    size: letter landscape;
+    margin: 0.12in;
   }
 
   body {
@@ -1803,6 +1882,15 @@ tr:hover td {
   .cutlist-order-header {
     break-after: avoid;
     page-break-after: avoid;
+  }
+
+  body.print-cutlist-active .category-card {
+    page-break-after: avoid;
+  }
+
+  body.print-cutlist-active .cutlist-sheet-col {
+    break-inside: auto;
+    page-break-inside: auto;
   }
 }
 

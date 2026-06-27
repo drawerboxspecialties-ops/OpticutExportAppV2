@@ -831,10 +831,10 @@ function triggerPrintCutList() {
   cardDiv.className = 'category-card';
   cardDiv.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices);
   printContainer.appendChild(cardDiv);
-  document.body.classList.add('print-all-active');
+  document.body.classList.add('print-all-active', 'print-cutlist-active');
   window.print();
   setTimeout(() => {
-    document.body.classList.remove('print-all-active');
+    document.body.classList.remove('print-all-active', 'print-cutlist-active');
     printContainer.innerHTML = '';
   }, 1000);
 }

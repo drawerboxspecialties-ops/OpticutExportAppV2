@@ -1,3 +1,4 @@
+import { boxesForParts } from './boxMath.js';
 import {
   getStackMatrixWidth,
   formatDecimalForDisplay,
@@ -60,6 +61,10 @@ function setSide(target, dim) {
   if (!dim.w && !dim.length) return;
   target.w = dim.w;
   target.length = dim.length;
+}
+
+function sumPartQtys(parts) {
+  return parts.reduce((sum, p) => sum + p.qty, 0);
 }
 
 /**
@@ -140,14 +145,14 @@ export function getCutListPrintSections(batch, colIndices) {
             back: emptySide(),
             left: emptySide(),
             right: emptySide(),
-            qty: 0,
+            parts: 0,
           });
         }
         const line = byWidth.get(p.stackWidth);
         if (p.side === 'left') setSide(line.left, p.dim);
         if (p.side === 'right') setSide(line.right, p.dim);
         if (p.side === 'back') setSide(line.back, p.dim);
-        line.qty = Math.max(line.qty, p.qty);
+        line.parts += p.qty;
       });
       byWidth.forEach((line) => boxRows.push(line));
       return;
@@ -186,7 +191,7 @@ export function getCutListPrintSections(batch, colIndices) {
         back: emptySide(),
         left: emptySide(),
         right: emptySide(),
-        qty: group[0].qty,
+        parts: frontKeys.length === 1 ? sumPartQtys(bucket.parts) : sumPartQtys(group),
       };
 
       const back = backs.find(
@@ -198,6 +203,7 @@ export function getCutListPrintSections(batch, colIndices) {
       if (back) {
         usedBack.add(backs.indexOf(back));
         setSide(line.back, back.dim);
+        if (frontKeys.length > 1) line.parts += back.qty;
       }
 
       const pickSide = (list, used) => {
@@ -205,7 +211,7 @@ export function getCutListPrintSections(batch, colIndices) {
           const part = list.find((_, i) => !used.has(i));
           if (part) {
             used.add(list.indexOf(part));
-            return part.dim;
+            return part;
           }
           return null;
         }
@@ -214,20 +220,26 @@ export function getCutListPrintSections(batch, colIndices) {
         );
         if (match) {
           used.add(list.indexOf(match));
-          return match.dim;
+          return match;
         }
         const byIndex = list.find((_, i) => !used.has(i) && index === 0);
         if (byIndex) {
           used.add(list.indexOf(byIndex));
-          return byIndex.dim;
+          return byIndex;
         }
         return null;
       };
 
-      const leftDim = pickSide(lefts, usedLeft);
-      const rightDim = pickSide(rights, usedRight);
-      if (leftDim) setSide(line.left, leftDim);
-      if (rightDim) setSide(line.right, rightDim);
+      const leftPart = pickSide(lefts, usedLeft);
+      const rightPart = pickSide(rights, usedRight);
+      if (leftPart) {
+        setSide(line.left, leftPart.dim);
+        if (frontKeys.length > 1) line.parts += leftPart.qty;
+      }
+      if (rightPart) {
+        setSide(line.right, rightPart.dim);
+        if (frontKeys.length > 1) line.parts += rightPart.qty;
+      }
 
       boxRows.push(line);
     });
@@ -254,7 +266,8 @@ export function getCutListPrintSections(batch, colIndices) {
     }
     const section = sections[sections.length - 1];
     section.rows.push({
-      qty: row.qty,
+      parts: row.parts,
+      boxes: boxesForParts(row.parts),
       groupId: row.groupId,
       special: row.special,
       width: row.width,
@@ -277,36 +290,65 @@ export function getCutListSectionRowCount(section) {
 }
 
 /**
+ * @param {object} section
+ * @param {object[]} rows
+ * @param {boolean} continued
+ */
+function cloneCutListSection(section, rows, continued) {
+  return { ...section, rows, continued: !!continued };
+}
+
+/**
  * Split cut-list sections into two balanced columns for side-by-side print tables.
+ * Splits by row count so both columns fill the sheet evenly.
  *
  * @param {Array<{ order: string, special: boolean, rows: object[] }>} sections
  * @returns {{ left: typeof sections, right: typeof sections }}
  */
 export function splitCutListSectionsForPrint(sections) {
   if (!sections?.length) return { left: [], right: [] };
-  if (sections.length === 1 && sections[0].rows.length > 1) {
-    const section = sections[0];
-    const mid = Math.ceil(section.rows.length / 2);
-    return {
-      left: [{ ...section, rows: section.rows.slice(0, mid), continued: false }],
-      right: [{ ...section, rows: section.rows.slice(mid), continued: true }],
-    };
+
+  const totalRows = sections.reduce((sum, section) => sum + getCutListSectionRowCount(section), 0);
+  if (totalRows <= 2) {
+    return { left: sections.map((section) => cloneCutListSection(section, section.rows, false)), right: [] };
   }
 
+  const targetLeft = Math.ceil(totalRows / 2);
   const left = [];
   const right = [];
-  let leftRows = 0;
-  let rightRows = 0;
+  let leftCount = 0;
 
   sections.forEach((section) => {
-    const count = getCutListSectionRowCount(section);
-    if (leftRows <= rightRows) {
-      left.push({ ...section, continued: false });
-      leftRows += count;
-    } else {
-      right.push({ ...section, continued: false });
-      rightRows += count;
+    const sectionRows = getCutListSectionRowCount(section);
+    const remainingLeft = targetLeft - leftCount;
+
+    if (remainingLeft <= 0) {
+      right.push(
+        cloneCutListSection(
+          section,
+          section.rows,
+          right.some((entry) => entry.order === section.order)
+        )
+      );
+      return;
     }
+
+    if (sectionRows <= remainingLeft) {
+      left.push(cloneCutListSection(section, section.rows, false));
+      leftCount += sectionRows;
+      return;
+    }
+
+    const leftDataCount = Math.max(1, remainingLeft - 1);
+    if (leftDataCount >= section.rows.length) {
+      left.push(cloneCutListSection(section, section.rows, false));
+      leftCount += sectionRows;
+      return;
+    }
+
+    left.push(cloneCutListSection(section, section.rows.slice(0, leftDataCount), false));
+    leftCount += 1 + leftDataCount;
+    right.push(cloneCutListSection(section, section.rows.slice(leftDataCount), true));
   });
 
   return { left, right };

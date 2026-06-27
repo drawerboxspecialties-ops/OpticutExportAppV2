@@ -248,14 +248,24 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
  */
 function renderCutListTableHead(hasGroup) {
   return `
+      <colgroup>
+        ${hasGroup ? '<col class="cutlist-col-grp">' : ''}
+        <col class="cutlist-col-check">
+        <col class="cutlist-col-width">
+        <col class="cutlist-col-length">
+        <col class="cutlist-col-length">
+        <col class="cutlist-col-count">
+        <col class="cutlist-col-count">
+      </colgroup>
       <thead>
         <tr class="stack-order-columns-row">
           ${hasGroup ? '<th>Grp</th>' : ''}
           <th class="cutlist-check-col"></th>
-          <th>Width</th>
-          <th>Front / Back</th>
-          <th>Left / Right</th>
-          <th>Qty</th>
+          <th>W</th>
+          <th>F / B</th>
+          <th>L / R</th>
+          <th>Bx</th>
+          <th>Pcs</th>
         </tr>
       </thead>`;
 }
@@ -284,7 +294,8 @@ function renderCutListTableBody(sections, batch, colIndices, hasGroup, anySpecia
         <td class="cutlist-dim">${escapeHTML(r.width)}"</td>
         <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
         <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
-        <td class="cutlist-qty"><b>${r.qty}</b></td>
+        <td class="cutlist-qty"><b>${r.boxes}</b></td>
+        <td class="cutlist-qty"><b>${r.parts}</b></td>
       </tr>`;
     });
   });
@@ -298,7 +309,7 @@ function renderCutListTableBody(sections, batch, colIndices, hasGroup, anySpecia
 
 function renderCutListTable(sections, batch, colIndices, hasGroup, anySpecial, colCount) {
   return `
-    <table class="cutlist-table" cellpadding="4" cellspacing="0">
+    <table class="cutlist-table" cellspacing="0">
       ${renderCutListTableHead(hasGroup)}
       <tbody>${renderCutListTableBody(sections, batch, colIndices, hasGroup, anySpecial, colCount)}</tbody>
     </table>
@@ -310,16 +321,15 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
   const sections = getCutListPrintSections(batch, colIndices);
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
-  const colCount = 5 + (hasGroup ? 1 : 0);
+  const colCount = 6 + (hasGroup ? 1 : 0);
   const { left, right } = splitCutListSectionsForPrint(sections);
 
-  if (!right.length) {
-    return `${headerBanner}${renderCutListTable(left, batch, colIndices, hasGroup, anySpecial, colCount)}`;
-  }
-
-  return `${headerBanner}
-    <div class="cutlist-sheet-grid">
+  const tables = !right.length
+    ? renderCutListTable(left, batch, colIndices, hasGroup, anySpecial, colCount)
+    : `<div class="cutlist-sheet-grid">
       <div class="cutlist-sheet-col">${renderCutListTable(left, batch, colIndices, hasGroup, anySpecial, colCount)}</div>
       <div class="cutlist-sheet-col">${renderCutListTable(right, batch, colIndices, hasGroup, anySpecial, colCount)}</div>
     </div>`;
+
+  return `<div class="cutlist-print-sheet">${headerBanner}${tables}</div>`;
 }

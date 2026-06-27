@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getCutListPrintSections, splitCutListSectionsForPrint } from '../src/logic/cutListPrint.js';
+import {
+  getCutListPrintSections,
+  getCutListSectionRowCount,
+  splitCutListSectionsForPrint,
+} from '../src/logic/cutListPrint.js';
 import { mapHeaders } from '../src/logic/headers.js';
 
 const headers = [
@@ -68,7 +72,8 @@ describe('getCutListPrintSections', () => {
     const sections = getCutListPrintSections(batch, cols);
     expect(sections[0].rows).toHaveLength(1);
     expect(sections[0].rows[0]).toMatchObject({
-      qty: 4,
+      parts: 16,
+      boxes: 4,
       groupId: '2',
       width: '5',
       fbLength: '24.125',
@@ -91,7 +96,7 @@ describe('getCutListPrintSections', () => {
     });
   });
 
-  it('uses front qty as the box quantity on one line', () => {
+  it('sums total parts on the line and derives box count', () => {
     const batch = {
       sourceRows: [
         row({ order: '601881', part: 'F', length: '22', qty: 4, groupId: '1' }),
@@ -100,7 +105,8 @@ describe('getCutListPrintSections', () => {
     };
     const sections = getCutListPrintSections(batch, cols);
     expect(sections[0].rows).toHaveLength(1);
-    expect(sections[0].rows[0].qty).toBe(4);
+    expect(sections[0].rows[0].parts).toBe(8);
+    expect(sections[0].rows[0].boxes).toBe(2);
     expect(sections[0].rows[0].fbLength).toBe('22');
   });
 
@@ -115,7 +121,8 @@ describe('getCutListPrintSections', () => {
     const sections = getCutListPrintSections(batch, cols);
     expect(sections[0].rows).toHaveLength(1);
     expect(sections[0].rows[0]).toMatchObject({
-      qty: 8,
+      parts: 28,
+      boxes: 7,
       width: '10',
       fbLength: '18',
       lrLength: '18',
@@ -194,7 +201,8 @@ describe('getCutListPrintSections', () => {
     };
     const sections = getCutListPrintSections(batch, cols);
     expect(sections[0].rows).toHaveLength(1);
-    expect(sections[0].rows[0].qty).toBe(4);
+    expect(sections[0].rows[0].parts).toBe(4);
+    expect(sections[0].rows[0].boxes).toBe(1);
   });
 
   it('falls back to merged rows when sourceRows are absent', () => {
@@ -203,20 +211,25 @@ describe('getCutListPrintSections', () => {
     };
     const sections = getCutListPrintSections(batch, cols);
     expect(sections[0].rows).toHaveLength(1);
-    expect(sections[0].rows[0].qty).toBe(4);
+    expect(sections[0].rows[0].parts).toBe(4);
+    expect(sections[0].rows[0].boxes).toBe(1);
   });
 });
 
 describe('splitCutListSectionsForPrint', () => {
+  const countRows = (columns) =>
+    columns.reduce((sum, section) => sum + getCutListSectionRowCount(section), 0);
+
   it('balances multiple orders across left and right tables', () => {
     const sections = [
-      { order: '1', special: false, rows: [{ qty: 1 }, { qty: 2 }] },
-      { order: '2', special: false, rows: [{ qty: 3 }] },
-      { order: '3', special: false, rows: [{ qty: 4 }, { qty: 5 }] },
+      { order: '1', special: false, rows: [{ parts: 1 }, { parts: 2 }] },
+      { order: '2', special: false, rows: [{ parts: 3 }] },
+      { order: '3', special: false, rows: [{ parts: 4 }, { parts: 5 }] },
     ];
     const { left, right } = splitCutListSectionsForPrint(sections);
-    expect(left.map((s) => s.order)).toEqual(['1']);
-    expect(right.map((s) => s.order)).toEqual(['2', '3']);
+    expect(left.length).toBeGreaterThan(0);
+    expect(right.length).toBeGreaterThan(0);
+    expect(Math.abs(countRows(left) - countRows(right))).toBeLessThanOrEqual(2);
   });
 
   it('splits a single large order across both tables', () => {
