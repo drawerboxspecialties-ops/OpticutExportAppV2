@@ -138,8 +138,12 @@ body {
 
 @media (min-width: 960px) {
   .app-layout.container {
-    grid-template-columns: minmax(280px, 300px) minmax(0, 1fr);
+    grid-template-columns: minmax(250px, 280px) minmax(0, 1fr);
     min-height: calc(100vh - 6.5rem);
+  }
+
+  .app-layout.container:has(#batches-sidebar-card:not([hidden])) {
+    grid-template-columns: minmax(250px, 280px) minmax(0, 1fr) minmax(250px, 300px);
   }
 
   .sidebar {
@@ -151,6 +155,18 @@ body {
     align-self: stretch;
     max-height: calc(100vh - 5.5rem);
     min-height: 0;
+  }
+
+  .sidebar--right {
+    order: 3;
+  }
+
+  .workspace {
+    order: 2;
+  }
+
+  .sidebar--left {
+    order: 1;
   }
 }
 
@@ -221,6 +237,20 @@ body {
   min-height: 0;
 }
 
+.panel--controls {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+#controls-sidebar-card[hidden] {
+  display: none !important;
+}
+
 .panel--rail,
 .card--sidebar {
   padding: 0.75rem;
@@ -232,6 +262,10 @@ body {
   min-height: 0;
 }
 
+.sidebar--right.panel--rail {
+  min-height: 0;
+}
+
 #batches-sidebar-card {
   overflow: hidden;
 }
@@ -240,9 +274,10 @@ body {
   display: none !important;
 }
 
-#exclude-order-section,
-#split-batches-config {
-  flex-shrink: 0;
+#exclude-order-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 /* ── Buttons ───────────────────────────────────────────── */

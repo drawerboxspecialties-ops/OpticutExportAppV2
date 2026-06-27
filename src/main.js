@@ -217,9 +217,8 @@ function showWorkspace() {
   $('active-workspace').hidden = false;
   $('stats-section').hidden = false;
   $('demo-section').style.display = 'none';
+  $('controls-sidebar-card').hidden = false;
   $('batches-sidebar-card').hidden = false;
-  $('exclude-order-section').hidden = false;
-  $('split-batches-config').hidden = false;
 
   let totalQty = 0;
   state.parsedRows.forEach((row) => {

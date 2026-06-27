@@ -42,7 +42,7 @@
       </header>
 
       <div class="app-layout container">
-        <aside class="sidebar">
+        <aside class="sidebar sidebar--left">
           <section class="panel panel--import" aria-label="Import CSV">
             <input type="file" id="file-input" accept=".csv" hidden />
             <button id="drop-zone" class="drop-zone" type="button">
@@ -101,25 +101,8 @@
             </div>
           </section>
 
-          <aside class="panel panel--rail card card--sidebar" id="batches-sidebar-card" hidden>
-            <div class="sidebar-block sidebar-block--batches">
-              <div class="sidebar-block-header">
-                <h2 class="sidebar-heading">Batches</h2>
-              </div>
-
-              <label for="batch-search-input" class="sr-only">Search by Order #</label>
-              <input
-                type="search"
-                id="batch-search-input"
-                class="input input--search"
-                placeholder="Search order #…"
-                autocomplete="off"
-              />
-
-              <div id="category-tabs" class="category-tabs"></div>
-            </div>
-
-            <details id="split-batches-config" class="sidebar-details" hidden>
+          <section class="panel panel--controls" id="controls-sidebar-card" hidden>
+            <details id="split-batches-config" class="sidebar-details">
               <summary class="sidebar-details-summary">Split settings</summary>
               <div class="sidebar-details-body">
                 <label for="max-orders-input" class="field-label">Max orders per batch</label>
@@ -130,7 +113,7 @@
               </div>
             </details>
 
-            <div id="exclude-order-section" hidden>
+            <div id="exclude-order-section">
               <details class="sidebar-details" open>
                 <summary class="sidebar-details-summary">
                   Filters
@@ -225,7 +208,7 @@
                 </div>
               </details>
             </div>
-          </aside>
+          </section>
         </aside>
 
         <section class="workspace" id="workspace">
@@ -316,6 +299,25 @@
             </div>
           </div>
         </section>
+
+        <aside class="sidebar sidebar--right panel panel--rail card card--sidebar" id="batches-sidebar-card" hidden>
+          <div class="sidebar-block sidebar-block--batches">
+            <div class="sidebar-block-header">
+              <h2 class="sidebar-heading">Batches</h2>
+            </div>
+
+            <label for="batch-search-input" class="sr-only">Search by Order #</label>
+            <input
+              type="search"
+              id="batch-search-input"
+              class="input input--search"
+              placeholder="Search order #…"
+              autocomplete="off"
+            />
+
+            <div id="category-tabs" class="category-tabs"></div>
+          </div>
+        </aside>
       </div>
 
       <footer class="app-footer">DBS Drawers · High Quality Custom Drawer Boxes</footer>
