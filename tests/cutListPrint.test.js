@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCutListPrintSections } from '../src/logic/cutListPrint.js';
+import { getCutListPrintSections, splitCutListSectionsForPrint } from '../src/logic/cutListPrint.js';
 import { mapHeaders } from '../src/logic/headers.js';
 
 const headers = [
@@ -192,5 +192,32 @@ describe('getCutListPrintSections', () => {
     const sections = getCutListPrintSections(batch, cols);
     expect(sections[0].rows).toHaveLength(1);
     expect(sections[0].rows[0].qty).toBe(4);
+  });
+});
+
+describe('splitCutListSectionsForPrint', () => {
+  it('balances multiple orders across left and right tables', () => {
+    const sections = [
+      { order: '1', special: false, rows: [{ qty: 1 }, { qty: 2 }] },
+      { order: '2', special: false, rows: [{ qty: 3 }] },
+      { order: '3', special: false, rows: [{ qty: 4 }, { qty: 5 }] },
+    ];
+    const { left, right } = splitCutListSectionsForPrint(sections);
+    expect(left.map((s) => s.order)).toEqual(['1']);
+    expect(right.map((s) => s.order)).toEqual(['2', '3']);
+  });
+
+  it('splits a single large order across both tables', () => {
+    const sections = [
+      {
+        order: '602336',
+        special: false,
+        rows: [{ qty: 1 }, { qty: 2 }, { qty: 3 }, { qty: 4 }],
+      },
+    ];
+    const { left, right } = splitCutListSectionsForPrint(sections);
+    expect(left[0].rows).toHaveLength(2);
+    expect(right[0].rows).toHaveLength(2);
+    expect(right[0].continued).toBe(true);
   });
 });

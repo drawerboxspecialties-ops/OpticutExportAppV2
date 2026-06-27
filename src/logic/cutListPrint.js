@@ -255,3 +255,48 @@ export function getCutListPrintSections(batch, colIndices) {
 
   return sections;
 }
+
+/**
+ * Row count for print layout (order header + data rows).
+ * @param {{ rows: object[] }} section
+ * @returns {number}
+ */
+export function getCutListSectionRowCount(section) {
+  return 1 + (section?.rows?.length || 0);
+}
+
+/**
+ * Split cut-list sections into two balanced columns for side-by-side print tables.
+ *
+ * @param {Array<{ order: string, special: boolean, rows: object[] }>} sections
+ * @returns {{ left: typeof sections, right: typeof sections }}
+ */
+export function splitCutListSectionsForPrint(sections) {
+  if (!sections?.length) return { left: [], right: [] };
+  if (sections.length === 1 && sections[0].rows.length > 1) {
+    const section = sections[0];
+    const mid = Math.ceil(section.rows.length / 2);
+    return {
+      left: [{ ...section, rows: section.rows.slice(0, mid), continued: false }],
+      right: [{ ...section, rows: section.rows.slice(mid), continued: true }],
+    };
+  }
+
+  const left = [];
+  const right = [];
+  let leftRows = 0;
+  let rightRows = 0;
+
+  sections.forEach((section) => {
+    const count = getCutListSectionRowCount(section);
+    if (leftRows <= rightRows) {
+      left.push({ ...section, continued: false });
+      leftRows += count;
+    } else {
+      right.push({ ...section, continued: false });
+      rightRows += count;
+    }
+  });
+
+  return { left, right };
+}

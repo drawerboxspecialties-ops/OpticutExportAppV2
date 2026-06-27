@@ -7,8 +7,8 @@ import {
 } from '../logic/stackMatrix.js';
 import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
-import { formatOrderGroupBoxLabel, formatOrderCutListBoxSummary, formatGroupBoxInBrackets } from '../logic/groupBoxes.js';
-import { getCutListPrintSections } from '../logic/cutListPrint.js';
+import { formatOrderCutListBoxSummary } from '../logic/groupBoxes.js';
+import { getCutListPrintSections, splitCutListSectionsForPrint } from '../logic/cutListPrint.js';
 
 let checkboxIdCounter = 0;
 export function resetCheckboxCounter() {
@@ -244,15 +244,24 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
 
 /**
  * Build the print-only "Cut List" sheet: one row per box line with rounded width,
- * Front/Back length, and Left/Right length.
+ * Front/Back length, and Left/Right length. Two tables side-by-side per sheet.
  */
-export function buildCutListPrintCard(batchKey, batch, colIndices, position = null) {
-  const headerBanner = buildPrintHeaderBanner(batchKey, batch, colIndices, position);
-  const sections = getCutListPrintSections(batch, colIndices);
-  const hasGroup = colIndices.groupId !== -1;
-  const anySpecial = sections.some((s) => s.special);
-  const colCount = 5 + (hasGroup ? 1 : 0) + (anySpecial ? 1 : 0);
+function renderCutListTableHead(hasGroup, anySpecial) {
+  return `
+      <thead>
+        <tr class="stack-order-columns-row">
+          ${hasGroup ? '<th>Grp</th>' : ''}
+          <th class="cutlist-check-col"></th>
+          <th>Width</th>
+          <th>Front / Back</th>
+          <th>Left / Right</th>
+          ${anySpecial ? '<th>★</th>' : ''}
+          <th>Qty</th>
+        </tr>
+      </thead>`;
+}
 
+function renderCutListTableBody(sections, batch, colIndices, hasGroup, anySpecial, colCount) {
   let body = '';
   let rowOrdinal = 0;
 
@@ -260,26 +269,24 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
     const specialMark = section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
     const boxSummary = formatOrderCutListBoxSummary(section.order, batch, colIndices);
     const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
+    const continuedMark = section.continued ? ' — continued' : '';
     body += `
       <tr class="cutlist-order-header">
-        <td colspan="${colCount}" class="cutlist-order-title">Order ${escapeHTML(section.order)}${boxMark}${specialMark}</td>
+        <td colspan="${colCount}" class="cutlist-order-title">Order ${escapeHTML(section.order)}${boxMark}${continuedMark}${specialMark}</td>
       </tr>`;
 
     section.rows.forEach((r) => {
       const altClass = rowOrdinal % 2 === 1 ? ' stack-row-alt' : '';
       rowOrdinal++;
-      const groupLabel = hasGroup
-        ? formatGroupBoxInBrackets(section.order, r.groupId, batch, colIndices)
-        : '';
       body += `
       <tr class="stack-data-row${altClass}">
+        ${hasGroup ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</td>` : ''}
         <td class="cutlist-check"><span class="print-check" aria-hidden="true"></span></td>
-        <td class="cutlist-qty"><b>${r.qty}</b></td>
-        ${hasGroup ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}">${escapeHTML(groupLabel)}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</td>` : ''}
         <td class="cutlist-dim">${escapeHTML(r.width)}"</td>
         <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
         <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
         ${anySpecial ? `<td class="cutlist-special">${r.special ? '★' : ''}</td>` : ''}
+        <td class="cutlist-qty"><b>${r.qty}</b></td>
       </tr>`;
     });
   });
@@ -288,22 +295,33 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
     body = `<tr><td colspan="${colCount}" class="stack-cell-empty" style="padding:1rem;">No cut-list rows available.</td></tr>`;
   }
 
-  const table = `
+  return body;
+}
+
+function renderCutListTable(sections, batch, colIndices, hasGroup, anySpecial, colCount) {
+  return `
     <table class="cutlist-table" cellpadding="4" cellspacing="0">
-      <thead>
-        <tr class="stack-order-columns-row">
-          <th class="cutlist-check-col"></th>
-          <th>Qty</th>
-          ${hasGroup ? '<th>Grp</th>' : ''}
-          <th>Width</th>
-          <th>Front / Back</th>
-          <th>Left / Right</th>
-          ${anySpecial ? '<th>★</th>' : ''}
-        </tr>
-      </thead>
-      <tbody>${body}</tbody>
+      ${renderCutListTableHead(hasGroup, anySpecial)}
+      <tbody>${renderCutListTableBody(sections, batch, colIndices, hasGroup, anySpecial, colCount)}</tbody>
     </table>
   `;
+}
 
-  return `${headerBanner}${table}`;
+export function buildCutListPrintCard(batchKey, batch, colIndices, position = null) {
+  const headerBanner = buildPrintHeaderBanner(batchKey, batch, colIndices, position);
+  const sections = getCutListPrintSections(batch, colIndices);
+  const hasGroup = colIndices.groupId !== -1;
+  const anySpecial = sections.some((s) => s.special);
+  const colCount = 5 + (hasGroup ? 1 : 0) + (anySpecial ? 1 : 0);
+  const { left, right } = splitCutListSectionsForPrint(sections);
+
+  if (!right.length) {
+    return `${headerBanner}${renderCutListTable(left, batch, colIndices, hasGroup, anySpecial, colCount)}`;
+  }
+
+  return `${headerBanner}
+    <div class="cutlist-sheet-grid">
+      <div class="cutlist-sheet-col">${renderCutListTable(left, batch, colIndices, hasGroup, anySpecial, colCount)}</div>
+      <div class="cutlist-sheet-col">${renderCutListTable(right, batch, colIndices, hasGroup, anySpecial, colCount)}</div>
+    </div>`;
 }

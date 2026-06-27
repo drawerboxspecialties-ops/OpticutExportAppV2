@@ -1607,6 +1607,26 @@ tr:hover td {
   print-color-adjust: exact;
 }
 
+.cutlist-sheet-grid {
+  font-size: 0;
+  line-height: 0;
+}
+
+.cutlist-sheet-col {
+  display: inline-block;
+  vertical-align: top;
+  width: calc(50% - 0.06in);
+  margin: 0 0.06in 0 0;
+  font-size: 12px;
+  line-height: 1.2;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.cutlist-sheet-col:last-child {
+  margin-right: 0;
+}
+
 .cutlist-table th,
 .cutlist-table td {
   border: 1px solid #94a3b8;
