@@ -858,6 +858,25 @@ tr:hover td {
   color: var(--danger);
 }
 
+.control-panel-restore-all {
+  border: none;
+  background: #d1fae5;
+  color: #047857;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+
+.control-panel-restore-all:hover {
+  background: var(--success);
+  color: #fff;
+}
+
 .control-panel-hint {
   font-size: 0.72rem;
   color: var(--text-muted);
@@ -895,6 +914,36 @@ tr:hover td {
   margin-top: 0.5rem;
 }
 
+.modern-row--multi {
+  align-items: start;
+}
+
+.filter-field {
+  margin-top: 0.5rem;
+}
+
+.filter-field-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.3rem;
+}
+
+.modern-select--multi {
+  min-height: 6rem;
+  height: auto;
+  padding: 0.35rem 0.5rem;
+  background-image: none;
+  cursor: default;
+}
+
+.modern-select--multi option {
+  padding: 0.15rem 0.25rem;
+}
+
 .mini-danger-btn {
   height: 38px;
   min-width: 40px;
@@ -910,6 +959,25 @@ tr:hover td {
 
 .mini-danger-btn:hover {
   background: var(--danger);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.mini-restore-btn {
+  height: 38px;
+  min-width: 40px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: #d1fae5;
+  color: #047857;
+  font-weight: 800;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+
+.mini-restore-btn:hover {
+  background: var(--success);
   color: #fff;
   transform: translateY(-1px);
 }

@@ -235,6 +235,7 @@ function showWorkspace() {
   $('stat-total-boxes').innerText = totalBoxes;
 
   updateExclusionOptions();
+  updateRestoreAllButton();
   renderBatchTabs();
 
   const keys = Object.keys(state.splitGroups).sort();
@@ -267,6 +268,7 @@ function excludeOrderFromBatch(batchKey, order) {
   if (!batch?.sourceGroupKey) return;
   state.batchOrderExclusions.add(batchOrderKey(batch.sourceGroupKey, order));
   rebuild();
+  updateRestoreAllButton();
   if (state.activeGroupKey === batchKey && !state.splitGroups[batchKey]) {
     const keys = Object.keys(state.splitGroups).sort();
     if (keys.length > 0) selectGroup(keys[0]);
@@ -501,21 +503,94 @@ function renderCurrentView() {
 }
 
 function updateExclusionOptions() {
-  const materialOptions = $('material-options');
-  const topEdgeOptions = $('top-edge-options');
+  const materialSelect = $('exclude-material-select');
+  const restoreMaterialSelect = $('restore-material-select');
+  const restoreMaterialRow = $('restore-material-row');
+  const topEdgeSelect = $('exclude-top-edge-select');
+  const restoreTopEdgeSelect = $('restore-top-edge-select');
+  const restoreTopEdgeRow = $('restore-top-edge-row');
   const orderSelect = $('exclude-order-select');
-  const materials = Array.from(
+  const allMaterials = Array.from(
     new Set(state.originalParsedRows.map(rowMaterialName).filter(Boolean))
   ).sort();
-  const topEdges = Array.from(
+  const availableMaterials = allMaterials.filter(
+    (material) =>
+      !state.excludedMaterials.some(
+        (excluded) => excluded.toLowerCase() === material.toLowerCase()
+      )
+  );
+  const allTopEdges = Array.from(
     new Set(state.originalParsedRows.map(rowTopEdgeName).filter(Boolean))
   ).sort();
-  materialOptions.innerHTML = materials
-    .map((m) => `<option value="${escapeAttr(m)}"></option>`)
-    .join('');
-  topEdgeOptions.innerHTML = topEdges
-    .map((e) => `<option value="${escapeAttr(e)}"></option>`)
-    .join('');
+  const availableTopEdges = allTopEdges.filter(
+    (edge) =>
+      !state.excludedTopEdges.some(
+        (excluded) => excluded.toLowerCase() === edge.toLowerCase()
+      )
+  );
+
+  if (materialSelect) {
+    const previouslySelected = Array.from(materialSelect.selectedOptions).map((option) => option.value);
+    if (availableMaterials.length === 0) {
+      materialSelect.innerHTML = '<option value="" disabled>No materials available</option>';
+      materialSelect.disabled = true;
+    } else {
+      materialSelect.disabled = false;
+      materialSelect.innerHTML = availableMaterials
+        .map((material) => `<option value="${escapeAttr(material)}">${escapeHTML(material)}</option>`)
+        .join('');
+      Array.from(materialSelect.options).forEach((option) => {
+        if (previouslySelected.includes(option.value)) option.selected = true;
+      });
+    }
+  }
+
+  if (restoreMaterialSelect && restoreMaterialRow) {
+    const excludedMaterials = [...state.excludedMaterials].sort((a, b) => a.localeCompare(b));
+    restoreMaterialRow.hidden = excludedMaterials.length === 0;
+    if (excludedMaterials.length === 0) {
+      restoreMaterialSelect.innerHTML = '';
+      restoreMaterialSelect.disabled = true;
+    } else {
+      restoreMaterialSelect.disabled = false;
+      restoreMaterialSelect.innerHTML = excludedMaterials
+        .map(
+          (material) =>
+            `<option value="${escapeAttr(material)}">${escapeHTML(material)}</option>`
+        )
+        .join('');
+    }
+  }
+
+  if (topEdgeSelect) {
+    const previouslySelected = Array.from(topEdgeSelect.selectedOptions).map((option) => option.value);
+    if (availableTopEdges.length === 0) {
+      topEdgeSelect.innerHTML = '<option value="" disabled>No top edges available</option>';
+      topEdgeSelect.disabled = true;
+    } else {
+      topEdgeSelect.disabled = false;
+      topEdgeSelect.innerHTML = availableTopEdges
+        .map((edge) => `<option value="${escapeAttr(edge)}">${escapeHTML(edge)}</option>`)
+        .join('');
+      Array.from(topEdgeSelect.options).forEach((option) => {
+        if (previouslySelected.includes(option.value)) option.selected = true;
+      });
+    }
+  }
+
+  if (restoreTopEdgeSelect && restoreTopEdgeRow) {
+    const excludedTopEdges = [...state.excludedTopEdges].sort((a, b) => a.localeCompare(b));
+    restoreTopEdgeRow.hidden = excludedTopEdges.length === 0;
+    if (excludedTopEdges.length === 0) {
+      restoreTopEdgeSelect.innerHTML = '';
+      restoreTopEdgeSelect.disabled = true;
+    } else {
+      restoreTopEdgeSelect.disabled = false;
+      restoreTopEdgeSelect.innerHTML = excludedTopEdges
+        .map((edge) => `<option value="${escapeAttr(edge)}">${escapeHTML(edge)}</option>`)
+        .join('');
+    }
+  }
 
   if (orderSelect) {
     // Orders still in the batches (excluded ones drop out automatically).
@@ -553,6 +628,33 @@ function applyExclusionsAndRebuild() {
   renderExcludedBadges();
 }
 
+function updateRestoreAllButton() {
+  const btn = $('btn-restore-all-exclusions');
+  if (!btn) return;
+  const hasExclusions =
+    state.excludedOrders.length > 0 ||
+    state.excludedMaterials.length > 0 ||
+    state.excludedTopEdges.length > 0 ||
+    state.batchOrderExclusions.size > 0;
+  btn.hidden = !hasExclusions;
+}
+
+function restoreAllExclusions() {
+  const hasExclusions =
+    state.excludedOrders.length > 0 ||
+    state.excludedMaterials.length > 0 ||
+    state.excludedTopEdges.length > 0 ||
+    state.batchOrderExclusions.size > 0;
+  if (!hasExclusions) return;
+
+  state.excludedOrders = [];
+  state.excludedMaterials = [];
+  state.excludedTopEdges = [];
+  state.batchOrderExclusions.clear();
+  applyExclusionsAndRebuild();
+  showToast('All removed items restored.', 'success');
+}
+
 function renderExcludedBadges() {
   const container = $('excluded-list-container');
   const bag = $('excluded-orders-bag');
@@ -579,6 +681,7 @@ function renderExcludedBadges() {
     container.hidden = true;
     bag.innerHTML = '';
   }
+  updateRestoreAllButton();
 }
 
 function excludeOrder() {
@@ -603,51 +706,104 @@ function excludeOrder() {
 }
 
 function excludeMaterial() {
-  const input = $('exclude-material-input');
-  const materialToExclude = cleanMaterialName(input.value.trim());
-  if (!materialToExclude) {
-    alert('Please enter or choose a Material to remove.');
+  const select = $('exclude-material-select');
+  if (!select || select.disabled) {
+    alert('No materials available to remove.');
     return;
   }
-  const exists = state.originalParsedRows.some(
-    (row) => rowMaterialName(row).toLowerCase() === materialToExclude.toLowerCase()
+  const selected = Array.from(select.selectedOptions)
+    .map((option) => cleanMaterialName(option.value.trim()))
+    .filter(Boolean);
+  if (!selected.length) {
+    alert('Please select one or more materials to remove.');
+    return;
+  }
+
+  let added = false;
+  selected.forEach((materialToExclude) => {
+    const exists = state.originalParsedRows.some(
+      (row) => rowMaterialName(row).toLowerCase() === materialToExclude.toLowerCase()
+    );
+    if (!exists) return;
+    if (
+      !state.excludedMaterials.some(
+        (material) => material.toLowerCase() === materialToExclude.toLowerCase()
+      )
+    ) {
+      state.excludedMaterials.push(materialToExclude);
+      added = true;
+    }
+  });
+
+  if (added) applyExclusionsAndRebuild();
+}
+
+function restoreMaterials() {
+  const select = $('restore-material-select');
+  if (!select || select.disabled) return;
+  const selected = Array.from(select.selectedOptions)
+    .map((option) => option.value)
+    .filter(Boolean);
+  if (!selected.length) {
+    alert('Please select one or more removed materials to restore.');
+    return;
+  }
+
+  state.excludedMaterials = state.excludedMaterials.filter(
+    (material) =>
+      !selected.some((value) => value.toLowerCase() === material.toLowerCase())
   );
-  if (!exists) {
-    alert(`Material "${materialToExclude}" not found in the loaded data.`);
-    return;
-  }
-  if (
-    !state.excludedMaterials.some(
-      (m) => m.toLowerCase() === materialToExclude.toLowerCase()
-    )
-  ) {
-    state.excludedMaterials.push(materialToExclude);
-    applyExclusionsAndRebuild();
-  }
-  input.value = '';
+  applyExclusionsAndRebuild();
 }
 
 function excludeTopEdge() {
-  const input = $('exclude-top-edge-input');
-  const edgeToExclude = normalizeTopEdgeName(input.value.trim());
-  if (!edgeToExclude) {
-    alert('Please enter or choose a Top Edge to remove.');
+  const select = $('exclude-top-edge-select');
+  if (!select || select.disabled) {
+    alert('No top edges available to remove.');
     return;
   }
-  const exists = state.originalParsedRows.some(
-    (row) => rowTopEdgeName(row).toLowerCase() === edgeToExclude.toLowerCase()
+  const selected = Array.from(select.selectedOptions)
+    .map((option) => normalizeTopEdgeName(option.value.trim()))
+    .filter(Boolean);
+  if (!selected.length) {
+    alert('Please select one or more top edges to remove.');
+    return;
+  }
+
+  let added = false;
+  selected.forEach((edgeToExclude) => {
+    const exists = state.originalParsedRows.some(
+      (row) => rowTopEdgeName(row).toLowerCase() === edgeToExclude.toLowerCase()
+    );
+    if (!exists) return;
+    if (
+      !state.excludedTopEdges.some(
+        (edge) => edge.toLowerCase() === edgeToExclude.toLowerCase()
+      )
+    ) {
+      state.excludedTopEdges.push(edgeToExclude);
+      added = true;
+    }
+  });
+
+  if (added) applyExclusionsAndRebuild();
+}
+
+function restoreTopEdges() {
+  const select = $('restore-top-edge-select');
+  if (!select || select.disabled) return;
+  const selected = Array.from(select.selectedOptions)
+    .map((option) => option.value)
+    .filter(Boolean);
+  if (!selected.length) {
+    alert('Please select one or more removed top edges to restore.');
+    return;
+  }
+
+  state.excludedTopEdges = state.excludedTopEdges.filter(
+    (edge) => !selected.some((value) => value.toLowerCase() === edge.toLowerCase())
   );
-  if (!exists) {
-    alert(`Top Edge "${edgeToExclude}" not found in the loaded data.`);
-    return;
-  }
-  if (
-    !state.excludedTopEdges.some((e) => e.toLowerCase() === edgeToExclude.toLowerCase())
-  ) {
-    state.excludedTopEdges.push(edgeToExclude);
-    applyExclusionsAndRebuild();
-  }
-  input.value = '';
+  applyExclusionsAndRebuild();
 }
 
 function restoreItem(kind, value) {
@@ -723,24 +879,8 @@ function filterBatches() {
   });
 }
 
-function getExportGroups() {
-  const includeExcluded = $('chk-include-excluded-in-export')?.checked;
-  if (
-    includeExcluded &&
-    (state.excludedOrders.length > 0 ||
-      state.excludedMaterials.length > 0 ||
-      state.excludedTopEdges.length > 0)
-  ) {
-    // Compute groups from the full (un-excluded) dataset without touching the
-    // visible workspace. splitDataIntoGroups is pure, so no re-render is needed.
-    return computeSplitGroups(state.originalParsedRows);
-  }
-  return state.splitGroups;
-}
-
 function downloadCurrentFile() {
-  const exportGroups = getExportGroups();
-  const batch = exportGroups[state.activeGroupKey];
+  const batch = state.splitGroups[state.activeGroupKey];
   if (!batch) {
     alert('Batch not found for export.');
     return;
@@ -771,10 +911,9 @@ function triggerDownload(content, filename) {
 async function downloadAllZip() {
   const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
-  const exportGroups = getExportGroups();
   let added = false;
-  Object.keys(exportGroups).forEach((batchKey) => {
-    const batch = exportGroups[batchKey];
+  Object.keys(state.splitGroups).forEach((batchKey) => {
+    const batch = state.splitGroups[batchKey];
     const cutRows = getCutListRowsForExport(
       batch.rows,
       state.colIndices,
@@ -950,13 +1089,10 @@ function wireEvents() {
 
   $('btn-exclude-order').addEventListener('click', excludeOrder);
   $('btn-exclude-material').addEventListener('click', excludeMaterial);
+  $('btn-restore-material').addEventListener('click', restoreMaterials);
   $('btn-exclude-top-edge').addEventListener('click', excludeTopEdge);
-  $('exclude-material-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') excludeMaterial();
-  });
-  $('exclude-top-edge-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') excludeTopEdge();
-  });
+  $('btn-restore-top-edge').addEventListener('click', restoreTopEdges);
+  $('btn-restore-all-exclusions').addEventListener('click', restoreAllExclusions);
 
   $('chk-round-export-widths').addEventListener('change', (e) =>
     handleRoundExportWidthToggle(e.target)

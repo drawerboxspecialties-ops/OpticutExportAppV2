@@ -170,11 +170,17 @@
               <div id="exclude-order-section" class="control-panel" hidden>
                 <div class="control-panel-header">
                   <span>Filter Out Rows</span>
+                  <button
+                    id="btn-restore-all-exclusions"
+                    class="control-panel-restore-all"
+                    type="button"
+                    hidden
+                    title="Restore all removed orders, materials, and top edges"
+                  >
+                    Restore all
+                  </button>
                 </div>
-                <p class="control-panel-hint">Pick an order, material, or top edge, then press <b>−</b> to remove it from the batches.</p>
-
-                <datalist id="material-options"></datalist>
-                <datalist id="top-edge-options"></datalist>
+                <p class="control-panel-hint">Pick an order, material, or top edge, then press <b>−</b> to remove it from the batches. Materials and top edges support multi-select (Ctrl+click).</p>
 
                 <div class="modern-row">
                   <select
@@ -193,39 +199,85 @@
                     −
                   </button>
                 </div>
-                <div class="modern-row">
-                  <input
-                    id="exclude-material-input"
-                    class="modern-input"
-                    type="text"
-                    placeholder="Material..."
-                    list="material-options"
-                  />
-                  <button
-                    class="mini-danger-btn"
-                    id="btn-exclude-material"
-                    type="button"
-                    title="Remove Material"
-                  >
-                    −
-                  </button>
+                <div class="filter-field">
+                  <label class="filter-field-label" for="exclude-material-select">Materials</label>
+                  <div class="modern-row modern-row--multi">
+                    <select
+                      id="exclude-material-select"
+                      class="modern-input modern-select modern-select--multi"
+                      multiple
+                      size="5"
+                      title="Ctrl+click or Shift+click to select multiple materials to remove"
+                    ></select>
+                    <button
+                      class="mini-danger-btn"
+                      id="btn-exclude-material"
+                      type="button"
+                      title="Remove Selected Materials"
+                    >
+                      −
+                    </button>
+                  </div>
                 </div>
-                <div class="modern-row">
-                  <input
-                    id="exclude-top-edge-input"
-                    class="modern-input"
-                    type="text"
-                    placeholder="Top Edge..."
-                    list="top-edge-options"
-                  />
-                  <button
-                    class="mini-danger-btn"
-                    id="btn-exclude-top-edge"
-                    type="button"
-                    title="Remove Top Edge"
-                  >
-                    −
-                  </button>
+                <div id="restore-material-row" class="filter-field" hidden>
+                  <label class="filter-field-label" for="restore-material-select">Removed materials</label>
+                  <div class="modern-row modern-row--multi">
+                    <select
+                      id="restore-material-select"
+                      class="modern-input modern-select modern-select--multi"
+                      multiple
+                      size="4"
+                      title="Select removed materials to add back"
+                    ></select>
+                    <button
+                      class="mini-restore-btn"
+                      id="btn-restore-material"
+                      type="button"
+                      title="Restore Selected Materials"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div class="filter-field">
+                  <label class="filter-field-label" for="exclude-top-edge-select">Top edges</label>
+                  <div class="modern-row modern-row--multi">
+                    <select
+                      id="exclude-top-edge-select"
+                      class="modern-input modern-select modern-select--multi"
+                      multiple
+                      size="5"
+                      title="Ctrl+click or Shift+click to select multiple top edges to remove"
+                    ></select>
+                    <button
+                      class="mini-danger-btn"
+                      id="btn-exclude-top-edge"
+                      type="button"
+                      title="Remove Selected Top Edges"
+                    >
+                      −
+                    </button>
+                  </div>
+                </div>
+                <div id="restore-top-edge-row" class="filter-field" hidden>
+                  <label class="filter-field-label" for="restore-top-edge-select">Removed top edges</label>
+                  <div class="modern-row modern-row--multi">
+                    <select
+                      id="restore-top-edge-select"
+                      class="modern-input modern-select modern-select--multi"
+                      multiple
+                      size="4"
+                      title="Select removed top edges to add back"
+                    ></select>
+                    <button
+                      class="mini-restore-btn"
+                      id="btn-restore-top-edge"
+                      type="button"
+                      title="Restore Selected Top Edges"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
 
                 <div id="excluded-list-container" class="excluded-list" hidden>
@@ -254,13 +306,6 @@
                   <span class="checkbox-text">
                     <span class="checkbox-title">Round export Width to whole numbers</span>
                     <span class="checkbox-help">Merges matching rows; originals recorded in Label.</span>
-                  </span>
-                </label>
-                <label class="checkbox-row">
-                  <input type="checkbox" id="chk-include-excluded-in-export" />
-                  <span class="checkbox-text">
-                    <span class="checkbox-title">Add removed rows back to CSV export</span>
-                    <span class="checkbox-help">Keeps filtered-out rows in exported files only.</span>
                   </span>
                 </label>
               </div>
