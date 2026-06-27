@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCutListPrintRows } from '../src/logic/cutListPrint.js';
+import { getCutListPrintSections } from '../src/logic/cutListPrint.js';
 import { mapHeaders } from '../src/logic/headers.js';
 
 const headers = [
@@ -43,21 +43,34 @@ function row({ order, part, length, qty, width, groupId = '', scoop = 'None' }) 
   ];
 }
 
-describe('getCutListPrintRows', () => {
-  it('merges identical lines and sums quantity', () => {
+describe('getCutListPrintSections', () => {
+  it('merges identical FB lines and sums quantity', () => {
     const batch = {
       sourceRows: [
         row({ order: '601881', part: 'F', length: '22', qty: 4, width: 8, groupId: '1' }),
         row({ order: '601881', part: 'B', length: '22', qty: 4, width: 8, groupId: '1' }),
       ],
     };
-    const result = getCutListPrintRows(batch, cols);
-    expect(result).toHaveLength(1);
-    expect(result[0].qty).toBe(8);
-    expect(result[0].stackType).toBe('FB');
-    expect(result[0].width).toBe('8');
-    expect(result[0].length).toBe('22');
-    expect(result[0].groupId).toBe('1');
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections).toHaveLength(1);
+    expect(sections[0].rows).toHaveLength(1);
+    expect(sections[0].rows[0].fbLength).toBe('22');
+    expect(sections[0].rows[0].lrLength).toBe('');
+    expect(sections[0].rows[0].qty).toBe(8);
+  });
+
+  it('pairs front/back and left/right on the same row for the same box group', () => {
+    const batch = {
+      sourceRows: [
+        row({ order: '601881', part: 'F', length: '24', qty: 6, width: 6, groupId: '1' }),
+        row({ order: '601881', part: 'L', length: '18', qty: 12, width: 6, groupId: '1' }),
+      ],
+    };
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections[0].rows).toHaveLength(1);
+    expect(sections[0].rows[0].fbLength).toBe('24');
+    expect(sections[0].rows[0].lrLength).toBe('18');
+    expect(sections[0].rows[0].qty).toBe(12);
   });
 
   it('keeps separate rows when GroupID differs', () => {
@@ -67,26 +80,12 @@ describe('getCutListPrintRows', () => {
         row({ order: '601881', part: 'F', length: '22', qty: 2, width: 8, groupId: '2' }),
       ],
     };
-    const result = getCutListPrintRows(batch, cols);
-    expect(result).toHaveLength(2);
-    expect(result.map((r) => r.groupId).sort()).toEqual(['1', '2']);
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections[0].rows).toHaveLength(2);
+    expect(sections[0].rows.map((r) => r.groupId).sort()).toEqual(['1', '2']);
   });
 
-  it('routes length into Front/Back vs Left/Right via part name', () => {
-    const batch = {
-      sourceRows: [
-        row({ order: '601881', part: 'F', length: '30', qty: 4, width: 8 }),
-        row({ order: '601881', part: 'L', length: '20', qty: 8, width: 8 }),
-      ],
-    };
-    const result = getCutListPrintRows(batch, cols);
-    const fb = result.find((r) => r.stackType === 'FB');
-    const lr = result.find((r) => r.stackType === 'LR');
-    expect(fb.length).toBe('30');
-    expect(lr.length).toBe('20');
-  });
-
-  it('sorts by order asc, then width desc, then length desc', () => {
+  it('groups rows under one order section with width desc sort', () => {
     const batch = {
       sourceRows: [
         row({ order: '602336', part: 'F', length: '18', qty: 1, width: 6 }),
@@ -95,27 +94,25 @@ describe('getCutListPrintRows', () => {
         row({ order: '601881', part: 'F', length: '24', qty: 1, width: 12 }),
       ],
     };
-    const result = getCutListPrintRows(batch, cols);
-    expect(result.map((r) => `${r.order}:${r.width}:${r.length}`)).toEqual([
-      '601881:12:24',
-      '601881:8:30',
-      '601881:8:20',
-      '602336:6:18',
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections.map((s) => s.order)).toEqual(['601881', '602336']);
+    expect(sections[0].rows.map((r) => `${r.width}:${r.fbLength}`)).toEqual([
+      '12:24',
+      '8:30',
+      '8:20',
     ]);
   });
 
-  it('flags rows special when the order has a scoop value', () => {
+  it('flags sections special when the order has a scoop value', () => {
     const batch = {
       sourceRows: [
         row({ order: '602336', part: 'F', length: '34', qty: 4, width: 12, groupId: '3', scoop: '#4  4" x 1"' }),
         row({ order: '601881', part: 'F', length: '22', qty: 4, width: 8, groupId: '1' }),
       ],
     };
-    const result = getCutListPrintRows(batch, cols);
-    const special = result.find((r) => r.order === '602336');
-    const normal = result.find((r) => r.order === '601881');
-    expect(special.special).toBe(true);
-    expect(normal.special).toBe(false);
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections.find((s) => s.order === '602336')?.special).toBe(true);
+    expect(sections.find((s) => s.order === '601881')?.special).toBe(false);
   });
 
   it('skips rows with zero quantity, missing length, or no stack type', () => {
@@ -127,17 +124,17 @@ describe('getCutListPrintRows', () => {
         row({ order: '601881', part: 'F', length: '22', qty: 4, width: 8 }),
       ],
     };
-    const result = getCutListPrintRows(batch, cols);
-    expect(result).toHaveLength(1);
-    expect(result[0].qty).toBe(4);
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections[0].rows).toHaveLength(1);
+    expect(sections[0].rows[0].qty).toBe(4);
   });
 
   it('falls back to merged rows when sourceRows are absent', () => {
     const batch = {
       rows: [row({ order: '601881', part: 'F', length: '22', qty: 4, width: 8, groupId: '1' })],
     };
-    const result = getCutListPrintRows(batch, cols);
-    expect(result).toHaveLength(1);
-    expect(result[0].qty).toBe(4);
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections[0].rows).toHaveLength(1);
+    expect(sections[0].rows[0].qty).toBe(4);
   });
 });

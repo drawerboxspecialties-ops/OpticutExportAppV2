@@ -1637,6 +1637,26 @@ tr:hover td {
   font-variant-numeric: tabular-nums;
 }
 
+.cutlist-order-header td {
+  border: 1px solid #94a3b8;
+  padding: 0;
+}
+
+.cutlist-order-title {
+  text-align: center;
+  font-weight: 900;
+  background: #e5e7eb;
+  color: #000 !important;
+  border-bottom: 1.8px solid #64748b;
+  padding: 4px 5px;
+}
+
+.cutlist-order-special {
+  color: #b45309 !important;
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .cutlist-dash {
   color: #94a3b8;
 }
@@ -1739,6 +1759,11 @@ tr:hover td {
   .cutlist-table tr {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  .cutlist-order-header {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 }
 
