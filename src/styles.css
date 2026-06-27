@@ -1638,23 +1638,28 @@ tr:hover td {
   font-size: 7px;
 }
 
-.cutlist-sheet-grid {
-  font-size: 0;
-  line-height: 0;
+.cutlist-print-columns {
+  column-count: 2;
+  column-gap: 0.06in;
+  column-fill: auto;
   width: 100%;
 }
 
-.cutlist-sheet-col {
+.cutlist-order-block {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-bottom: 0.05in;
   display: inline-block;
-  vertical-align: top;
-  width: calc(50% - 0.03in);
-  margin: 0 0.03in 0 0;
-  font-size: 10px;
-  line-height: 1.15;
+  width: 100%;
 }
 
-.cutlist-sheet-col:last-child {
-  margin-right: 0;
+.cutlist-order-block .cutlist-order-title {
+  border: 1px solid #64748b;
+  border-bottom: none;
+}
+
+.cutlist-order-block .cutlist-table {
+  margin-bottom: 0;
 }
 
 .cutlist-table {
@@ -1888,9 +1893,13 @@ tr:hover td {
     page-break-after: avoid;
   }
 
-  body.print-cutlist-active .cutlist-sheet-col {
-    break-inside: auto;
-    page-break-inside: auto;
+  .cutlist-print-columns {
+    column-fill: auto;
+  }
+
+  .cutlist-order-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
 

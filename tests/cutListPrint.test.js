@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getCutListPrintSections,
   getCutListSectionRowCount,
-  splitCutListSectionsForPrint,
+  chunkCutListSectionsForPrint,
 } from '../src/logic/cutListPrint.js';
 import { mapHeaders } from '../src/logic/headers.js';
 
@@ -216,33 +216,34 @@ describe('getCutListPrintSections', () => {
   });
 });
 
-describe('splitCutListSectionsForPrint', () => {
-  const countRows = (columns) =>
-    columns.reduce((sum, section) => sum + getCutListSectionRowCount(section), 0);
+describe('chunkCutListSectionsForPrint', () => {
+  it('keeps small orders in one chunk', () => {
+    const sections = [{ order: '602260', special: false, rows: [{ parts: 4 }, { parts: 4 }] }];
+    const chunks = chunkCutListSectionsForPrint(sections, 18);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].continued).toBe(false);
+  });
 
-  it('balances multiple orders across left and right tables', () => {
+  it('splits large orders into continued chunks', () => {
+    const rows = Array.from({ length: 22 }, (_, i) => ({ parts: i + 1 }));
+    const sections = [{ order: '602260', special: true, rows }];
+    const chunks = chunkCutListSectionsForPrint(sections, 12);
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0].rows).toHaveLength(12);
+    expect(chunks[1].rows).toHaveLength(10);
+    expect(chunks[1].continued).toBe(true);
+    expect(chunks.reduce((sum, chunk) => sum + chunk.rows.length, 0)).toBe(22);
+  });
+
+  it('preserves total row count across chunks', () => {
     const sections = [
       { order: '1', special: false, rows: [{ parts: 1 }, { parts: 2 }] },
       { order: '2', special: false, rows: [{ parts: 3 }] },
-      { order: '3', special: false, rows: [{ parts: 4 }, { parts: 5 }] },
     ];
-    const { left, right } = splitCutListSectionsForPrint(sections);
-    expect(left.length).toBeGreaterThan(0);
-    expect(right.length).toBeGreaterThan(0);
-    expect(Math.abs(countRows(left) - countRows(right))).toBeLessThanOrEqual(2);
-  });
-
-  it('splits a single large order across both tables', () => {
-    const sections = [
-      {
-        order: '602336',
-        special: false,
-        rows: [{ qty: 1 }, { qty: 2 }, { qty: 3 }, { qty: 4 }],
-      },
-    ];
-    const { left, right } = splitCutListSectionsForPrint(sections);
-    expect(left[0].rows).toHaveLength(2);
-    expect(right[0].rows).toHaveLength(2);
-    expect(right[0].continued).toBe(true);
+    const chunks = chunkCutListSectionsForPrint(sections, 18);
+    const total = chunks.reduce((sum, chunk) => sum + chunk.rows.length, 0);
+    expect(total).toBe(
+      sections.reduce((sum, section) => sum + section.rows.length, 0)
+    );
   });
 });

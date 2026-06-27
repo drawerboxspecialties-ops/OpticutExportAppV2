@@ -299,11 +299,35 @@ function cloneCutListSection(section, rows, continued) {
 }
 
 /**
- * Split cut-list sections into two balanced columns for side-by-side print tables.
- * Splits by row count so both columns fill the sheet evenly.
+ * Split large orders into chunks that fit one print column; marks continuations.
  *
  * @param {Array<{ order: string, special: boolean, rows: object[] }>} sections
- * @returns {{ left: typeof sections, right: typeof sections }}
+ * @param {number} maxDataRowsPerColumn
+ * @returns {typeof sections}
+ */
+export function chunkCutListSectionsForPrint(sections, maxDataRowsPerColumn = 12) {
+  const chunks = [];
+  sections.forEach((section) => {
+    if (!section.rows.length) return;
+    if (section.rows.length <= maxDataRowsPerColumn) {
+      chunks.push(cloneCutListSection(section, section.rows, false));
+      return;
+    }
+    for (let start = 0; start < section.rows.length; start += maxDataRowsPerColumn) {
+      chunks.push(
+        cloneCutListSection(
+          section,
+          section.rows.slice(start, start + maxDataRowsPerColumn),
+          start > 0
+        )
+      );
+    }
+  });
+  return chunks;
+}
+
+/**
+ * @deprecated Use chunkCutListSectionsForPrint with CSS column flow instead.
  */
 export function splitCutListSectionsForPrint(sections) {
   if (!sections?.length) return { left: [], right: [] };
