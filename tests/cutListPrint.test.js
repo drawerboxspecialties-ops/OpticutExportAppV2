@@ -96,7 +96,21 @@ describe('getCutListPrintSections', () => {
     });
   });
 
-  it('groups F/B/L/R by Label when GroupID is absent', () => {
+  it('pairs sides only within the same box row width, not across heights in a GroupID', () => {
+    const batch = {
+      sourceRows: [
+        row({ order: '601881', part: 'F', length: '30', qty: 4, width: 8, groupId: '1' }),
+        row({ order: '601881', part: 'F', length: '24', qty: 6, width: 6, groupId: '1' }),
+        row({ order: '601881', part: 'L', length: '18', qty: 12, width: 6, groupId: '1' }),
+      ],
+    };
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections[0].rows).toHaveLength(2);
+    expect(sections[0].rows[0]).toMatchObject({ width: '8', fbLength: '30', lrLength: '', qty: 4 });
+    expect(sections[0].rows[1]).toMatchObject({ width: '6', fbLength: '24', lrLength: '18', qty: 6 });
+  });
+
+  it('keeps each stack width on its own row when grouped by Label', () => {
     const batch = {
       sourceRows: [
         row({ order: '602016', part: 'F', length: '18', qty: 8, width: 10, label: '1.2' }),
@@ -105,13 +119,10 @@ describe('getCutListPrintSections', () => {
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections[0].rows).toHaveLength(1);
-    expect(sections[0].rows[0]).toMatchObject({
-      width: '10',
-      fbLength: '18',
-      lrLength: '18',
-      qty: 8,
-    });
+    expect(sections[0].rows).toHaveLength(3);
+    expect(sections[0].rows[0]).toMatchObject({ width: '10', fbLength: '18', lrLength: '', qty: 8 });
+    expect(sections[0].rows[1]).toMatchObject({ width: '8', fbLength: '', lrLength: '18', qty: 16 });
+    expect(sections[0].rows[2]).toMatchObject({ width: '5', fbLength: '', lrLength: '18', qty: 4 });
   });
 
   it('keeps separate rows when GroupID differs', () => {

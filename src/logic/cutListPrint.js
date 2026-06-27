@@ -8,28 +8,22 @@ import {
 import { getSpecialOrderNumbers } from './specialOrders.js';
 
 /**
- * Resolve the box-group key used to pair front/back with left/right on one row.
- * GroupID links all parts for a drawer set; Label is the fallback when GroupID is absent.
- *
- * @param {string} order
- * @param {string} groupId
- * @param {string} label
- * @param {string} stackWidth
- * @returns {string}
+ * Resolve the box-row key: one row of boxes = order + drawer set + stack-matrix width.
+ * GroupID (or Label) identifies the drawer set; stack width separates each height row
+ * so front/back pairs only with left/right from the same box row.
  */
 function boxGroupKey(order, groupId, label, stackWidth) {
-  if (groupId) return `${order}|g:${groupId}`;
-  if (label) return `${order}|l:${label}`;
+  if (groupId) return `${order}|g:${groupId}|w:${stackWidth}`;
+  if (label) return `${order}|l:${label}|w:${stackWidth}`;
   return `${order}|w:${stackWidth}`;
 }
 
 /**
  * Build cut-list print sections grouped by order.
  *
- * Within each order, front/back and its corresponding left/right for the same drawer
- * set (GroupID, or Label when no GroupID) share one row. Side parts (L/R) merge by
- * length within the set and pair to front/back lines by length order (longest first),
- * matching stack-matrix pairing at the box-group level.
+ * Within each order, front/back and left/right pair on the same print row when they
+ * belong to the same box row: order + GroupID (or Label) + stack-matrix width.
+ * Multiple lengths at that width pair by length order (longest first), like the stack matrix.
  *
  * @param {{ sourceRows?: string[][], rows?: string[][] }} batch
  * @param {object} colIndices
