@@ -1657,6 +1657,29 @@ tr:hover td {
   font-weight: 800;
 }
 
+.cutlist-label {
+  white-space: nowrap;
+}
+
+.cutlist-group {
+  text-align: center;
+}
+
+.cutlist-group-special {
+  color: #b45309 !important;
+  font-weight: 800;
+}
+
+.cutlist-group-star {
+  color: #b45309 !important;
+  font-weight: 900;
+}
+
+.cutlist-head-sub th {
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .cutlist-special {
   color: #b45309 !important;
   font-weight: 900;

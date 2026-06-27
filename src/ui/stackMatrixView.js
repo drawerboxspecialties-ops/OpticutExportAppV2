@@ -243,17 +243,15 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
 }
 
 /**
- * Build the print-only "Cut List" sheet: one table per batch with order section
- * headers (centered, once per order). Each data row pairs Front/Back and
- * Left/Right for the same box group on one line.
- * Columns: ☐ | Width | Front/Back | Left/Right | Qty | [Grp] | [★]
+ * Build the print-only "Cut List" sheet: one row per box line with rounded width,
+ * Front/Back length, and Left/Right length.
  */
 export function buildCutListPrintCard(batchKey, batch, colIndices, position = null) {
   const headerBanner = buildPrintHeaderBanner(batchKey, batch, colIndices, position);
   const sections = getCutListPrintSections(batch, colIndices);
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
-  const colCount = 5 + (hasGroup ? 1 : 0) + (anySpecial ? 1 : 0);
+  const colCount = 6 + (hasGroup ? 1 : 0) + (anySpecial ? 1 : 0);
 
   let body = '';
   let rowOrdinal = 0;
@@ -271,11 +269,12 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
       body += `
       <tr class="stack-data-row${altClass}">
         <td class="cutlist-check"><span class="print-check" aria-hidden="true"></span></td>
+        <td class="cutlist-qty"><b>${r.qty}</b></td>
+        ${hasGroup ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</td>` : ''}
+        <td class="cutlist-label">${escapeHTML(r.lineLabel || '')}</td>
         <td class="cutlist-dim">${escapeHTML(r.width)}"</td>
         <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
         <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
-        <td class="cutlist-qty"><b>${r.qty}</b></td>
-        ${hasGroup ? `<td>${escapeHTML(r.groupId || '—')}</td>` : ''}
         ${anySpecial ? `<td class="cutlist-special">${r.special ? '★' : ''}</td>` : ''}
       </tr>`;
     });
@@ -290,11 +289,12 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
       <thead>
         <tr class="stack-order-columns-row">
           <th class="cutlist-check-col"></th>
+          <th>Qty</th>
+          ${hasGroup ? '<th>Grp</th>' : ''}
+          <th>Line Label</th>
           <th>Width</th>
           <th>Front / Back</th>
           <th>Left / Right</th>
-          <th>Qty</th>
-          ${hasGroup ? '<th>Grp</th>' : ''}
           ${anySpecial ? '<th>★</th>' : ''}
         </tr>
       </thead>

@@ -13,6 +13,15 @@ export const SPECIAL_ORDER_COLUMN_KEYS = [
   'fileSlots',
 ];
 
+/** Cut-list print: flag individual drawer groups (not DrillFront). */
+export const CUTLIST_SPECIAL_COLUMN_KEYS = [
+  'scoop',
+  'slope',
+  'dividersFB',
+  'dividersSS',
+  'fileSlots',
+];
+
 /**
  * A cell counts as "special" when it holds a real value, i.e. it is not blank
  * and not the literal "none" (case-insensitive).
@@ -59,6 +68,63 @@ export function getSpecialOrderNumbers(rows, colIndices) {
         break;
       }
     }
+  });
+
+  return special;
+}
+
+/**
+ * Stable key for a drawer set within an order (GroupID preferred, then Label).
+ * @param {string} order
+ * @param {string} groupId
+ * @param {string} label
+ * @returns {string}
+ */
+export function getGroupSpecialKey(order, groupId, label) {
+  const o = String(order ?? '').trim();
+  const g = String(groupId ?? '').trim();
+  const l = String(label ?? '').trim();
+  if (!o) return '';
+  if (g) return `${o}|g:${g}`;
+  if (l) return `${o}|l:${l}`;
+  return '';
+}
+
+/**
+ * @param {string[]} row
+ * @param {object} colIndices
+ * @returns {boolean}
+ */
+export function rowHasCutlistSpecialValue(row, colIndices) {
+  const specialCols = CUTLIST_SPECIAL_COLUMN_KEYS.map((key) => colIndices[key]).filter(
+    (idx) => typeof idx === 'number' && idx !== -1
+  );
+  return specialCols.some((idx) => idx < row.length && isSpecialOrderValue(row[idx]));
+}
+
+/**
+ * Drawer groups (order + GroupID or Label) with scoop, slope, dividers, or file slots.
+ * @param {string[][]} rows
+ * @param {object} colIndices
+ * @returns {Set<string>}
+ */
+export function getSpecialGroupKeys(rows, colIndices) {
+  const special = new Set();
+  if (!colIndices || colIndices.orderNumber === -1) return special;
+
+  rows.forEach((row) => {
+    if (!rowHasCutlistSpecialValue(row, colIndices)) return;
+    const order = String(row[colIndices.orderNumber] ?? '').trim();
+    const groupId =
+      colIndices.groupId !== -1 && colIndices.groupId < row.length
+        ? String(row[colIndices.groupId] ?? '').trim()
+        : '';
+    const label =
+      colIndices.label !== -1 && colIndices.label < row.length
+        ? String(row[colIndices.label] ?? '').trim()
+        : '';
+    const key = getGroupSpecialKey(order, groupId, label);
+    if (key) special.add(key);
   });
 
   return special;

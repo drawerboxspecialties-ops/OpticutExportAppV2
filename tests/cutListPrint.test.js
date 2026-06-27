@@ -22,16 +22,28 @@ const headers = [
 ];
 const cols = mapHeaders(headers);
 
-function row({ order, part, length, qty, width, groupId = '', label = '', scoop = 'None' }) {
+function row({
+  order,
+  part,
+  length,
+  qty,
+  w,
+  drawerWidth,
+  groupId = '',
+  label = '',
+  scoop = 'None',
+}) {
+  const partW = w ?? drawerWidth ?? '6';
+  const height = drawerWidth ?? w ?? '6';
   return [
     order,
     'PF: 12MM Baltic Birch Ply',
     part,
-    String(width),
+    String(partW),
     String(length),
     String(qty),
     label,
-    String(width),
+    String(height),
     'Clear Foil Bullnose',
     groupId,
     scoop,
@@ -44,92 +56,79 @@ function row({ order, part, length, qty, width, groupId = '', label = '', scoop 
 }
 
 describe('getCutListPrintSections', () => {
-  it('merges identical FB lines and sums quantity', () => {
+  it('puts one rounded width and paired FB/LR lengths on each box row', () => {
     const batch = {
       sourceRows: [
-        row({ order: '601881', part: 'F', length: '22', qty: 4, width: 8, groupId: '1' }),
-        row({ order: '601881', part: 'B', length: '22', qty: 4, width: 8, groupId: '1' }),
+        row({ order: '602350', part: 'F', w: '5', length: '24.125', qty: 4, drawerWidth: '5', groupId: '2', label: '2. 3' }),
+        row({ order: '602350', part: 'B', w: '5', length: '24.125', qty: 4, drawerWidth: '5', groupId: '2', label: '2. 3' }),
+        row({ order: '602350', part: 'L', w: '4.9375', length: '17.6875', qty: 4, drawerWidth: '5', groupId: '2', label: '2. 3' }),
+        row({ order: '602350', part: 'R', w: '4.9375', length: '17.6875', qty: 4, drawerWidth: '5', groupId: '2', label: '2. 3' }),
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
     expect(sections[0].rows).toHaveLength(1);
-    expect(sections[0].rows[0].fbLength).toBe('22');
-    expect(sections[0].rows[0].lrLength).toBe('');
-    expect(sections[0].rows[0].qty).toBe(8);
-  });
-
-  it('pairs front/back with corresponding left/right on the same row by GroupID', () => {
-    const batch = {
-      sourceRows: [
-        row({ order: '601881', part: 'F', length: '24', qty: 6, width: 6, groupId: '1' }),
-        row({ order: '601881', part: 'L', length: '18', qty: 12, width: 6, groupId: '1' }),
-        row({ order: '601881', part: 'R', length: '18', qty: 12, width: 6, groupId: '1' }),
-      ],
-    };
-    const sections = getCutListPrintSections(batch, cols);
-    expect(sections[0].rows).toHaveLength(1);
-    expect(sections[0].rows[0].fbLength).toBe('24');
-    expect(sections[0].rows[0].lrLength).toBe('18');
-    expect(sections[0].rows[0].qty).toBe(6);
-  });
-
-  it('pairs sides to the corresponding front/back line by length order', () => {
-    const batch = {
-      sourceRows: [
-        row({ order: '601881', part: 'F', length: '30', qty: 4, width: 8, groupId: '1' }),
-        row({ order: '601881', part: 'F', length: '22', qty: 8, width: 8, groupId: '1' }),
-        row({ order: '601881', part: 'L', length: '20', qty: 8, width: 8, groupId: '1' }),
-        row({ order: '601881', part: 'R', length: '18', qty: 12, width: 8, groupId: '1' }),
-      ],
-    };
-    const sections = getCutListPrintSections(batch, cols);
-    expect(sections[0].rows).toHaveLength(2);
     expect(sections[0].rows[0]).toMatchObject({
-      fbLength: '30',
-      lrLength: '20',
       qty: 4,
+      groupId: '2',
+      lineLabel: '2. 3',
+      width: '5',
+      fbLength: '24.125',
+      lrLength: '17.6875',
     });
-    expect(sections[0].rows[1]).toMatchObject({
+  });
+
+  it('rounds drawer width up once per row', () => {
+    const batch = {
+      sourceRows: [
+        row({ order: '601881', part: 'F', length: '22', qty: 4, drawerWidth: '9.5', groupId: '1' }),
+        row({ order: '601881', part: 'B', length: '22', qty: 4, drawerWidth: '9.5', groupId: '1' }),
+      ],
+    };
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections[0].rows[0]).toMatchObject({
+      width: '10',
       fbLength: '22',
-      lrLength: '18',
-      qty: 8,
+      lrLength: '',
     });
   });
 
-  it('pairs sides only within the same box row width, not across heights in a GroupID', () => {
+  it('uses front qty as the box quantity on one line', () => {
     const batch = {
       sourceRows: [
-        row({ order: '601881', part: 'F', length: '30', qty: 4, width: 8, groupId: '1' }),
-        row({ order: '601881', part: 'F', length: '24', qty: 6, width: 6, groupId: '1' }),
-        row({ order: '601881', part: 'L', length: '18', qty: 12, width: 6, groupId: '1' }),
+        row({ order: '601881', part: 'F', length: '22', qty: 4, groupId: '1' }),
+        row({ order: '601881', part: 'B', length: '22', qty: 4, groupId: '1' }),
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections[0].rows).toHaveLength(2);
-    expect(sections[0].rows[0]).toMatchObject({ width: '8', fbLength: '30', lrLength: '', qty: 4 });
-    expect(sections[0].rows[1]).toMatchObject({ width: '6', fbLength: '24', lrLength: '18', qty: 6 });
+    expect(sections[0].rows).toHaveLength(1);
+    expect(sections[0].rows[0].qty).toBe(4);
+    expect(sections[0].rows[0].fbLength).toBe('22');
   });
 
-  it('keeps each stack width on its own row when grouped by Label', () => {
+  it('keeps all sides on one row for a label group even when drawer heights differ', () => {
     const batch = {
       sourceRows: [
-        row({ order: '602016', part: 'F', length: '18', qty: 8, width: 10, label: '1.2' }),
-        row({ order: '602016', part: 'L', length: '18', qty: 4, width: 5, label: '1.2' }),
-        row({ order: '602016', part: 'R', length: '18', qty: 16, width: 8, label: '1.2' }),
+        row({ order: '602016', part: 'F', w: '4.5', length: '18', qty: 8, drawerWidth: '10', label: '1.2' }),
+        row({ order: '602016', part: 'L', w: '4.5', length: '18', qty: 4, drawerWidth: '5', label: '1.2' }),
+        row({ order: '602016', part: 'R', w: '4.5', length: '18', qty: 16, drawerWidth: '8', label: '1.2' }),
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections[0].rows).toHaveLength(3);
-    expect(sections[0].rows[0]).toMatchObject({ width: '10', fbLength: '18', lrLength: '', qty: 8 });
-    expect(sections[0].rows[1]).toMatchObject({ width: '8', fbLength: '', lrLength: '18', qty: 16 });
-    expect(sections[0].rows[2]).toMatchObject({ width: '5', fbLength: '', lrLength: '18', qty: 4 });
+    expect(sections[0].rows).toHaveLength(1);
+    expect(sections[0].rows[0]).toMatchObject({
+      qty: 8,
+      lineLabel: '1.2',
+      width: '10',
+      fbLength: '18',
+      lrLength: '18',
+    });
   });
 
   it('keeps separate rows when GroupID differs', () => {
     const batch = {
       sourceRows: [
-        row({ order: '601881', part: 'F', length: '22', qty: 4, width: 8, groupId: '1' }),
-        row({ order: '601881', part: 'F', length: '22', qty: 2, width: 8, groupId: '2' }),
+        row({ order: '601881', part: 'F', length: '22', qty: 4, groupId: '1' }),
+        row({ order: '601881', part: 'F', length: '22', qty: 2, groupId: '2' }),
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
@@ -137,43 +136,50 @@ describe('getCutListPrintSections', () => {
     expect(sections[0].rows.map((r) => r.groupId).sort()).toEqual(['1', '2']);
   });
 
-  it('groups rows under one order section with width desc sort', () => {
+  it('creates separate rows for multiple front sizes in the same GroupID', () => {
     const batch = {
       sourceRows: [
-        row({ order: '602336', part: 'F', length: '18', qty: 1, width: 6 }),
-        row({ order: '601881', part: 'F', length: '20', qty: 1, width: 8 }),
-        row({ order: '601881', part: 'F', length: '30', qty: 1, width: 8 }),
-        row({ order: '601881', part: 'F', length: '24', qty: 1, width: 12 }),
+        row({ order: '601881', part: 'F', length: '30', qty: 4, drawerWidth: '8', groupId: '1' }),
+        row({ order: '601881', part: 'F', length: '22', qty: 8, drawerWidth: '8', groupId: '1' }),
+        row({ order: '601881', part: 'L', w: '4.5', length: '20', qty: 8, drawerWidth: '8', groupId: '1' }),
+        row({ order: '601881', part: 'R', w: '4.5', length: '18', qty: 12, drawerWidth: '8', groupId: '1' }),
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections.map((s) => s.order)).toEqual(['601881', '602336']);
-    expect(sections[0].rows.map((r) => `${r.width}:${r.fbLength}`)).toEqual([
-      '12:24',
-      '8:30',
-      '8:20',
-    ]);
+    expect(sections[0].rows).toHaveLength(2);
+    expect(sections[0].rows[0].fbLength).toBe('30');
+    expect(sections[0].rows[1].fbLength).toBe('22');
   });
 
-  it('flags sections special when the order has a scoop value', () => {
+  it('flags only the group with scoop as special, not every row on the order', () => {
     const batch = {
       sourceRows: [
-        row({ order: '602336', part: 'F', length: '34', qty: 4, width: 12, groupId: '3', scoop: '#4  4" x 1"' }),
-        row({ order: '601881', part: 'F', length: '22', qty: 4, width: 8, groupId: '1' }),
+        row({ order: '602336', part: 'F', length: '34', qty: 4, groupId: '3', scoop: '#4  4" x 1"' }),
+        row({ order: '602336', part: 'F', length: '22', qty: 4, groupId: '1' }),
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections.find((s) => s.order === '602336')?.special).toBe(true);
-    expect(sections.find((s) => s.order === '601881')?.special).toBe(false);
+    expect(sections).toHaveLength(1);
+    expect(sections[0].special).toBe(true);
+    expect(sections[0].rows.find((r) => r.groupId === '3')?.special).toBe(true);
+    expect(sections[0].rows.find((r) => r.groupId === '1')?.special).toBe(false);
   });
 
-  it('skips rows with zero quantity, missing length, or no stack type', () => {
+  it('does not flag a group special for drill front alone', () => {
+    const drillRow = row({ order: '601881', part: 'F', length: '22', qty: 4, groupId: '1' });
+    drillRow[cols.drillFront] = '#1  2 Hole';
+    const batch = { sourceRows: [drillRow] };
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections[0].rows[0].special).toBe(false);
+  });
+
+  it('skips rows with zero quantity, missing length, or unknown part', () => {
     const batch = {
       sourceRows: [
-        row({ order: '601881', part: 'F', length: '22', qty: 0, width: 8 }),
-        row({ order: '601881', part: 'F', length: '', qty: 4, width: 8 }),
-        row({ order: '601881', part: 'Cleat', length: '22', qty: 4, width: 8 }),
-        row({ order: '601881', part: 'F', length: '22', qty: 4, width: 8 }),
+        row({ order: '601881', part: 'F', length: '22', qty: 0, groupId: '1' }),
+        row({ order: '601881', part: 'F', length: '', qty: 4, groupId: '1' }),
+        row({ order: '601881', part: 'Cleat', length: '22', qty: 4, groupId: '1' }),
+        row({ order: '601881', part: 'F', length: '22', qty: 4, groupId: '1' }),
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
@@ -183,7 +189,7 @@ describe('getCutListPrintSections', () => {
 
   it('falls back to merged rows when sourceRows are absent', () => {
     const batch = {
-      rows: [row({ order: '601881', part: 'F', length: '22', qty: 4, width: 8, groupId: '1' })],
+      rows: [row({ order: '601881', part: 'F', length: '22', qty: 4, groupId: '1' })],
     };
     const sections = getCutListPrintSections(batch, cols);
     expect(sections[0].rows).toHaveLength(1);

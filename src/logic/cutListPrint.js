@@ -1,55 +1,80 @@
-import { getStackType } from './stackMatrix.js';
 import {
   getStackMatrixWidth,
   formatDecimalForDisplay,
   getNumericSortValue,
   getFractionalSortValue,
 } from './widths.js';
-import { getSpecialOrderNumbers } from './specialOrders.js';
+import { getSpecialGroupKeys, getGroupSpecialKey } from './specialOrders.js';
+
+/** @typedef {{ w: string, length: string }} PartDim */
 
 /**
- * Resolve the box-row key: one row of boxes = order + drawer set + stack-matrix width.
- * GroupID (or Label) identifies the drawer set; stack width separates each height row
- * so front/back pairs only with left/right from the same box row.
+ * @param {string[]} row
+ * @param {object} colIndices
+ * @returns {'front'|'back'|'left'|'right'|''}
  */
-function boxGroupKey(order, groupId, label, stackWidth) {
-  if (groupId) return `${order}|g:${groupId}|w:${stackWidth}`;
-  if (label) return `${order}|l:${label}|w:${stackWidth}`;
-  return `${order}|w:${stackWidth}`;
+function getPartSide(row, colIndices) {
+  if (colIndices.partName === -1 || colIndices.partName >= row.length) return '';
+  const part = String(row[colIndices.partName] ?? '').trim().toUpperCase();
+  if (part.startsWith('F') || part.includes('FRONT')) return 'front';
+  if (part.startsWith('B') || part.includes('BACK')) return 'back';
+  if (part.startsWith('L') || part.includes('LEFT')) return 'left';
+  if (part.startsWith('R') || part.includes('RIGHT')) return 'right';
+  return '';
 }
 
 /**
- * Build cut-list print sections grouped by order.
- *
- * Within each order, front/back and left/right pair on the same print row when they
- * belong to the same box row: order + GroupID (or Label) + stack-matrix width.
- * Multiple lengths at that width pair by length order (longest first), like the stack matrix.
- *
- * @param {{ sourceRows?: string[][], rows?: string[][] }} batch
+ * @param {string[]} row
  * @param {object} colIndices
- * @returns {Array<{
- *   order: string, special: boolean,
- *   rows: Array<{
- *     width: string, fbLength: string, lrLength: string,
- *     qty: number, groupId: string, special: boolean
- *   }>
- * }>}
+ * @returns {PartDim}
+ */
+function readPartDim(row, colIndices) {
+  const w =
+    colIndices.w !== -1 && colIndices.w < row.length
+      ? formatDecimalForDisplay(String(row[colIndices.w] ?? '').trim())
+      : '';
+  const length = formatDecimalForDisplay(String(row[colIndices.length] ?? '').trim());
+  return { w, length };
+}
+
+function drawerSetKey(order, groupId, label) {
+  if (groupId) return `${order}|g:${groupId}`;
+  if (label) return `${order}|l:${label}`;
+  return '';
+}
+
+function emptySide() {
+  return { w: '', length: '' };
+}
+
+function setSide(target, dim) {
+  if (!dim.w && !dim.length) return;
+  target.w = dim.w;
+  target.length = dim.length;
+}
+
+/**
+ * Build cut-list print sections: one row per box line with rounded drawer width,
+ * Front/Back length, and Left/Right length (shop cut-list layout).
  */
 export function getCutListPrintSections(batch, colIndices) {
   const rows = batch?.sourceRows?.length ? batch.sourceRows : batch?.rows || [];
   if (!rows.length || !colIndices) return [];
 
-  const specialOrders = getSpecialOrderNumbers(rows, colIndices);
+  const specialGroups = getSpecialGroupKeys(rows, colIndices);
   const hasGroupId = colIndices.groupId !== -1;
   const hasLabel = colIndices.label !== -1;
-  const lineMap = new Map();
+  const isGroupSpecial = (order, groupId, label) =>
+    specialGroups.has(getGroupSpecialKey(order, groupId, label));
+  /** @type {Map<string, { order: string, groupId: string, label: string, lineLabel: string, special: boolean, parts: object[] }>} */
+  const buckets = new Map();
 
   rows.forEach((row) => {
     const order = String(row[colIndices.orderNumber] ?? '').trim();
-    const stackType = getStackType(row, colIndices);
-    const length = formatDecimalForDisplay(String(row[colIndices.length] ?? '').trim());
+    const side = getPartSide(row, colIndices);
+    const dim = readPartDim(row, colIndices);
     const qty = parseInt(row[colIndices.quantity]) || 0;
-    if (!stackType || !length || qty <= 0) return;
+    if (!side || !dim.length || qty <= 0) return;
 
     const stackWidth = formatDecimalForDisplay(getStackMatrixWidth(row, colIndices));
     const groupId =
@@ -60,79 +85,143 @@ export function getCutListPrintSections(batch, colIndices) {
       hasLabel && colIndices.label < row.length
         ? String(row[colIndices.label] ?? '').trim()
         : '';
-    const side = stackType === 'FB' ? 'FB' : 'LR';
-    const key = `${boxGroupKey(order, groupId, label, stackWidth)}|${side}|${length}`;
+    const setKey = drawerSetKey(order, groupId, label) || `${order}|w:${stackWidth}`;
 
-    if (!lineMap.has(key)) {
-      lineMap.set(key, {
+    if (!buckets.has(setKey)) {
+      buckets.set(setKey, {
         order,
         groupId,
         label,
-        stackWidth,
-        side,
-        length,
-        stackWidthSort: getFractionalSortValue(stackWidth),
-        lengthSort: getFractionalSortValue(length),
-        qty: 0,
-        special: specialOrders.has(order),
+        lineLabel: label,
+        special: isGroupSpecial(order, groupId, label),
+        parts: [],
       });
     }
-    lineMap.get(key).qty += qty;
-  });
 
-  const boxMap = new Map();
-  lineMap.forEach((line) => {
-    const key = boxGroupKey(line.order, line.groupId, line.label, line.stackWidth);
-    if (!boxMap.has(key)) {
-      boxMap.set(key, {
-        order: line.order,
-        groupId: line.groupId,
-        special: line.special,
-        fb: [],
-        lr: [],
-      });
-    }
-    const box = boxMap.get(key);
-    const item = {
-      length: line.length,
-      lengthSort: line.lengthSort,
-      stackWidth: line.stackWidth,
-      stackWidthSort: line.stackWidthSort,
-      qty: line.qty,
-    };
-    if (line.side === 'FB') box.fb.push(item);
-    else box.lr.push(item);
+    buckets.get(setKey).parts.push({
+      side,
+      dim,
+      qty,
+      stackWidth,
+      stackWidthSort: getFractionalSortValue(stackWidth),
+      lengthSort: getFractionalSortValue(dim.length),
+    });
   });
-
-  const sortItems = (a, b) => {
-    if (b.lengthSort !== a.lengthSort) return b.lengthSort - a.lengthSort;
-    return b.stackWidthSort - a.stackWidthSort;
-  };
 
   const boxRows = [];
-  boxMap.forEach((box) => {
-    box.fb.sort(sortItems);
-    box.lr.sort(sortItems);
-    const rowCount = Math.max(box.fb.length, box.lr.length);
-    for (let i = 0; i < rowCount; i++) {
-      const fb = box.fb[i];
-      const lr = box.lr[i];
-      if (!fb && !lr) continue;
 
-      const widthSource = fb || lr;
-      boxRows.push({
-        order: box.order,
-        groupId: box.groupId,
-        width: widthSource.stackWidth,
-        widthSort: widthSource.stackWidthSort,
-        fbLength: fb?.length ?? '',
-        lrLength: lr?.length ?? '',
-        fbLengthSort: fb?.lengthSort ?? 0,
-        lrLengthSort: lr?.lengthSort ?? 0,
-        qty: fb ? fb.qty : lr.qty,
-        special: box.special,
+  buckets.forEach((bucket) => {
+    const fronts = bucket.parts.filter((p) => p.side === 'front');
+    const backs = bucket.parts.filter((p) => p.side === 'back');
+    const lefts = bucket.parts.filter((p) => p.side === 'left');
+    const rights = bucket.parts.filter((p) => p.side === 'right');
+
+    if (fronts.length === 0) {
+      const byWidth = new Map();
+      [...lefts, ...rights, ...backs].forEach((p) => {
+        if (!byWidth.has(p.stackWidth)) {
+          byWidth.set(p.stackWidth, {
+            order: bucket.order,
+            groupId: bucket.groupId,
+            lineLabel: bucket.lineLabel,
+            special: bucket.special,
+            width: p.stackWidth,
+            stackWidthSort: p.stackWidthSort,
+            front: emptySide(),
+            back: emptySide(),
+            left: emptySide(),
+            right: emptySide(),
+            qty: 0,
+          });
+        }
+        const line = byWidth.get(p.stackWidth);
+        if (p.side === 'left') setSide(line.left, p.dim);
+        if (p.side === 'right') setSide(line.right, p.dim);
+        if (p.side === 'back') setSide(line.back, p.dim);
+        line.qty = Math.max(line.qty, p.qty);
       });
+      byWidth.forEach((line) => boxRows.push(line));
+      return;
     }
+
+    const frontGroups = new Map();
+    fronts.forEach((p) => {
+      const key = `${p.dim.w}|${p.dim.length}|${p.stackWidth}`;
+      if (!frontGroups.has(key)) frontGroups.set(key, []);
+      frontGroups.get(key).push(p);
+    });
+
+    const frontKeys = Array.from(frontGroups.keys()).sort((a, b) => {
+      const [wA, lA, swA] = a.split('|');
+      const [wB, lB, swB] = b.split('|');
+      const swDiff = getFractionalSortValue(swB) - getFractionalSortValue(swA);
+      if (swDiff !== 0) return swDiff;
+      return getFractionalSortValue(lB) - getFractionalSortValue(lA);
+    });
+
+    const usedBack = new Set();
+    const usedLeft = new Set();
+    const usedRight = new Set();
+
+    frontKeys.forEach((key, index) => {
+      const group = frontGroups.get(key);
+      const lead = group[0];
+      const line = {
+        order: bucket.order,
+        groupId: bucket.groupId,
+        lineLabel: bucket.lineLabel,
+        special: bucket.special,
+        width: lead.stackWidth,
+        stackWidthSort: lead.stackWidthSort,
+        front: { ...lead.dim },
+        back: emptySide(),
+        left: emptySide(),
+        right: emptySide(),
+        qty: group[0].qty,
+      };
+
+      const back = backs.find(
+        (p, i) =>
+          !usedBack.has(i) &&
+          p.dim.length === lead.dim.length &&
+          (p.dim.w === lead.dim.w || !p.dim.w || !lead.dim.w)
+      );
+      if (back) {
+        usedBack.add(backs.indexOf(back));
+        setSide(line.back, back.dim);
+      }
+
+      const pickSide = (list, used) => {
+        if (frontKeys.length === 1) {
+          const part = list.find((_, i) => !used.has(i));
+          if (part) {
+            used.add(list.indexOf(part));
+            return part.dim;
+          }
+          return null;
+        }
+        const match = list.find(
+          (p, i) => !used.has(i) && p.stackWidth === lead.stackWidth
+        );
+        if (match) {
+          used.add(list.indexOf(match));
+          return match.dim;
+        }
+        const byIndex = list.find((_, i) => !used.has(i) && index === 0);
+        if (byIndex) {
+          used.add(list.indexOf(byIndex));
+          return byIndex.dim;
+        }
+        return null;
+      };
+
+      const leftDim = pickSide(lefts, usedLeft);
+      const rightDim = pickSide(rights, usedRight);
+      if (leftDim) setSide(line.left, leftDim);
+      if (rightDim) setSide(line.right, rightDim);
+
+      boxRows.push(line);
+    });
   });
 
   boxRows.sort((a, b) => {
@@ -140,26 +229,29 @@ export function getCutListPrintSections(batch, colIndices) {
     const orderB = getNumericSortValue(b.order);
     if (orderA !== orderB) return orderA - orderB;
     if (a.order !== b.order) return a.order.localeCompare(b.order);
-    if (b.widthSort !== a.widthSort) return b.widthSort - a.widthSort;
-    if (b.fbLengthSort !== a.fbLengthSort) return b.fbLengthSort - a.fbLengthSort;
-    if (b.lrLengthSort !== a.lrLengthSort) return b.lrLengthSort - a.lrLengthSort;
-    return getNumericSortValue(a.groupId) - getNumericSortValue(b.groupId);
+    if (b.stackWidthSort !== a.stackWidthSort) return b.stackWidthSort - a.stackWidthSort;
+    const aLen = getFractionalSortValue(a.front.length || a.left.length);
+    const bLen = getFractionalSortValue(b.front.length || b.left.length);
+    return bLen - aLen;
   });
 
   const sections = [];
   boxRows.forEach((row) => {
     const last = sections[sections.length - 1];
     if (!last || last.order !== row.order) {
-      sections.push({ order: row.order, special: row.special, rows: [] });
+      sections.push({ order: row.order, special: false, rows: [] });
     }
-    sections[sections.length - 1].rows.push({
-      width: row.width,
-      fbLength: row.fbLength,
-      lrLength: row.lrLength,
+    const section = sections[sections.length - 1];
+    section.rows.push({
       qty: row.qty,
+      lineLabel: row.lineLabel,
       groupId: row.groupId,
       special: row.special,
+      width: row.width,
+      fbLength: row.front.length || row.back.length,
+      lrLength: row.left.length || row.right.length,
     });
+    if (row.special) section.special = true;
   });
 
   return sections;

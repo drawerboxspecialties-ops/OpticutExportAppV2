@@ -104,7 +104,7 @@ This `÷ 4` rule is fixed shop logic — it drives every box count on screen and
 
 **Print Cut List** (optional second print button):
 
-- One flat table per batch — each box row (order + GroupID/Label + stack width) gets its own line with matching front/back and left/right paired on that row only.
+- One flat table per batch — each box row (order + GroupID/Label + stack width) pairs front/back with left/right on that same width only, by length order (longest first). No cross-width length matching.
 - Order number appears once as a centered section header (not a column).
 - Columns: checkbox, Width, Front/Back, Left/Right, Qty, Grp (when GroupID exists), ★ (when order is special).
 

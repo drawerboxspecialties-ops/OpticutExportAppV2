@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isSpecialOrderValue,
   getSpecialOrderNumbers,
+  getSpecialGroupKeys,
   SPECIAL_ORDER_COLUMN_KEYS,
 } from '../src/logic/specialOrders.js';
 import { mapHeaders } from '../src/logic/headers.js';
@@ -103,6 +104,34 @@ describe('getSpecialOrderNumbers', () => {
     ]);
     expect(SPECIAL_ORDER_COLUMN_KEYS).not.toContain('laser');
     expect(SPECIAL_ORDER_COLUMN_KEYS).not.toContain('groupId');
+  });
+});
+
+describe('getSpecialGroupKeys', () => {
+  const headers = [
+    'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge',
+    'GroupID', 'Scoop', 'Slope', 'DrillFront', 'DividersFB', 'DividersSS', 'FileSlots',
+  ];
+  const cols = mapHeaders(headers);
+
+  it('flags only the group that has scoop, not other groups on the same order', () => {
+    const rows = [
+      ['602336', 'PF: 12MM Baltic Birch Ply', 'F', '5', '33.938', '4', '', '5', 'Clear Foil Bullnose',
+        '3', '#4     4" x 1"', 'None', 'None', 'None', 'None', 'None'],
+      ['602336', 'PF: 12MM Baltic Birch Ply', 'F', '5', '17.938', '2', '', '5', 'Clear Foil Bullnose',
+        '1', 'None', 'None', 'None', 'None', 'None', 'None'],
+    ];
+    const keys = getSpecialGroupKeys(rows, cols);
+    expect(keys.has('602336|g:3')).toBe(true);
+    expect(keys.has('602336|g:1')).toBe(false);
+  });
+
+  it('ignores drill front for cut-list group highlighting', () => {
+    const rows = [
+      ['601881', 'PF: 12MM Baltic Birch Ply', 'F', '6', '22', '4', '', '6', 'Clear Foil Bullnose',
+        '1', 'None', 'None', '#1     2 Hole', 'None', 'None', 'None'],
+    ];
+    expect(getSpecialGroupKeys(rows, cols).size).toBe(0);
   });
 });
 
