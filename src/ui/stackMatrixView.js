@@ -7,7 +7,7 @@ import {
 } from '../logic/stackMatrix.js';
 import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
-import { formatOrderGroupBoxLabel } from '../logic/groupBoxes.js';
+import { formatOrderGroupBoxLabel, formatOrderCutListBoxSummary, formatGroupBoxInBrackets } from '../logic/groupBoxes.js';
 import { getCutListPrintSections } from '../logic/cutListPrint.js';
 
 let checkboxIdCounter = 0;
@@ -251,27 +251,31 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
   const sections = getCutListPrintSections(batch, colIndices);
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
-  const colCount = 6 + (hasGroup ? 1 : 0) + (anySpecial ? 1 : 0);
+  const colCount = 5 + (hasGroup ? 1 : 0) + (anySpecial ? 1 : 0);
 
   let body = '';
   let rowOrdinal = 0;
 
   sections.forEach((section) => {
     const specialMark = section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
+    const boxSummary = formatOrderCutListBoxSummary(section.order, batch, colIndices);
+    const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
     body += `
       <tr class="cutlist-order-header">
-        <td colspan="${colCount}" class="cutlist-order-title">Order ${escapeHTML(section.order)}${specialMark}</td>
+        <td colspan="${colCount}" class="cutlist-order-title">Order ${escapeHTML(section.order)}${boxMark}${specialMark}</td>
       </tr>`;
 
     section.rows.forEach((r) => {
       const altClass = rowOrdinal % 2 === 1 ? ' stack-row-alt' : '';
       rowOrdinal++;
+      const groupLabel = hasGroup
+        ? formatGroupBoxInBrackets(section.order, r.groupId, batch, colIndices)
+        : '';
       body += `
       <tr class="stack-data-row${altClass}">
         <td class="cutlist-check"><span class="print-check" aria-hidden="true"></span></td>
         <td class="cutlist-qty"><b>${r.qty}</b></td>
-        ${hasGroup ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</td>` : ''}
-        <td class="cutlist-label">${escapeHTML(r.lineLabel || '')}</td>
+        ${hasGroup ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}">${escapeHTML(groupLabel)}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</td>` : ''}
         <td class="cutlist-dim">${escapeHTML(r.width)}"</td>
         <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
         <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
@@ -291,7 +295,6 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
           <th class="cutlist-check-col"></th>
           <th>Qty</th>
           ${hasGroup ? '<th>Grp</th>' : ''}
-          <th>Line Label</th>
           <th>Width</th>
           <th>Front / Back</th>
           <th>Left / Right</th>

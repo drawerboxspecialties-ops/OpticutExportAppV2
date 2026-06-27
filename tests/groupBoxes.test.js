@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { mapHeaders } from '../src/logic/headers.js';
 import {
   buildOrderGroupBoxTotals,
+  formatGroupBoxInBrackets,
+  formatOrderCutListBoxSummary,
   formatOrderGroupBoxLabel,
   reconcileOrderColTotals,
 } from '../src/logic/groupBoxes.js';
@@ -61,6 +63,7 @@ describe('buildOrderGroupBoxTotals', () => {
     ]);
     const batch = { rows: [['602350', 'Mat', 'F', '6', '25', '8', '', '6', 'Edge']], orderColTotals: { 602350: 2 } };
     expect(formatOrderGroupBoxLabel('602350', batch, basicCols)).toBe('2');
+    expect(formatOrderCutListBoxSummary('602350', batch, basicCols)).toBe('2 boxes');
   });
 
   it('uses pre-merge orderGroupBoxTotals when rows merged across GroupIDs', () => {
@@ -76,6 +79,24 @@ describe('buildOrderGroupBoxTotals', () => {
       },
     };
     expect(formatOrderGroupBoxLabel('602336', batch, cols)).toBe('1-15, 2-3, 3-4');
+  });
+});
+
+describe('cut-list box labels', () => {
+  it('summarizes total boxes with per-GroupID counts in brackets', () => {
+    const batch = {
+      rows: [row('602350', '1', 8), row('602350', '2', 4)],
+      orderColTotals: { 602350: 3 },
+    };
+    expect(formatOrderCutListBoxSummary('602350', batch, cols)).toBe('3 boxes (1-2, 2-1)');
+  });
+
+  it('shows GroupID with box count in brackets', () => {
+    const batch = {
+      rows: [row('602350', '1', 8), row('602350', '2', 4)],
+      orderColTotals: { 602350: 3 },
+    };
+    expect(formatGroupBoxInBrackets('602350', '2', batch, cols)).toBe('2 (1)');
   });
 });
 

@@ -100,3 +100,41 @@ export function formatOrderGroupBoxLabel(order, batch, colIndices) {
   const boxes = batch?.orderColTotals?.[order] ?? 0;
   return String(boxes);
 }
+
+/**
+ * Cut-list order title suffix: total boxes plus per-GroupID counts in brackets.
+ * Example: "3 boxes (1-2, 2-1)"
+ *
+ * @param {string} order
+ * @param {object} batch
+ * @param {object} colIndices
+ * @returns {string}
+ */
+export function formatOrderCutListBoxSummary(order, batch, colIndices) {
+  const total = batch?.orderColTotals?.[order] ?? 0;
+  if (total <= 0) return '';
+  const boxWord = total === 1 ? 'box' : 'boxes';
+  const groupLabel = formatOrderGroupBoxLabel(order, batch, colIndices);
+  if (groupLabel.includes('-')) {
+    return `${total} ${boxWord} (${groupLabel})`;
+  }
+  return `${total} ${boxWord}`;
+}
+
+/**
+ * Cut-list Grp cell: GroupID with box count in brackets, e.g. "2 (1)".
+ *
+ * @param {string} order
+ * @param {string} groupId
+ * @param {object} batch
+ * @param {object} colIndices
+ * @returns {string}
+ */
+export function formatGroupBoxInBrackets(order, groupId, batch, colIndices) {
+  const id = String(groupId ?? '').trim();
+  if (!id) return '';
+  const groups = buildOrderGroupBoxTotals(batch, colIndices)[order];
+  const match = groups?.find((g) => String(g.groupId) === id);
+  if (match) return `${id} (${match.boxes})`;
+  return id;
+}

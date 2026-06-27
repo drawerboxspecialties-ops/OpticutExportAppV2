@@ -244,7 +244,6 @@ export function getCutListPrintSections(batch, colIndices) {
     const section = sections[sections.length - 1];
     section.rows.push({
       qty: row.qty,
-      lineLabel: row.lineLabel,
       groupId: row.groupId,
       special: row.special,
       width: row.width,

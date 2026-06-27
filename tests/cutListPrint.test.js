@@ -70,7 +70,6 @@ describe('getCutListPrintSections', () => {
     expect(sections[0].rows[0]).toMatchObject({
       qty: 4,
       groupId: '2',
-      lineLabel: '2. 3',
       width: '5',
       fbLength: '24.125',
       lrLength: '17.6875',
@@ -117,7 +116,6 @@ describe('getCutListPrintSections', () => {
     expect(sections[0].rows).toHaveLength(1);
     expect(sections[0].rows[0]).toMatchObject({
       qty: 8,
-      lineLabel: '1.2',
       width: '10',
       fbLength: '18',
       lrLength: '18',
