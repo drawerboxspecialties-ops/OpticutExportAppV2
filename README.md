@@ -119,14 +119,15 @@ After changes, test:
 3. Confirm cut-list preview loads.
 4. Confirm stack matrix loads.
 5. Confirm Print Stack Matrix opens compact current-batch print.
-6. Confirm Print All prints batches separately with order cards inside each batch.
-7. Export ZIP and confirm only cut-list CSVs are included.
-8. Confirm rounded-width export is checked by default.
-9. Uncheck rounded-width export and confirm the warning appears.
-10. With rounded-width export checked, confirm matching rounded rows merge,
+6. Confirm **Print Cut List** opens flat one-row-per-line sheet (merged identical lines).
+7. Confirm Print All prints batches separately with order cards inside each batch.
+8. Export ZIP and confirm only cut-list CSVs are included.
+9. Confirm rounded-width export is checked by default.
+10. Uncheck rounded-width export and confirm the warning appears.
+11. With rounded-width export checked, confirm matching rounded rows merge,
     `Width` is whole number, and `Label` records original width quantities.
-11. Confirm material names are under 32 characters and keep thickness at end.
-12. Split a batch and confirm no order number appears in two split batches from
+12. Confirm material names are under 32 characters and keep thickness at end.
+13. Split a batch and confirm no order number appears in two split batches from
     the same source group.
 
 ## Persistent Settings

@@ -95,12 +95,19 @@ batch total       = sum of order totals
 
 This `÷ 4` rule is fixed shop logic — it drives every box count on screen and on print.
 
-**Print layout:**
+**Print layout (Stack Matrix):**
 
 - Batch header: total boxes and comma-separated order numbers (no GroupID breakdown at top).
 - Each small order card: order + GroupID-qty (e.g. `602336 1-15, 2-3, 3-4`).
 - Width rows show box count for that height (e.g. `Width 6" · 2 bx`).
 - Order total always equals the sum of its GroupID-qty values.
+
+**Print Cut List** (optional second print button):
+
+- One flat table per batch — one row per cut line; identical lines merge (qty summed).
+- Columns: checkbox, Width, Front/Back, Left/Right, Qty, Order, Grp (when GroupID exists), ★ (when order is special).
+- Sorted by order number, then width (high → low), then length (high → low). No Seq numbers.
+- Uses pre-merge source rows so GroupID stays accurate per line.
 
 Widths shown to operators are **rounded up to whole numbers** for readability. Export can optionally do the same.
 
@@ -128,7 +135,7 @@ index.html          UI shell
 src/main.js         Controller — state, DOM events, download/print
 src/ui/             HTML render helpers (stack matrix, print cards)
 src/logic/          Pure business rules — no DOM, fully unit-tested
-tests/              169 Vitest tests lock every critical rule
+tests/              176 Vitest tests lock every critical rule
 ```
 
 **Development process:**
@@ -154,6 +161,7 @@ tests/              169 Vitest tests lock every critical rule
 | `src/logic/boxMath.js` | `ceil(parts/4)` box matrix |
 | `src/logic/exportRows.js` | Cut-list row prep, width rounding merge |
 | `src/logic/materialNames.js` | OptiCut material name formatting |
+| `src/logic/cutListPrint.js` | Flat cut-list print rows (merge, sort, GroupID) |
 | `src/ui/stackMatrixView.js` | Stack matrix + print card HTML |
 
 ---
@@ -163,7 +171,7 @@ tests/              169 Vitest tests lock every critical rule
 1. Export CSV from Allmoxy (with optional extra columns if used).
 2. Open the live app → drag & drop the file.
 3. Review batches in the sidebar (look for **SPECIAL** badge if applicable).
-4. Print stack matrix for the current batch or print all batches.
+4. Print stack matrix or **Print Cut List** for the current batch, or print all batches.
 5. Export current CSV or ZIP all batches.
 6. Import each CSV into OptiCut.
 
@@ -173,7 +181,7 @@ tests/              169 Vitest tests lock every critical rule
 
 - **Vite** — build & dev server
 - **Vanilla JS** — no framework; runs offline after load
-- **Vitest** — 169 automated tests
+- **Vitest** — 176 automated tests
 - **ESLint + Prettier** — code quality
 - **GitHub Pages** — hosting from `/docs` on `main`
 - **JSZip** — lazy-loaded for ZIP export

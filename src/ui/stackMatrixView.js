@@ -8,6 +8,7 @@ import {
 import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
 import { formatOrderGroupBoxLabel } from '../logic/groupBoxes.js';
+import { getCutListPrintRows } from '../logic/cutListPrint.js';
 
 let checkboxIdCounter = 0;
 export function resetCheckboxCounter() {
@@ -172,7 +173,11 @@ export function renderStackMatrixOrderCards(batch, colIndices) {
     : `<div class="stack-cell-empty" style="padding:1rem;">No stack matrix rows available.</div>`;
 }
 
-export function buildCompactPrintCard(batchKey, batch, colIndices, position = null) {
+/**
+ * Shared print header banner (batch name, totals, material/edge/ship date).
+ * Used by both the stack-matrix and cut-list print sheets.
+ */
+function buildPrintHeaderBanner(batchKey, batch, colIndices, position = null) {
   const safeBatchKey = escapeHTML(batchKey);
   const safePrintedAt = escapeHTML(
     new Date().toLocaleString('en-US', {
@@ -194,6 +199,9 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
     position && position.count > 1
       ? `<span class="print-batch-index">Batch ${position.index} of ${position.count}</span>`
       : '';
+  const specialTag = batch.isSpecial
+    ? `<span class="print-batch-special">★ SPECIAL</span>`
+    : '';
   const shipDateLabel = formatShipDateLabel(batch.shipDate, colIndices);
   const shipDateChip = shipDateLabel
     ? `
@@ -203,11 +211,11 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
         </div>`
     : '';
 
-  const headerBanner = `
+  return `
     <div class="print-batch-header">
       <div class="print-batch-header-row">
         <div class="print-batch-title">
-          ${safeBatchKey}.csv${batchTag}
+          ${safeBatchKey}.csv${batchTag}${specialTag}
           <span class="print-batch-boxes-total">${batch.totalBoxes} Boxes</span>
           <span class="print-batch-orders-list">${formatPrintBatchOrders(batch)}</span>
         </div>
@@ -226,7 +234,64 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
       </div>
     </div>
   `;
+}
 
+export function buildCompactPrintCard(batchKey, batch, colIndices, position = null) {
+  const headerBanner = buildPrintHeaderBanner(batchKey, batch, colIndices, position);
   // Full banner once at the top; each order card shows order + GroupID box counts only.
   return `${headerBanner}${renderStackMatrixOrderCards(batch, colIndices)}`;
+}
+
+/**
+ * Build the print-only "Cut List" sheet: one flat table per batch, one row per
+ * merged cut line, sorted by order then width then length. No Seq numbers.
+ * Columns: ☐ | Width | Front/Back | Left/Right | Qty | Order | [Grp] | [★]
+ */
+export function buildCutListPrintCard(batchKey, batch, colIndices, position = null) {
+  const headerBanner = buildPrintHeaderBanner(batchKey, batch, colIndices, position);
+  const rows = getCutListPrintRows(batch, colIndices);
+  const hasGroup = colIndices.groupId !== -1;
+  const anySpecial = rows.some((r) => r.special);
+  const colCount = 6 + (hasGroup ? 1 : 0) + (anySpecial ? 1 : 0);
+
+  const dash = '<span class="cutlist-dash">—</span>';
+  let body = '';
+  rows.forEach((r, i) => {
+    const altClass = i % 2 === 1 ? ' stack-row-alt' : '';
+    body += `
+      <tr class="stack-data-row${altClass}">
+        <td class="cutlist-check"><span class="print-check" aria-hidden="true"></span></td>
+        <td class="cutlist-dim">${escapeHTML(r.width)}"</td>
+        <td class="cutlist-dim">${r.stackType === 'FB' ? `<b>${escapeHTML(r.length)}"</b>` : dash}</td>
+        <td class="cutlist-dim">${r.stackType === 'LR' ? `<b>${escapeHTML(r.length)}"</b>` : dash}</td>
+        <td class="cutlist-qty"><b>${r.qty}</b></td>
+        <td>${escapeHTML(r.order)}</td>
+        ${hasGroup ? `<td>${escapeHTML(r.groupId || '—')}</td>` : ''}
+        ${anySpecial ? `<td class="cutlist-special">${r.special ? '★' : ''}</td>` : ''}
+      </tr>`;
+  });
+
+  if (!rows.length) {
+    body = `<tr><td colspan="${colCount}" class="stack-cell-empty" style="padding:1rem;">No cut-list rows available.</td></tr>`;
+  }
+
+  const table = `
+    <table class="cutlist-table" cellpadding="4" cellspacing="0">
+      <thead>
+        <tr class="stack-order-columns-row">
+          <th class="cutlist-check-col"></th>
+          <th>Width</th>
+          <th>Front / Back</th>
+          <th>Left / Right</th>
+          <th>Qty</th>
+          <th>Order</th>
+          ${hasGroup ? '<th>Grp</th>' : ''}
+          ${anySpecial ? '<th>★</th>' : ''}
+        </tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
+
+  return `${headerBanner}${table}`;
 }

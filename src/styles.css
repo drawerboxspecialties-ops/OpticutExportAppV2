@@ -1597,6 +1597,69 @@ tr:hover td {
   background: #f1f5f9;
 }
 
+/* ── Cut List print sheet ─────────────────────────────── */
+.cutlist-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: #000 !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.cutlist-table th,
+.cutlist-table td {
+  border: 1px solid #94a3b8;
+  text-align: center;
+  padding: 3px 5px;
+}
+
+.cutlist-table th {
+  font-weight: bold;
+  background: #e5e7eb;
+  border-bottom: 1.5px solid #64748b;
+}
+
+.cutlist-check-col {
+  width: 26px;
+}
+
+.cutlist-check {
+  width: 26px;
+}
+
+.cutlist-dim {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cutlist-qty {
+  font-variant-numeric: tabular-nums;
+}
+
+.cutlist-dash {
+  color: #94a3b8;
+}
+
+.cutlist-special {
+  color: #b45309 !important;
+  font-weight: 900;
+}
+
+.print-batch-special {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #b45309;
+  color: #fff !important;
+  font-size: 10px;
+  font-weight: 800;
+  vertical-align: middle;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
 /* ── Print media ──────────────────────────────────────── */
 @media print {
   @page {
@@ -1666,6 +1729,16 @@ tr:hover td {
 
   body.print-all-active .category-card:last-child {
     page-break-after: avoid;
+  }
+
+  /* Cut-list table: repeat header on every page, never split a row. */
+  .cutlist-table thead {
+    display: table-header-group;
+  }
+
+  .cutlist-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
 

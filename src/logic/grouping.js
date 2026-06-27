@@ -328,6 +328,7 @@ export function splitDataIntoGroups(
 
       finalizedGroups[finalKey] = {
         rows: finalRows,
+        sourceRows: chunkRows,
         sourceGroupKey: tempKey,
         materialName: g.materialName,
         topEdge: g.topEdge,

@@ -26,11 +26,13 @@ export function applyBatchOrderExclusions(groups, exclusions, colIndices) {
 
   const result = {};
   Object.entries(groups).forEach(([batchKey, batch]) => {
-    const rows = (batch.rows || []).filter((row) => {
+    const notExcluded = (row) => {
       const order = String(row[colIndices.orderNumber] ?? '').trim();
       return !exclusions.has(batchOrderKey(batch.sourceGroupKey, order));
-    });
+    };
+    const rows = (batch.rows || []).filter(notExcluded);
     if (rows.length === 0) return;
+    const sourceRows = (batch.sourceRows || []).filter(notExcluded);
 
     const uniqueOrders = new Set();
     const uniqueHeights = new Set();
@@ -68,6 +70,7 @@ export function applyBatchOrderExclusions(groups, exclusions, colIndices) {
     result[batchKey] = {
       ...batch,
       rows,
+      sourceRows,
       sortedHeights,
       sortedOrders,
       heightOrderBoxes,

@@ -19,6 +19,7 @@ import {
   resetCheckboxCounter,
   renderStackMatrixRows,
   buildCompactPrintCard,
+  buildCutListPrintCard,
 } from './ui/stackMatrixView.js';
 
 const $ = (id) => document.getElementById(id);
@@ -821,6 +822,23 @@ function triggerPrintCurrent() {
   }, 1000);
 }
 
+function triggerPrintCutList() {
+  const printContainer = $('all-print-container');
+  const batch = state.splitGroups[state.activeGroupKey];
+  if (!printContainer || !batch) return;
+  printContainer.innerHTML = '';
+  const cardDiv = document.createElement('div');
+  cardDiv.className = 'category-card';
+  cardDiv.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices);
+  printContainer.appendChild(cardDiv);
+  document.body.classList.add('print-all-active');
+  window.print();
+  setTimeout(() => {
+    document.body.classList.remove('print-all-active');
+    printContainer.innerHTML = '';
+  }, 1000);
+}
+
 function printAllSummaries() {
   const printContainer = $('all-print-container');
   if (!printContainer) return;
@@ -913,6 +931,7 @@ function wireEvents() {
   $('btn-download-all').addEventListener('click', downloadAllZip);
   $('btn-export-current').addEventListener('click', downloadCurrentFile);
   $('btn-print-summary').addEventListener('click', triggerPrintCurrent);
+  $('btn-print-cutlist').addEventListener('click', triggerPrintCutList);
   $('btn-print-all-summaries').addEventListener('click', printAllSummaries);
   $('btn-pdf-summary').addEventListener('click', triggerPDF);
   $('btn-share').addEventListener('click', shareApplication);
