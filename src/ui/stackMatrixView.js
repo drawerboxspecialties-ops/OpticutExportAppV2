@@ -255,7 +255,6 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
   const anySpecial = sections.some((s) => s.special);
   const colCount = 5 + (hasGroup ? 1 : 0) + (anySpecial ? 1 : 0);
 
-  const dash = '<span class="cutlist-dash">—</span>';
   let body = '';
   let rowOrdinal = 0;
 
@@ -273,8 +272,8 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
       <tr class="stack-data-row${altClass}">
         <td class="cutlist-check"><span class="print-check" aria-hidden="true"></span></td>
         <td class="cutlist-dim">${escapeHTML(r.width)}"</td>
-        <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : dash}</td>
-        <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : dash}</td>
+        <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
+        <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
         <td class="cutlist-qty"><b>${r.qty}</b></td>
         ${hasGroup ? `<td>${escapeHTML(r.groupId || '—')}</td>` : ''}
         ${anySpecial ? `<td class="cutlist-special">${r.special ? '★' : ''}</td>` : ''}
