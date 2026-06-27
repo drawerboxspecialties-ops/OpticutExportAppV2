@@ -104,9 +104,9 @@ This `÷ 4` rule is fixed shop logic — it drives every box count on screen and
 
 **Print Cut List** (optional second print button):
 
-- One flat table per batch — one row per box group; Front/Back and Left/Right on the same line when they share order + GroupID + width.
+- One flat table per batch — one row per drawer set (GroupID, or Label when no GroupID). Front/back, left, and right for the same set share one row; left and right are split into separate columns and paired to the matching front/back line.
 - Order number appears once as a centered section header (not a column).
-- Columns: checkbox, Width, Front/Back, Left/Right, Qty, Grp (when GroupID exists), ★ (when order is special).
+- Columns: checkbox, Width, Front/Back, Left, Right, Qty, Grp (when GroupID exists), ★ (when order is special).
 
 Widths shown to operators are **rounded up to whole numbers** for readability. Export can optionally do the same.
 
