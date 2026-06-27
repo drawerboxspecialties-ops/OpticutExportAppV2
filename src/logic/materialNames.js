@@ -56,7 +56,7 @@ export function formatExportMaterialWordOrder(value, thicknessTokens) {
 }
 
 export function shortenExportMaterialName(value, requiredTokens) {
-  let name = value.replace(/\s+/g, ' ').trim();
+  const name = value.replace(/\s+/g, ' ').trim();
   if (name.length <= 32) return name;
 
   const suffixTokens = requiredTokens.filter((token) => token && name.includes(token));

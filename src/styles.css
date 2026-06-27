@@ -854,10 +854,6 @@ tr:hover td {
   margin-bottom: 0.6rem;
 }
 
-.control-panel-remove {
-  color: var(--danger);
-}
-
 .control-panel-restore-all {
   border: none;
   background: #d1fae5;
@@ -990,64 +986,6 @@ tr:hover td {
   background: var(--success);
   color: #fff;
   transform: translateY(-1px);
-}
-
-.excluded-list-title {
-  font-size: 0.7rem;
-  font-weight: 800;
-  color: var(--text-muted);
-  margin: 0.85rem 0 0.4rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.excluded-bag {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  max-height: 130px;
-  overflow-y: auto;
-}
-
-.restore-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.28rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.74rem;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid var(--border-strong);
-  font-family: inherit;
-  transition: all 0.18s var(--ease);
-}
-
-.restore-badge--order {
-  background: #f1f5f9;
-  color: var(--text-muted);
-}
-
-.restore-badge--material {
-  background: #eef2ff;
-  color: var(--accent);
-  border-color: #c7d2fe;
-}
-
-.restore-badge--edge {
-  background: #fffbeb;
-  color: #92400e;
-  border-color: #fde68a;
-}
-
-.restore-badge:hover {
-  border-color: var(--success);
-  transform: translateY(-1px);
-}
-
-.restore-plus {
-  color: var(--success);
-  font-weight: bold;
 }
 
 .checkbox-row {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { loadSettings, saveSettings, rememberFile, DEFAULT_SETTINGS, clearStoredSettings } from '../src/logic/settingsStore.js';
 
 function makeStorage() {
-  let store = {};
+  const store = {};
   return {
     getItem: (k) => (k in store ? store[k] : null),
     setItem: (k, v) => {

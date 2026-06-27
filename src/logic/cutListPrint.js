@@ -166,8 +166,8 @@ export function getCutListPrintSections(batch, colIndices) {
     });
 
     const frontKeys = Array.from(frontGroups.keys()).sort((a, b) => {
-      const [wA, lA, swA] = a.split('|');
-      const [wB, lB, swB] = b.split('|');
+      const [, lA, swA] = a.split('|');
+      const [, lB, swB] = b.split('|');
       const swDiff = getFractionalSortValue(swB) - getFractionalSortValue(swA);
       if (swDiff !== 0) return swDiff;
       return getFractionalSortValue(lB) - getFractionalSortValue(lA);
@@ -278,114 +278,4 @@ export function getCutListPrintSections(batch, colIndices) {
   });
 
   return sections;
-}
-
-/**
- * Row count for print layout (order header + data rows).
- * @param {{ rows: object[] }} section
- * @returns {number}
- */
-export function getCutListSectionRowCount(section) {
-  return 1 + (section?.rows?.length || 0);
-}
-
-/**
- * @param {object} section
- * @param {object[]} rows
- * @param {boolean} continued
- */
-function cloneCutListSection(section, rows, continued) {
-  return { ...section, rows, continued: !!continued };
-}
-
-/**
- * Split large orders into chunks that fit one print column; marks continuations.
- * Optional — cut-list print uses single-column page flow instead.
- *
- * @param {Array<{ order: string, special: boolean, rows: object[] }>} sections
- * @param {number} maxDataRowsPerColumn
- * @returns {typeof sections}
- */
-export function chunkCutListSectionsForPrint(sections, maxDataRowsPerColumn = 12) {
-  const chunks = [];
-  sections.forEach((section) => {
-    if (!section.rows.length) return;
-    if (section.rows.length <= maxDataRowsPerColumn) {
-      chunks.push(cloneCutListSection(section, section.rows, false));
-      return;
-    }
-    for (let start = 0; start < section.rows.length; start += maxDataRowsPerColumn) {
-      chunks.push(
-        cloneCutListSection(
-          section,
-          section.rows.slice(start, start + maxDataRowsPerColumn),
-          start > 0
-        )
-      );
-    }
-  });
-  return chunks;
-}
-
-/**
- * Pack cut-list sections into left/right columns sequentially (fill left first).
- * Whole orders move to the right column when they no longer fit on the left.
- * Used in tests; live print relies on CSS columns with the same fill order.
- *
- * @param {Array<{ order: string, special: boolean, rows: object[] }>} sections
- * @param {number} maxRowsPerColumn
- * @returns {{ left: typeof sections, right: typeof sections }}
- */
-export function splitCutListSectionsForPrint(sections, maxRowsPerColumn = Number.POSITIVE_INFINITY) {
-  if (!sections?.length) return { left: [], right: [] };
-
-  const totalRows = sections.reduce((sum, section) => sum + getCutListSectionRowCount(section), 0);
-  if (totalRows <= maxRowsPerColumn) {
-    return {
-      left: sections.map((section) => cloneCutListSection(section, section.rows, false)),
-      right: [],
-    };
-  }
-
-  const left = [];
-  const right = [];
-  let leftCount = 0;
-  let fillingLeft = true;
-
-  sections.forEach((section) => {
-    const sectionRows = getCutListSectionRowCount(section);
-
-    if (fillingLeft) {
-      if (leftCount + sectionRows <= maxRowsPerColumn) {
-        left.push(cloneCutListSection(section, section.rows, false));
-        leftCount += sectionRows;
-        return;
-      }
-
-      if (leftCount === 0) {
-        const leftDataRows = Math.max(1, maxRowsPerColumn - 1);
-        if (section.rows.length <= leftDataRows) {
-          left.push(cloneCutListSection(section, section.rows, false));
-          leftCount += sectionRows;
-          return;
-        }
-        left.push(cloneCutListSection(section, section.rows.slice(0, leftDataRows), false));
-        right.push(cloneCutListSection(section, section.rows.slice(leftDataRows), true));
-        fillingLeft = false;
-        return;
-      }
-
-      fillingLeft = false;
-    }
-
-    right.push(
-      cloneCutListSection(
-        section,
-        section.rows,
-        right.some((entry) => entry.order === section.order)
-      )
-    );
-  });
-
-  return { left, right };
 }

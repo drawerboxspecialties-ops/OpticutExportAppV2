@@ -10,8 +10,8 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="./assets/index-CLfNPihm.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-Ch1vypmr.css">
+    <script type="module" crossorigin src="./assets/index-BMMf8Ltw.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-D2eMexwG.css">
   </head>
   <body>
     <header class="app-header">
@@ -182,24 +182,37 @@
                     Restore all
                   </button>
                 </div>
-                <p class="control-panel-hint">Select items in each list, then press <b>−</b> to remove or <b>+</b> to restore. Removed materials and edges show as <i>(removed)</i>.</p>
+                <p class="control-panel-hint">Select items in each list, then press <b>−</b> to remove or <b>+</b> to restore. Removed items show as <i>(removed)</i>.</p>
 
-                <div class="modern-row">
-                  <select
-                    id="exclude-order-select"
-                    class="modern-input modern-select"
-                    title="Choose an order to remove from its batch"
-                  >
-                    <option value="">Select order to remove…</option>
-                  </select>
-                  <button
-                    class="mini-danger-btn"
-                    id="btn-exclude-order"
-                    type="button"
-                    title="Remove Selected Order"
-                  >
-                    −
-                  </button>
+                <div class="filter-field">
+                  <label class="filter-field-label" for="order-filter-select">Orders</label>
+                  <div class="modern-row modern-row--multi">
+                    <select
+                      id="order-filter-select"
+                      class="modern-input modern-select modern-select--multi"
+                      multiple
+                      size="6"
+                      title="Ctrl+click to select. Use − to remove or + to restore."
+                    ></select>
+                    <div class="filter-action-buttons">
+                      <button
+                        class="mini-restore-btn"
+                        id="btn-restore-order"
+                        type="button"
+                        title="Restore Selected Orders"
+                      >
+                        +
+                      </button>
+                      <button
+                        class="mini-danger-btn"
+                        id="btn-exclude-order"
+                        type="button"
+                        title="Remove Selected Orders"
+                      >
+                        −
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div class="filter-field">
                   <label class="filter-field-label" for="material-filter-select">Materials</label>
@@ -260,11 +273,6 @@
                       </button>
                     </div>
                   </div>
-                </div>
-
-                <div id="excluded-list-container" class="excluded-list" hidden>
-                  <div class="excluded-list-title">Removed orders</div>
-                  <div id="excluded-orders-bag" class="excluded-bag"></div>
                 </div>
 
                 <div class="options-divider">Options</div>

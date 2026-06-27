@@ -7,7 +7,7 @@ import {
 } from '../logic/stackMatrix.js';
 import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
-import { formatOrderCutListBoxSummary } from '../logic/groupBoxes.js';
+import { formatOrderCutListBoxSummary, formatOrderGroupBoxLabel } from '../logic/groupBoxes.js';
 import { getCutListPrintSections } from '../logic/cutListPrint.js';
 
 let checkboxIdCounter = 0;

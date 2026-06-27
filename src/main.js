@@ -502,6 +502,10 @@ function renderCurrentView() {
   stackBody.innerHTML = renderStackMatrixRows(batch, ci, false);
 }
 
+function isOrderExcluded(order) {
+  return state.excludedOrders.includes(order);
+}
+
 function isMaterialExcluded(material) {
   return state.excludedMaterials.some(
     (excluded) => excluded.toLowerCase() === material.toLowerCase()
@@ -514,7 +518,7 @@ function isTopEdgeExcluded(edge) {
   );
 }
 
-function populateUnifiedFilterSelect(select, values, isExcludedFn) {
+function populateUnifiedFilterSelect(select, values, isExcludedFn, formatLabel = (value) => value) {
   if (!select) return;
   const previouslySelected = new Set(
     Array.from(select.selectedOptions).map((option) => option.value)
@@ -528,7 +532,7 @@ function populateUnifiedFilterSelect(select, values, isExcludedFn) {
   select.innerHTML = values
     .map((value) => {
       const removed = isExcludedFn(value);
-      const label = removed ? `${value} (removed)` : value;
+      const label = removed ? `${formatLabel(value)} (removed)` : formatLabel(value);
       const removedClass = removed ? ' class="filter-option--removed"' : '';
       return `<option value="${escapeAttr(value)}"${removedClass}>${escapeHTML(label)}</option>`;
     })
@@ -539,9 +543,16 @@ function populateUnifiedFilterSelect(select, values, isExcludedFn) {
 }
 
 function updateExclusionOptions() {
+  const orderSelect = $('order-filter-select');
   const materialSelect = $('material-filter-select');
   const topEdgeSelect = $('top-edge-filter-select');
-  const orderSelect = $('exclude-order-select');
+  const allOrders = Array.from(
+    new Set(
+      state.originalParsedRows
+        .map((row) => String(row[state.colIndices.orderNumber] || '').trim())
+        .filter(Boolean)
+    )
+  ).sort(orderSortComparator);
   const allMaterials = Array.from(
     new Set(state.originalParsedRows.map(rowMaterialName).filter(Boolean))
   ).sort();
@@ -549,26 +560,9 @@ function updateExclusionOptions() {
     new Set(state.originalParsedRows.map(rowTopEdgeName).filter(Boolean))
   ).sort();
 
+  populateUnifiedFilterSelect(orderSelect, allOrders, isOrderExcluded, (order) => `Order #${order}`);
   populateUnifiedFilterSelect(materialSelect, allMaterials, isMaterialExcluded);
   populateUnifiedFilterSelect(topEdgeSelect, allTopEdges, isTopEdgeExcluded);
-
-  if (orderSelect) {
-    // Orders still in the batches (excluded ones drop out automatically).
-    const orders = Array.from(
-      new Set(
-        state.parsedRows
-          .map((r) => String(r[state.colIndices.orderNumber] || '').trim())
-          .filter(Boolean)
-      )
-    ).sort(orderSortComparator);
-    const previous = orderSelect.value;
-    orderSelect.innerHTML =
-      '<option value="">Select order to remove…</option>' +
-      orders
-        .map((o) => `<option value="${escapeAttr(o)}">Order #${escapeHTML(o)}</option>`)
-        .join('');
-    if (orders.includes(previous)) orderSelect.value = previous;
-  }
 }
 
 function orderSortComparator(a, b) {
@@ -585,7 +579,7 @@ function applyExclusionsAndRebuild() {
     topEdges: state.excludedTopEdges,
   });
   rebuild();
-  renderExcludedBadges();
+  updateRestoreAllButton();
 }
 
 function updateRestoreAllButton() {
@@ -615,44 +609,48 @@ function restoreAllExclusions() {
   showToast('All removed items restored.', 'success');
 }
 
-function renderExcludedBadges() {
-  const container = $('excluded-list-container');
-  const bag = $('excluded-orders-bag');
-  const badges = [];
-  state.excludedOrders.forEach((order) => {
-    badges.push(
-      `<button type="button" class="restore-badge restore-badge--order" data-restore="order" data-value="${escapeAttr(order)}" title="Click to Restore Order">Order #${escapeHTML(order)} <span class="restore-plus">+</span></button>`
-    );
-  });
-  if (badges.length > 0) {
-    container.hidden = false;
-    bag.innerHTML = badges.join('');
-  } else {
-    container.hidden = true;
-    bag.innerHTML = '';
+function excludeOrder() {
+  const select = $('order-filter-select');
+  if (!select || select.disabled) {
+    alert('No orders in the loaded file.');
+    return;
   }
-  updateRestoreAllButton();
+  const selected = Array.from(select.selectedOptions)
+    .map((option) => option.value.trim())
+    .filter(Boolean)
+    .filter((order) => !isOrderExcluded(order));
+  if (!selected.length) {
+    alert('Select active orders to remove (not marked removed).');
+    return;
+  }
+
+  let added = false;
+  selected.forEach((orderToExclude) => {
+    const exists = state.originalParsedRows.some(
+      (row) => String(row[state.colIndices.orderNumber] || '').trim() === orderToExclude
+    );
+    if (!exists || isOrderExcluded(orderToExclude)) return;
+    state.excludedOrders.push(orderToExclude);
+    added = true;
+  });
+
+  if (added) applyExclusionsAndRebuild();
 }
 
-function excludeOrder() {
-  const select = $('exclude-order-select');
-  const orderToExclude = (select?.value || '').trim();
-  if (!orderToExclude) {
-    alert('Please choose an Order Number to remove.');
+function restoreOrders() {
+  const select = $('order-filter-select');
+  if (!select || select.disabled) return;
+  const selected = Array.from(select.selectedOptions)
+    .map((option) => option.value)
+    .filter(Boolean)
+    .filter((order) => isOrderExcluded(order));
+  if (!selected.length) {
+    alert('Select removed orders to restore (marked removed).');
     return;
   }
-  const exists = state.originalParsedRows.some(
-    (row) => String(row[state.colIndices.orderNumber] || '').trim() === orderToExclude
-  );
-  if (!exists) {
-    alert(`Order Number #${orderToExclude} not found in the loaded data.`);
-    return;
-  }
-  if (!state.excludedOrders.includes(orderToExclude)) {
-    state.excludedOrders.push(orderToExclude);
-    applyExclusionsAndRebuild();
-  }
-  if (select) select.value = '';
+
+  state.excludedOrders = state.excludedOrders.filter((order) => !selected.includes(order));
+  applyExclusionsAndRebuild();
 }
 
 function excludeMaterial() {
@@ -745,17 +743,6 @@ function restoreTopEdges() {
   state.excludedTopEdges = state.excludedTopEdges.filter(
     (edge) => !selected.some((value) => value.toLowerCase() === edge.toLowerCase())
   );
-  applyExclusionsAndRebuild();
-}
-
-function restoreItem(kind, value) {
-  if (kind === 'order') {
-    state.excludedOrders = state.excludedOrders.filter((o) => o !== value);
-  } else if (kind === 'material') {
-    state.excludedMaterials = state.excludedMaterials.filter((m) => m !== value);
-  } else if (kind === 'edge') {
-    state.excludedTopEdges = state.excludedTopEdges.filter((e) => e !== value);
-  }
   applyExclusionsAndRebuild();
 }
 
@@ -1030,6 +1017,7 @@ function wireEvents() {
   });
 
   $('btn-exclude-order').addEventListener('click', excludeOrder);
+  $('btn-restore-order').addEventListener('click', restoreOrders);
   $('btn-exclude-material').addEventListener('click', excludeMaterial);
   $('btn-restore-material').addEventListener('click', restoreMaterials);
   $('btn-exclude-top-edge').addEventListener('click', excludeTopEdge);
@@ -1049,13 +1037,6 @@ function wireEvents() {
   });
 
   $('error-toggle').addEventListener('click', toggleErrorDetails);
-
-  // Delegated restore-badge clicks
-  $('excluded-orders-bag').addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-restore]');
-    if (!btn) return;
-    restoreItem(btn.dataset.restore, btn.dataset.value);
-  });
 
   // Delegated stack-row checkbox toggles
   $('stack-table-body').addEventListener('change', (e) => {
