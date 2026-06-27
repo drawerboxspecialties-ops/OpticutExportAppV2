@@ -900,6 +900,33 @@ function triggerPrintCutList() {
   }, 1000);
 }
 
+function printAllCutLists() {
+  const printContainer = $('all-print-container');
+  if (!printContainer) return;
+  printContainer.innerHTML = '';
+  const keys = Object.keys(state.splitGroups).sort();
+  keys.forEach((batchKey, idx) => {
+    const batch = state.splitGroups[batchKey];
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'category-card';
+    cardDiv.innerHTML = buildCutListPrintCard(batchKey, batch, state.colIndices, {
+      index: idx + 1,
+      count: keys.length,
+    });
+    printContainer.appendChild(cardDiv);
+  });
+  document.body.classList.add('print-all-active', 'print-cutlist-active', 'print-all-cutlists-active');
+  window.print();
+  setTimeout(() => {
+    document.body.classList.remove(
+      'print-all-active',
+      'print-cutlist-active',
+      'print-all-cutlists-active'
+    );
+    printContainer.innerHTML = '';
+  }, 1000);
+}
+
 function printAllSummaries() {
   const printContainer = $('all-print-container');
   if (!printContainer) return;
@@ -996,6 +1023,7 @@ function wireEvents() {
   $('btn-print-summary').addEventListener('click', triggerPrintCurrent);
   $('btn-print-cutlist').addEventListener('click', triggerPrintCutList);
   $('btn-print-all-summaries').addEventListener('click', printAllSummaries);
+  $('btn-print-all-cutlists').addEventListener('click', printAllCutLists);
   $('btn-pdf-summary').addEventListener('click', triggerPDF);
   $('btn-share').addEventListener('click', shareApplication);
   $('demo-link').addEventListener('click', loadDemoData);

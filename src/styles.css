@@ -1619,16 +1619,16 @@ tbody tr:hover td {
 }
 
 .cutlist-print-sheet .print-batch-title {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .cutlist-print-sheet .print-batch-boxes-total,
 .cutlist-print-sheet .print-batch-orders-list {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .cutlist-print-sheet .print-batch-time {
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .cutlist-print-sheet .print-meta-chip {
@@ -1637,7 +1637,7 @@ tbody tr:hover td {
 }
 
 .cutlist-print-sheet .print-meta-label {
-  font-size: 7px;
+  font-size: 8px;
 }
 
 .cutlist-print-columns {
@@ -1668,7 +1668,7 @@ tbody tr:hover td {
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: 10px;
+  font-size: 11px;
   color: #000 !important;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
@@ -1698,13 +1698,13 @@ tbody tr:hover td {
 .cutlist-table td {
   border: 1px solid #64748b;
   text-align: center;
-  padding: 2px 3px;
+  padding: 3px 4px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .cutlist-table th {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.02em;
   background: #e5e7eb;
@@ -1720,19 +1720,19 @@ tbody tr:hover td {
 }
 
 .cutlist-print-sheet .print-check {
-  width: 11px;
-  height: 11px;
+  width: 12px;
+  height: 12px;
 }
 
 .cutlist-dim {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .cutlist-qty {
   font-variant-numeric: tabular-nums;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -1743,18 +1743,18 @@ tbody tr:hover td {
 
 .cutlist-order-title {
   text-align: left;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
   background: #e5e7eb;
   color: #000 !important;
   border-bottom: 1.5px solid #475569;
-  padding: 2px 4px;
+  padding: 3px 5px;
   letter-spacing: 0.01em;
 }
 
 .cutlist-order-special {
   color: #b45309 !important;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -1777,7 +1777,7 @@ tbody tr:hover td {
 }
 
 .cutlist-head-sub th {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -1897,7 +1897,15 @@ tbody tr:hover td {
     page-break-after: avoid;
   }
 
-  body.print-cutlist-active .category-card {
+  body.print-cutlist-active:not(.print-all-cutlists-active) .category-card {
+    page-break-after: avoid;
+  }
+
+  body.print-all-cutlists-active .category-card {
+    page-break-after: always;
+  }
+
+  body.print-all-cutlists-active .category-card:last-child {
     page-break-after: avoid;
   }
 
