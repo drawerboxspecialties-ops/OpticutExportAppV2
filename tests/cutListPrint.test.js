@@ -3,6 +3,7 @@ import {
   getCutListPrintSections,
   getCutListSectionRowCount,
   chunkCutListSectionsForPrint,
+  splitCutListSectionsForPrint,
 } from '../src/logic/cutListPrint.js';
 import { mapHeaders } from '../src/logic/headers.js';
 
@@ -213,6 +214,41 @@ describe('getCutListPrintSections', () => {
     expect(sections[0].rows).toHaveLength(1);
     expect(sections[0].rows[0].parts).toBe(4);
     expect(sections[0].rows[0].boxes).toBe(1);
+  });
+});
+
+describe('splitCutListSectionsForPrint', () => {
+  it('keeps everything in the left column when it fits', () => {
+    const sections = [{ order: '602260', special: false, rows: [{ parts: 4 }] }];
+    const { left, right } = splitCutListSectionsForPrint(sections, 10);
+    expect(left).toHaveLength(1);
+    expect(right).toHaveLength(0);
+  });
+
+  it('fills the left column first and moves overflow orders to the right', () => {
+    const mk = (order, count) => ({
+      order,
+      special: false,
+      rows: Array.from({ length: count }, (_, i) => ({ parts: i + 1 })),
+    });
+    const sections = [mk('1', 3), mk('2', 3), mk('3', 3)];
+    const { left, right } = splitCutListSectionsForPrint(sections, 10);
+    expect(left.map((section) => section.order)).toEqual(['1', '2']);
+    expect(right.map((section) => section.order)).toEqual(['3']);
+  });
+
+  it('does not split an order for balance when later orders still fit on the left', () => {
+    const mk = (order) => ({
+      order,
+      special: false,
+      rows: [{ parts: 1 }, { parts: 2 }, { parts: 3 }],
+    });
+    const sections = [mk('1'), mk('2'), mk('3')];
+    const { left, right } = splitCutListSectionsForPrint(sections, 10);
+    expect(left).toHaveLength(2);
+    expect(left.every((section) => section.rows.length === 3)).toBe(true);
+    expect(right).toHaveLength(1);
+    expect(right[0].order).toBe('3');
   });
 });
 

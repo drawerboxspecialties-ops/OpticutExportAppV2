@@ -328,52 +328,63 @@ export function chunkCutListSectionsForPrint(sections, maxDataRowsPerColumn = 12
 }
 
 /**
- * @deprecated Use chunkCutListSectionsForPrint with CSS column flow instead.
+ * Pack cut-list sections into left/right columns sequentially (fill left first).
+ * Whole orders move to the right column when they no longer fit on the left.
+ * Used in tests; live print relies on CSS columns with the same fill order.
+ *
+ * @param {Array<{ order: string, special: boolean, rows: object[] }>} sections
+ * @param {number} maxRowsPerColumn
+ * @returns {{ left: typeof sections, right: typeof sections }}
  */
-export function splitCutListSectionsForPrint(sections) {
+export function splitCutListSectionsForPrint(sections, maxRowsPerColumn = Number.POSITIVE_INFINITY) {
   if (!sections?.length) return { left: [], right: [] };
 
   const totalRows = sections.reduce((sum, section) => sum + getCutListSectionRowCount(section), 0);
-  if (totalRows <= 2) {
-    return { left: sections.map((section) => cloneCutListSection(section, section.rows, false)), right: [] };
+  if (totalRows <= maxRowsPerColumn) {
+    return {
+      left: sections.map((section) => cloneCutListSection(section, section.rows, false)),
+      right: [],
+    };
   }
 
-  const targetLeft = Math.ceil(totalRows / 2);
   const left = [];
   const right = [];
   let leftCount = 0;
+  let fillingLeft = true;
 
   sections.forEach((section) => {
     const sectionRows = getCutListSectionRowCount(section);
-    const remainingLeft = targetLeft - leftCount;
 
-    if (remainingLeft <= 0) {
-      right.push(
-        cloneCutListSection(
-          section,
-          section.rows,
-          right.some((entry) => entry.order === section.order)
-        )
-      );
-      return;
+    if (fillingLeft) {
+      if (leftCount + sectionRows <= maxRowsPerColumn) {
+        left.push(cloneCutListSection(section, section.rows, false));
+        leftCount += sectionRows;
+        return;
+      }
+
+      if (leftCount === 0) {
+        const leftDataRows = Math.max(1, maxRowsPerColumn - 1);
+        if (section.rows.length <= leftDataRows) {
+          left.push(cloneCutListSection(section, section.rows, false));
+          leftCount += sectionRows;
+          return;
+        }
+        left.push(cloneCutListSection(section, section.rows.slice(0, leftDataRows), false));
+        right.push(cloneCutListSection(section, section.rows.slice(leftDataRows), true));
+        fillingLeft = false;
+        return;
+      }
+
+      fillingLeft = false;
     }
 
-    if (sectionRows <= remainingLeft) {
-      left.push(cloneCutListSection(section, section.rows, false));
-      leftCount += sectionRows;
-      return;
-    }
-
-    const leftDataCount = Math.max(1, remainingLeft - 1);
-    if (leftDataCount >= section.rows.length) {
-      left.push(cloneCutListSection(section, section.rows, false));
-      leftCount += sectionRows;
-      return;
-    }
-
-    left.push(cloneCutListSection(section, section.rows.slice(0, leftDataCount), false));
-    leftCount += 1 + leftDataCount;
-    right.push(cloneCutListSection(section, section.rows.slice(leftDataCount), true));
+    right.push(
+      cloneCutListSection(
+        section,
+        section.rows,
+        right.some((entry) => entry.order === section.order)
+      )
+    );
   });
 
   return { left, right };
