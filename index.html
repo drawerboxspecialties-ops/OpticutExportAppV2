@@ -100,6 +100,132 @@
               <button id="demo-link" class="demo-link" type="button">Try demo CSV</button>
             </div>
           </section>
+
+          <aside class="panel panel--rail card card--sidebar" id="batches-sidebar-card" hidden>
+            <div class="sidebar-block sidebar-block--batches">
+              <div class="sidebar-block-header">
+                <h2 class="sidebar-heading">Batches</h2>
+              </div>
+
+              <label for="batch-search-input" class="sr-only">Search by Order #</label>
+              <input
+                type="search"
+                id="batch-search-input"
+                class="input input--search"
+                placeholder="Search order #…"
+                autocomplete="off"
+              />
+
+              <div id="category-tabs" class="category-tabs"></div>
+            </div>
+
+            <details id="split-batches-config" class="sidebar-details" hidden>
+              <summary class="sidebar-details-summary">Split settings</summary>
+              <div class="sidebar-details-body">
+                <label for="max-orders-input" class="field-label">Max orders per batch</label>
+                <div class="split-config-row">
+                  <input type="number" id="max-orders-input" class="input input--small" value="999" min="1" />
+                  <button id="btn-apply-max-orders" class="btn btn-secondary btn--compact" type="button">Apply</button>
+                </div>
+              </div>
+            </details>
+
+            <div id="exclude-order-section" hidden>
+              <details class="sidebar-details" open>
+                <summary class="sidebar-details-summary">
+                  Filters
+                  <button
+                    id="btn-restore-all-exclusions"
+                    class="sidebar-inline-btn"
+                    type="button"
+                    hidden
+                    title="Restore all removed items"
+                  >
+                    Restore all
+                  </button>
+                </summary>
+                <div class="sidebar-details-body">
+                  <p class="field-hint">Select items, then <b>−</b> remove or <b>+</b> restore. Removed = <i>(removed)</i>.</p>
+
+                  <div class="filter-field">
+                    <label class="field-label" for="order-filter-select">Orders</label>
+                    <div class="modern-row modern-row--multi">
+                      <select
+                        id="order-filter-select"
+                        class="modern-input modern-select modern-select--multi"
+                        multiple
+                        size="4"
+                        title="Ctrl+click to select"
+                      ></select>
+                      <div class="filter-action-buttons">
+                        <button class="mini-restore-btn" id="btn-restore-order" type="button" title="Restore">+</button>
+                        <button class="mini-danger-btn" id="btn-exclude-order" type="button" title="Remove">−</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filter-field">
+                    <label class="field-label" for="material-filter-select">Materials</label>
+                    <div class="modern-row modern-row--multi">
+                      <select
+                        id="material-filter-select"
+                        class="modern-input modern-select modern-select--multi"
+                        multiple
+                        size="4"
+                        title="Ctrl+click to select"
+                      ></select>
+                      <div class="filter-action-buttons">
+                        <button class="mini-restore-btn" id="btn-restore-material" type="button" title="Restore">+</button>
+                        <button class="mini-danger-btn" id="btn-exclude-material" type="button" title="Remove">−</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="filter-field">
+                    <label class="field-label" for="top-edge-filter-select">Top edges</label>
+                    <div class="modern-row modern-row--multi">
+                      <select
+                        id="top-edge-filter-select"
+                        class="modern-input modern-select modern-select--multi"
+                        multiple
+                        size="4"
+                        title="Ctrl+click to select"
+                      ></select>
+                      <div class="filter-action-buttons">
+                        <button class="mini-restore-btn" id="btn-restore-top-edge" type="button" title="Restore">+</button>
+                        <button class="mini-danger-btn" id="btn-exclude-top-edge" type="button" title="Remove">−</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <details class="sidebar-details">
+                <summary class="sidebar-details-summary">Options</summary>
+                <div class="sidebar-details-body sidebar-details-body--options">
+                  <label class="checkbox-row checkbox-row--compact">
+                    <input type="checkbox" id="chk-combine-ship-dates" />
+                    <span class="checkbox-text">
+                      <span class="checkbox-title">Combine ship dates</span>
+                      <span class="checkbox-help">One batch per material &amp; edge; print shows all dates.</span>
+                    </span>
+                  </label>
+                  <label class="checkbox-row checkbox-row--compact">
+                    <input type="checkbox" id="chk-separate-special-orders" checked />
+                    <span class="checkbox-text">
+                      <span class="checkbox-title">Separate special orders</span>
+                      <span class="checkbox-help">Scoop, slope, dividers, drill, file slots → SPECIAL batches.</span>
+                    </span>
+                  </label>
+                  <label class="checkbox-row checkbox-row--compact">
+                    <input type="checkbox" id="chk-round-export-widths" checked />
+                    <span class="checkbox-text">
+                      <span class="checkbox-title">Round export widths</span>
+                      <span class="checkbox-help">Whole numbers in CSV; originals in Label.</span>
+                    </span>
+                  </label>
+                </div>
+              </details>
+            </div>
+          </aside>
         </aside>
 
         <section class="workspace" id="workspace">
@@ -187,132 +313,6 @@
                   </div>
                 </div>
               </section>
-
-              <aside class="panel panel--rail card card--sidebar" id="batches-sidebar-card" hidden>
-                <div class="sidebar-block">
-                  <div class="sidebar-block-header">
-                    <h2 class="sidebar-heading">Batches</h2>
-                  </div>
-
-                  <label for="batch-search-input" class="sr-only">Search by Order #</label>
-                  <input
-                    type="search"
-                    id="batch-search-input"
-                    class="input input--search"
-                    placeholder="Search order #…"
-                    autocomplete="off"
-                  />
-
-                  <div id="category-tabs" class="category-tabs"></div>
-                </div>
-
-                <details id="split-batches-config" class="sidebar-details" hidden>
-                  <summary class="sidebar-details-summary">Split settings</summary>
-                  <div class="sidebar-details-body">
-                    <label for="max-orders-input" class="field-label">Max orders per batch</label>
-                    <div class="split-config-row">
-                      <input type="number" id="max-orders-input" class="input input--small" value="999" min="1" />
-                      <button id="btn-apply-max-orders" class="btn btn-secondary btn--compact" type="button">Apply</button>
-                    </div>
-                  </div>
-                </details>
-
-                <div id="exclude-order-section" hidden>
-                  <details class="sidebar-details" open>
-                    <summary class="sidebar-details-summary">
-                      Filters
-                      <button
-                        id="btn-restore-all-exclusions"
-                        class="sidebar-inline-btn"
-                        type="button"
-                        hidden
-                        title="Restore all removed items"
-                      >
-                        Restore all
-                      </button>
-                    </summary>
-                    <div class="sidebar-details-body">
-                      <p class="field-hint">Select items, then <b>−</b> remove or <b>+</b> restore. Removed = <i>(removed)</i>.</p>
-
-                      <div class="filter-field">
-                        <label class="field-label" for="order-filter-select">Orders</label>
-                        <div class="modern-row modern-row--multi">
-                          <select
-                            id="order-filter-select"
-                            class="modern-input modern-select modern-select--multi"
-                            multiple
-                            size="4"
-                            title="Ctrl+click to select"
-                          ></select>
-                          <div class="filter-action-buttons">
-                            <button class="mini-restore-btn" id="btn-restore-order" type="button" title="Restore">+</button>
-                            <button class="mini-danger-btn" id="btn-exclude-order" type="button" title="Remove">−</button>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="filter-field">
-                        <label class="field-label" for="material-filter-select">Materials</label>
-                        <div class="modern-row modern-row--multi">
-                          <select
-                            id="material-filter-select"
-                            class="modern-input modern-select modern-select--multi"
-                            multiple
-                            size="4"
-                            title="Ctrl+click to select"
-                          ></select>
-                          <div class="filter-action-buttons">
-                            <button class="mini-restore-btn" id="btn-restore-material" type="button" title="Restore">+</button>
-                            <button class="mini-danger-btn" id="btn-exclude-material" type="button" title="Remove">−</button>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="filter-field">
-                        <label class="field-label" for="top-edge-filter-select">Top edges</label>
-                        <div class="modern-row modern-row--multi">
-                          <select
-                            id="top-edge-filter-select"
-                            class="modern-input modern-select modern-select--multi"
-                            multiple
-                            size="4"
-                            title="Ctrl+click to select"
-                          ></select>
-                          <div class="filter-action-buttons">
-                            <button class="mini-restore-btn" id="btn-restore-top-edge" type="button" title="Restore">+</button>
-                            <button class="mini-danger-btn" id="btn-exclude-top-edge" type="button" title="Remove">−</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </details>
-
-                  <details class="sidebar-details">
-                    <summary class="sidebar-details-summary">Options</summary>
-                    <div class="sidebar-details-body sidebar-details-body--options">
-                      <label class="checkbox-row checkbox-row--compact">
-                        <input type="checkbox" id="chk-combine-ship-dates" />
-                        <span class="checkbox-text">
-                          <span class="checkbox-title">Combine ship dates</span>
-                          <span class="checkbox-help">One batch per material &amp; edge; print shows all dates.</span>
-                        </span>
-                      </label>
-                      <label class="checkbox-row checkbox-row--compact">
-                        <input type="checkbox" id="chk-separate-special-orders" checked />
-                        <span class="checkbox-text">
-                          <span class="checkbox-title">Separate special orders</span>
-                          <span class="checkbox-help">Scoop, slope, dividers, drill, file slots → SPECIAL batches.</span>
-                        </span>
-                      </label>
-                      <label class="checkbox-row checkbox-row--compact">
-                        <input type="checkbox" id="chk-round-export-widths" checked />
-                        <span class="checkbox-text">
-                          <span class="checkbox-title">Round export widths</span>
-                          <span class="checkbox-help">Whole numbers in CSV; originals in Label.</span>
-                        </span>
-                      </label>
-                    </div>
-                  </details>
-                </div>
-              </aside>
             </div>
           </div>
         </section>
