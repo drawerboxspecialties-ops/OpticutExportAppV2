@@ -246,7 +246,7 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
  * Build the print-only "Cut List" sheet: one row per box line with rounded width,
  * Front/Back length, and Left/Right length. Two tables side-by-side per sheet.
  */
-function renderCutListTableHead(hasGroup, anySpecial) {
+function renderCutListTableHead(hasGroup) {
   return `
       <thead>
         <tr class="stack-order-columns-row">
@@ -255,7 +255,6 @@ function renderCutListTableHead(hasGroup, anySpecial) {
           <th>Width</th>
           <th>Front / Back</th>
           <th>Left / Right</th>
-          ${anySpecial ? '<th>★</th>' : ''}
           <th>Qty</th>
         </tr>
       </thead>`;
@@ -285,7 +284,6 @@ function renderCutListTableBody(sections, batch, colIndices, hasGroup, anySpecia
         <td class="cutlist-dim">${escapeHTML(r.width)}"</td>
         <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
         <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
-        ${anySpecial ? `<td class="cutlist-special">${r.special ? '★' : ''}</td>` : ''}
         <td class="cutlist-qty"><b>${r.qty}</b></td>
       </tr>`;
     });
@@ -301,7 +299,7 @@ function renderCutListTableBody(sections, batch, colIndices, hasGroup, anySpecia
 function renderCutListTable(sections, batch, colIndices, hasGroup, anySpecial, colCount) {
   return `
     <table class="cutlist-table" cellpadding="4" cellspacing="0">
-      ${renderCutListTableHead(hasGroup, anySpecial)}
+      ${renderCutListTableHead(hasGroup)}
       <tbody>${renderCutListTableBody(sections, batch, colIndices, hasGroup, anySpecial, colCount)}</tbody>
     </table>
   `;
@@ -312,7 +310,7 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
   const sections = getCutListPrintSections(batch, colIndices);
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
-  const colCount = 5 + (hasGroup ? 1 : 0) + (anySpecial ? 1 : 0);
+  const colCount = 5 + (hasGroup ? 1 : 0);
   const { left, right } = splitCutListSectionsForPrint(sections);
 
   if (!right.length) {

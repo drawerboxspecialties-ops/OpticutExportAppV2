@@ -131,7 +131,19 @@ describe('getCutListPrintSections', () => {
     };
     const sections = getCutListPrintSections(batch, cols);
     expect(sections[0].rows).toHaveLength(2);
-    expect(sections[0].rows.map((r) => r.groupId).sort()).toEqual(['1', '2']);
+    expect(sections[0].rows.map((r) => r.groupId)).toEqual(['1', '2']);
+  });
+
+  it('sorts GroupIDs in numeric sequence within each order', () => {
+    const batch = {
+      sourceRows: [
+        row({ order: '602336', part: 'F', length: '34', qty: 4, groupId: '3' }),
+        row({ order: '602336', part: 'F', length: '22', qty: 4, groupId: '1' }),
+        row({ order: '602336', part: 'F', length: '18', qty: 4, groupId: '2' }),
+      ],
+    };
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections[0].rows.map((r) => r.groupId)).toEqual(['1', '2', '3']);
   });
 
   it('creates separate rows for multiple front sizes in the same GroupID', () => {

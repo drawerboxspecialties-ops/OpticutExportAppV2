@@ -43,6 +43,15 @@ function drawerSetKey(order, groupId, label) {
   return '';
 }
 
+function compareGroupIds(a, b) {
+  const idA = String(a.groupId ?? '').trim();
+  const idB = String(b.groupId ?? '').trim();
+  if (idA === idB) return 0;
+  if (!idA) return 1;
+  if (!idB) return -1;
+  return idA.localeCompare(idB, undefined, { numeric: true });
+}
+
 function emptySide() {
   return { w: '', length: '' };
 }
@@ -229,6 +238,8 @@ export function getCutListPrintSections(batch, colIndices) {
     const orderB = getNumericSortValue(b.order);
     if (orderA !== orderB) return orderA - orderB;
     if (a.order !== b.order) return a.order.localeCompare(b.order);
+    const groupCmp = compareGroupIds(a, b);
+    if (groupCmp !== 0) return groupCmp;
     if (b.stackWidthSort !== a.stackWidthSort) return b.stackWidthSort - a.stackWidthSort;
     const aLen = getFractionalSortValue(a.front.length || a.left.length);
     const bLen = getFractionalSortValue(b.front.length || b.left.length);
