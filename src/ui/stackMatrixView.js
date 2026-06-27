@@ -246,14 +246,14 @@ export function buildCompactPrintCard(batchKey, batch, colIndices, position = nu
  * Build the print-only "Cut List" sheet: one table per batch with order section
  * headers (centered, once per order). Each data row pairs Front/Back and
  * Left/Right for the same box group on one line.
- * Columns: ☐ | Width | Front/Back | Left | Right | Qty | [Grp] | [★]
+ * Columns: ☐ | Width | Front/Back | Left/Right | Qty | [Grp] | [★]
  */
 export function buildCutListPrintCard(batchKey, batch, colIndices, position = null) {
   const headerBanner = buildPrintHeaderBanner(batchKey, batch, colIndices, position);
   const sections = getCutListPrintSections(batch, colIndices);
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
-  const colCount = 6 + (hasGroup ? 1 : 0) + (anySpecial ? 1 : 0);
+  const colCount = 5 + (hasGroup ? 1 : 0) + (anySpecial ? 1 : 0);
 
   const dash = '<span class="cutlist-dash">—</span>';
   let body = '';
@@ -274,8 +274,7 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
         <td class="cutlist-check"><span class="print-check" aria-hidden="true"></span></td>
         <td class="cutlist-dim">${escapeHTML(r.width)}"</td>
         <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : dash}</td>
-        <td class="cutlist-dim">${r.leftLength ? `<b>${escapeHTML(r.leftLength)}"</b>` : dash}</td>
-        <td class="cutlist-dim">${r.rightLength ? `<b>${escapeHTML(r.rightLength)}"</b>` : dash}</td>
+        <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : dash}</td>
         <td class="cutlist-qty"><b>${r.qty}</b></td>
         ${hasGroup ? `<td>${escapeHTML(r.groupId || '—')}</td>` : ''}
         ${anySpecial ? `<td class="cutlist-special">${r.special ? '★' : ''}</td>` : ''}
@@ -294,8 +293,7 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
           <th class="cutlist-check-col"></th>
           <th>Width</th>
           <th>Front / Back</th>
-          <th>Left</th>
-          <th>Right</th>
+          <th>Left / Right</th>
           <th>Qty</th>
           ${hasGroup ? '<th>Grp</th>' : ''}
           ${anySpecial ? '<th>★</th>' : ''}

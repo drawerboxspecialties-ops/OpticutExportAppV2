@@ -54,27 +54,26 @@ describe('getCutListPrintSections', () => {
     const sections = getCutListPrintSections(batch, cols);
     expect(sections[0].rows).toHaveLength(1);
     expect(sections[0].rows[0].fbLength).toBe('22');
-    expect(sections[0].rows[0].leftLength).toBe('');
+    expect(sections[0].rows[0].lrLength).toBe('');
     expect(sections[0].rows[0].qty).toBe(8);
   });
 
-  it('pairs front/back with left and right on the same row by GroupID', () => {
+  it('pairs front/back with corresponding left/right on the same row by GroupID', () => {
     const batch = {
       sourceRows: [
         row({ order: '601881', part: 'F', length: '24', qty: 6, width: 6, groupId: '1' }),
         row({ order: '601881', part: 'L', length: '18', qty: 12, width: 6, groupId: '1' }),
-        row({ order: '601881', part: 'R', length: '20', qty: 12, width: 6, groupId: '1' }),
+        row({ order: '601881', part: 'R', length: '18', qty: 12, width: 6, groupId: '1' }),
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
     expect(sections[0].rows).toHaveLength(1);
     expect(sections[0].rows[0].fbLength).toBe('24');
-    expect(sections[0].rows[0].leftLength).toBe('18');
-    expect(sections[0].rows[0].rightLength).toBe('20');
-    expect(sections[0].rows[0].qty).toBe(12);
+    expect(sections[0].rows[0].lrLength).toBe('18');
+    expect(sections[0].rows[0].qty).toBe(6);
   });
 
-  it('pairs left and right to the corresponding front/back line by index', () => {
+  it('pairs sides to the corresponding front/back line by length order', () => {
     const batch = {
       sourceRows: [
         row({ order: '601881', part: 'F', length: '30', qty: 4, width: 8, groupId: '1' }),
@@ -87,14 +86,12 @@ describe('getCutListPrintSections', () => {
     expect(sections[0].rows).toHaveLength(2);
     expect(sections[0].rows[0]).toMatchObject({
       fbLength: '30',
-      leftLength: '20',
-      rightLength: '18',
-      qty: 12,
+      lrLength: '20',
+      qty: 4,
     });
     expect(sections[0].rows[1]).toMatchObject({
       fbLength: '22',
-      leftLength: '',
-      rightLength: '',
+      lrLength: '18',
       qty: 8,
     });
   });
@@ -112,9 +109,8 @@ describe('getCutListPrintSections', () => {
     expect(sections[0].rows[0]).toMatchObject({
       width: '10',
       fbLength: '18',
-      leftLength: '18',
-      rightLength: '18',
-      qty: 16,
+      lrLength: '18',
+      qty: 8,
     });
   });
 
