@@ -10,65 +10,58 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="./assets/index-BMMf8Ltw.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-D2eMexwG.css">
+    <script type="module" crossorigin src="./assets/index-Du7U0QGb.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-B5mB9QP2.css">
   </head>
   <body>
     <header class="app-header">
       <div class="brand">
         <h1 class="brand-title">DBS Drawers</h1>
-        <p class="brand-subtitle">Weinig OptiCut S90 CSV Splitter &amp; Summary Tool</p>
+        <p class="brand-subtitle">OptiCut CSV Splitter</p>
       </div>
       <div class="header-actions">
-        <a href="./presentation.html" class="btn btn-ghost" title="One-page guide and PDF">
-          <span aria-hidden="true">📄</span> Guide
+        <a href="./presentation.html" class="btn btn-ghost btn--compact" title="One-page guide and PDF">
+          Guide
         </a>
-        <button id="btn-share" class="btn btn-ghost" type="button" title="Copy app URL">
-          <span aria-hidden="true">🔗</span> Share
+        <button id="btn-share" class="btn btn-ghost btn--compact" type="button" title="Copy app URL">
+          Share
         </button>
       </div>
     </header>
 
     <main class="container">
       <aside class="sidebar">
-        <section class="card" aria-label="Import CSV">
-          <h2 class="card-title">📁 Import CSV</h2>
-
+        <section class="card card--import" aria-label="Import CSV">
           <input type="file" id="file-input" accept=".csv" hidden />
-          <button id="drop-zone" class="drop-zone" type="button">
+          <button id="drop-zone" class="drop-zone drop-zone--compact" type="button">
             <span class="drop-icon" aria-hidden="true">📥</span>
             <span class="drop-text">
-              <strong>Drag &amp; drop Allmoxy export CSV</strong>
-              <small>or click to browse from computer</small>
+              <strong>Drop Allmoxy CSV</strong>
+              <small>or click to browse</small>
             </span>
           </button>
 
-          <div id="stats-section" class="stats-section" hidden>
-            <h2 class="card-title">📊 Statistics</h2>
-            <div class="stats-grid">
-              <div class="stat-box">
-                <div class="stat-val" id="stat-total-rows">0</div>
-                <div class="stat-lbl">Total Parts</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-val" id="stat-orders">0</div>
-                <div class="stat-lbl">Orders</div>
-              </div>
-              <div class="stat-box stat-box--wide">
-                <div class="stat-val" id="stat-total-boxes">0</div>
-                <div class="stat-lbl">Total Boxes</div>
-              </div>
+          <div id="stats-section" class="stats-bar" hidden>
+            <div class="stat-chip">
+              <span class="stat-val" id="stat-total-rows">0</span>
+              <span class="stat-lbl">Parts</span>
             </div>
-            <div class="stats-actions">
-              <button
-                id="btn-reset"
-                class="btn btn-danger"
-                type="button"
-                title="Hard reset — reload the app fresh (like Ctrl+Shift+R)"
-              >
-                <span aria-hidden="true">🗑️</span> Clear
-              </button>
+            <div class="stat-chip">
+              <span class="stat-val" id="stat-orders">0</span>
+              <span class="stat-lbl">Orders</span>
             </div>
+            <div class="stat-chip stat-chip--accent">
+              <span class="stat-val" id="stat-total-boxes">0</span>
+              <span class="stat-lbl">Boxes</span>
+            </div>
+            <button
+              id="btn-reset"
+              class="btn btn-danger btn--compact stat-clear-btn"
+              type="button"
+              title="Hard reset — reload fresh (Ctrl+Shift+R)"
+            >
+              Clear
+            </button>
           </div>
 
           <div id="side-error-notification" class="error-notification" hidden>
@@ -85,222 +78,207 @@
             <ul id="error-list" class="error-list" hidden></ul>
           </div>
 
-          <div id="demo-section" class="demo-section">
-            <p class="demo-text">
-              Don't have a file?
-              <button id="demo-link" class="demo-link" type="button">Load Demo CSV</button>
-            </p>
+          <div id="demo-section" class="demo-section demo-section--compact">
+            <button id="demo-link" class="demo-link" type="button">Try demo CSV</button>
           </div>
         </section>
       </aside>
 
       <section class="workspace" id="workspace">
-        <div id="workspace-placeholder" class="placeholder">
+        <div id="workspace-placeholder" class="placeholder placeholder--compact">
           <div class="placeholder-icon" aria-hidden="true">📑</div>
-          <h3>No CSV Data Loaded</h3>
-          <p>
-            Upload your primary Allmoxy import CSV file on the left panel or load the demo dataset to
-            view interactive splits, summary sheets, and export options.
-          </p>
+          <h3>Import a CSV to begin</h3>
+          <p>Drop your Allmoxy export on the left, or use the demo file to explore batches, stack sheets, and OptiCut exports.</p>
         </div>
 
         <div id="active-workspace" class="active-workspace" hidden>
           <div class="workspace-grid">
             <section class="card card--main">
-              <div class="sub-nav">
-                <span class="sub-tab active">📋 Current Batch</span>
-                <div class="sub-nav-actions">
-                  <button id="btn-print-all-summaries" class="btn btn-secondary" type="button">
-                    <span aria-hidden="true">🖨️</span> Print All
-                  </button>
-                  <button id="btn-download-all" class="btn btn-success" type="button">
-                    <span aria-hidden="true">📦</span> Export ZIP
-                  </button>
+              <div class="workspace-toolbar">
+                <div class="workspace-toolbar-primary">
+                  <p class="workspace-toolbar-label">Active batch</p>
+                  <h3 id="current-view-title" class="view-title">Current Batch</h3>
+                </div>
+                <div class="workspace-toolbar-actions">
+                  <div class="toolbar-group">
+                    <span class="toolbar-group-label">All batches</span>
+                    <button id="btn-print-all-summaries" class="btn btn-secondary btn--compact" type="button">
+                      Print all
+                    </button>
+                    <button id="btn-download-all" class="btn btn-success btn--compact" type="button">
+                      Export ZIP
+                    </button>
+                  </div>
+                  <div class="toolbar-group">
+                    <span class="toolbar-group-label">This batch</span>
+                    <button id="btn-print-summary" class="btn btn-secondary btn--compact" type="button">
+                      Stack
+                    </button>
+                    <button id="btn-print-cutlist" class="btn btn-secondary btn--compact" type="button" title="Flat cut list sorted by order, width, length">
+                      Cut list
+                    </button>
+                    <button id="btn-pdf-summary" class="btn btn-secondary btn--compact" type="button">
+                      PDF
+                    </button>
+                    <button id="btn-export-current" class="btn btn-secondary btn--compact" type="button">
+                      CSV
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div class="view-actions">
-                <h3 id="current-view-title" class="view-title">Current Batch</h3>
-                <div class="view-actions-buttons">
-                  <button id="btn-print-summary" class="btn btn-secondary" type="button">
-                    <span aria-hidden="true">🖨️</span> Print Stack Matrix
-                  </button>
-                  <button id="btn-print-cutlist" class="btn btn-secondary" type="button" title="Flat cut list: one row per line, sorted by order, width, length">
-                    <span aria-hidden="true">📋</span> Print Cut List
-                  </button>
-                  <button id="btn-pdf-summary" class="btn btn-secondary" type="button">
-                    <span aria-hidden="true">💾</span> Save as PDF
-                  </button>
-                  <button id="btn-export-current" class="btn btn-secondary" type="button">
-                    <span aria-hidden="true">💾</span> Download Current CSV
-                  </button>
+              <div class="preview-tabs" role="tablist" aria-label="Batch preview">
+                <button type="button" class="preview-tab active" data-preview="cutlist" role="tab" aria-selected="true">
+                  Cut list
+                </button>
+                <button type="button" class="preview-tab" data-preview="stack" role="tab" aria-selected="false">
+                  Stack matrix
+                </button>
+              </div>
+
+              <div id="preview-cutlist" class="preview-panel active" role="tabpanel">
+                <div class="grid-container grid-container--preview">
+                  <table id="data-table">
+                    <thead id="table-head"></thead>
+                    <tbody id="table-body"></tbody>
+                  </table>
                 </div>
               </div>
 
-              <h4 class="section-heading">Cut List Preview</h4>
-              <div class="grid-container">
-                <table id="data-table">
-                  <thead id="table-head"></thead>
-                  <tbody id="table-body"></tbody>
-                </table>
-              </div>
-
-              <h4 class="section-heading">Stack Matrix</h4>
-              <div class="grid-container">
-                <table id="stack-matrix-table">
-                  <thead id="stack-table-head"></thead>
-                  <tbody id="stack-table-body"></tbody>
-                </table>
+              <div id="preview-stack" class="preview-panel" role="tabpanel" hidden>
+                <div class="grid-container grid-container--preview">
+                  <table id="stack-matrix-table">
+                    <thead id="stack-table-head"></thead>
+                    <tbody id="stack-table-body"></tbody>
+                  </table>
+                </div>
               </div>
             </section>
 
             <aside class="card card--sidebar" id="batches-sidebar-card" hidden>
-              <h2 class="card-title">📦 Split Batches</h2>
-
-              <div id="split-batches-config" class="split-config" hidden>
-                <label for="max-orders-input" class="split-config-label">Max Orders per Batch</label>
-                <div class="split-config-row">
-                  <input type="number" id="max-orders-input" class="input input--small" value="999" min="1" />
-                  <button id="btn-apply-max-orders" class="btn btn-secondary btn--sm" type="button">Apply</button>
+              <div class="sidebar-block">
+                <div class="sidebar-block-header">
+                  <h2 class="sidebar-heading">Batches</h2>
                 </div>
-                <p class="split-config-hint">Batches with more orders than this split into multiple files.</p>
+
+                <label for="batch-search-input" class="sr-only">Search by Order #</label>
+                <input
+                  type="search"
+                  id="batch-search-input"
+                  class="input input--search"
+                  placeholder="Search order #…"
+                  autocomplete="off"
+                />
+
+                <div id="category-tabs" class="category-tabs"></div>
               </div>
 
-              <label for="batch-search-input" class="sr-only">Search by Order #</label>
-              <input type="text" id="batch-search-input" class="input" placeholder="🔍 Search by Order #..." />
-
-              <div id="exclude-order-section" class="control-panel" hidden>
-                <div class="control-panel-header">
-                  <span>Filter Out Rows</span>
-                  <button
-                    id="btn-restore-all-exclusions"
-                    class="control-panel-restore-all"
-                    type="button"
-                    hidden
-                    title="Restore all removed orders, materials, and top edges"
-                  >
-                    Restore all
-                  </button>
-                </div>
-                <p class="control-panel-hint">Select items in each list, then press <b>−</b> to remove or <b>+</b> to restore. Removed items show as <i>(removed)</i>.</p>
-
-                <div class="filter-field">
-                  <label class="filter-field-label" for="order-filter-select">Orders</label>
-                  <div class="modern-row modern-row--multi">
-                    <select
-                      id="order-filter-select"
-                      class="modern-input modern-select modern-select--multi"
-                      multiple
-                      size="6"
-                      title="Ctrl+click to select. Use − to remove or + to restore."
-                    ></select>
-                    <div class="filter-action-buttons">
-                      <button
-                        class="mini-restore-btn"
-                        id="btn-restore-order"
-                        type="button"
-                        title="Restore Selected Orders"
-                      >
-                        +
-                      </button>
-                      <button
-                        class="mini-danger-btn"
-                        id="btn-exclude-order"
-                        type="button"
-                        title="Remove Selected Orders"
-                      >
-                        −
-                      </button>
-                    </div>
+              <details id="split-batches-config" class="sidebar-details" hidden>
+                <summary class="sidebar-details-summary">Split settings</summary>
+                <div class="sidebar-details-body">
+                  <label for="max-orders-input" class="field-label">Max orders per batch</label>
+                  <div class="split-config-row">
+                    <input type="number" id="max-orders-input" class="input input--small" value="999" min="1" />
+                    <button id="btn-apply-max-orders" class="btn btn-secondary btn--compact" type="button">Apply</button>
                   </div>
                 </div>
-                <div class="filter-field">
-                  <label class="filter-field-label" for="material-filter-select">Materials</label>
-                  <div class="modern-row modern-row--multi">
-                    <select
-                      id="material-filter-select"
-                      class="modern-input modern-select modern-select--multi"
-                      multiple
-                      size="6"
-                      title="Ctrl+click to select. Use − to remove or + to restore."
-                    ></select>
-                    <div class="filter-action-buttons">
-                      <button
-                        class="mini-restore-btn"
-                        id="btn-restore-material"
-                        type="button"
-                        title="Restore Selected Materials"
-                      >
-                        +
-                      </button>
-                      <button
-                        class="mini-danger-btn"
-                        id="btn-exclude-material"
-                        type="button"
-                        title="Remove Selected Materials"
-                      >
-                        −
-                      </button>
+              </details>
+
+              <div id="exclude-order-section" hidden>
+                <details class="sidebar-details" open>
+                  <summary class="sidebar-details-summary">
+                    Filters
+                    <button
+                      id="btn-restore-all-exclusions"
+                      class="sidebar-inline-btn"
+                      type="button"
+                      hidden
+                      title="Restore all removed items"
+                    >
+                      Restore all
+                    </button>
+                  </summary>
+                  <div class="sidebar-details-body">
+                    <p class="field-hint">Select items, then <b>−</b> remove or <b>+</b> restore. Removed = <i>(removed)</i>.</p>
+
+                    <div class="filter-field">
+                      <label class="field-label" for="order-filter-select">Orders</label>
+                      <div class="modern-row modern-row--multi">
+                        <select
+                          id="order-filter-select"
+                          class="modern-input modern-select modern-select--multi"
+                          multiple
+                          size="4"
+                          title="Ctrl+click to select"
+                        ></select>
+                        <div class="filter-action-buttons">
+                          <button class="mini-restore-btn" id="btn-restore-order" type="button" title="Restore">+</button>
+                          <button class="mini-danger-btn" id="btn-exclude-order" type="button" title="Remove">−</button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="filter-field">
+                      <label class="field-label" for="material-filter-select">Materials</label>
+                      <div class="modern-row modern-row--multi">
+                        <select
+                          id="material-filter-select"
+                          class="modern-input modern-select modern-select--multi"
+                          multiple
+                          size="4"
+                          title="Ctrl+click to select"
+                        ></select>
+                        <div class="filter-action-buttons">
+                          <button class="mini-restore-btn" id="btn-restore-material" type="button" title="Restore">+</button>
+                          <button class="mini-danger-btn" id="btn-exclude-material" type="button" title="Remove">−</button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="filter-field">
+                      <label class="field-label" for="top-edge-filter-select">Top edges</label>
+                      <div class="modern-row modern-row--multi">
+                        <select
+                          id="top-edge-filter-select"
+                          class="modern-input modern-select modern-select--multi"
+                          multiple
+                          size="4"
+                          title="Ctrl+click to select"
+                        ></select>
+                        <div class="filter-action-buttons">
+                          <button class="mini-restore-btn" id="btn-restore-top-edge" type="button" title="Restore">+</button>
+                          <button class="mini-danger-btn" id="btn-exclude-top-edge" type="button" title="Remove">−</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div class="filter-field">
-                  <label class="filter-field-label" for="top-edge-filter-select">Top edges</label>
-                  <div class="modern-row modern-row--multi">
-                    <select
-                      id="top-edge-filter-select"
-                      class="modern-input modern-select modern-select--multi"
-                      multiple
-                      size="6"
-                      title="Ctrl+click to select. Use − to remove or + to restore."
-                    ></select>
-                    <div class="filter-action-buttons">
-                      <button
-                        class="mini-restore-btn"
-                        id="btn-restore-top-edge"
-                        type="button"
-                        title="Restore Selected Top Edges"
-                      >
-                        +
-                      </button>
-                      <button
-                        class="mini-danger-btn"
-                        id="btn-exclude-top-edge"
-                        type="button"
-                        title="Remove Selected Top Edges"
-                      >
-                        −
-                      </button>
-                    </div>
+                </details>
+
+                <details class="sidebar-details">
+                  <summary class="sidebar-details-summary">Options</summary>
+                  <div class="sidebar-details-body sidebar-details-body--options">
+                    <label class="checkbox-row checkbox-row--compact">
+                      <input type="checkbox" id="chk-combine-ship-dates" />
+                      <span class="checkbox-text">
+                        <span class="checkbox-title">Combine ship dates</span>
+                        <span class="checkbox-help">One batch per material &amp; edge; print shows all dates.</span>
+                      </span>
+                    </label>
+                    <label class="checkbox-row checkbox-row--compact">
+                      <input type="checkbox" id="chk-separate-special-orders" checked />
+                      <span class="checkbox-text">
+                        <span class="checkbox-title">Separate special orders</span>
+                        <span class="checkbox-help">Scoop, slope, dividers, drill, file slots → SPECIAL batches.</span>
+                      </span>
+                    </label>
+                    <label class="checkbox-row checkbox-row--compact">
+                      <input type="checkbox" id="chk-round-export-widths" checked />
+                      <span class="checkbox-text">
+                        <span class="checkbox-title">Round export widths</span>
+                        <span class="checkbox-help">Whole numbers in CSV; originals in Label.</span>
+                      </span>
+                    </label>
                   </div>
-                </div>
-
-                <div class="options-divider">Options</div>
-
-                <label class="checkbox-row">
-                  <input type="checkbox" id="chk-combine-ship-dates" />
-                  <span class="checkbox-text">
-                    <span class="checkbox-title">Combine ship dates</span>
-                    <span class="checkbox-help">Same material &amp; edge in one batch even when ship dates differ. Print shows all dates.</span>
-                  </span>
-                </label>
-                <label class="checkbox-row">
-                  <input type="checkbox" id="chk-separate-special-orders" checked />
-                  <span class="checkbox-text">
-                    <span class="checkbox-title">Separate special orders</span>
-                    <span class="checkbox-help">Scoop, Slope, Dividers, Drill, File Slots go to <b>SPECIAL</b> batches (Laser &amp; GroupID ignored).</span>
-                  </span>
-                </label>
-                <label class="checkbox-row">
-                  <input type="checkbox" id="chk-round-export-widths" checked />
-                  <span class="checkbox-text">
-                    <span class="checkbox-title">Round export Width to whole numbers</span>
-                    <span class="checkbox-help">Merges matching rows; originals recorded in Label.</span>
-                  </span>
-                </label>
+                </details>
               </div>
-
-              <div id="category-tabs" class="category-tabs"></div>
             </aside>
           </div>
         </div>

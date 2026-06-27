@@ -1022,7 +1022,31 @@ function wireEvents() {
   $('btn-restore-material').addEventListener('click', restoreMaterials);
   $('btn-exclude-top-edge').addEventListener('click', excludeTopEdge);
   $('btn-restore-top-edge').addEventListener('click', restoreTopEdges);
-  $('btn-restore-all-exclusions').addEventListener('click', restoreAllExclusions);
+  $('btn-restore-all-exclusions').addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    restoreAllExclusions();
+  });
+
+  document.querySelectorAll('.preview-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.preview;
+      document.querySelectorAll('.preview-tab').forEach((t) => {
+        const active = t === tab;
+        t.classList.toggle('active', active);
+        t.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      const cutlist = $('preview-cutlist');
+      const stack = $('preview-stack');
+      if (cutlist && stack) {
+        const showCutlist = target === 'cutlist';
+        cutlist.hidden = !showCutlist;
+        cutlist.classList.toggle('active', showCutlist);
+        stack.hidden = showCutlist;
+        stack.classList.toggle('active', !showCutlist);
+      }
+    });
+  });
 
   $('chk-round-export-widths').addEventListener('change', (e) =>
     handleRoundExportWidthToggle(e.target)
