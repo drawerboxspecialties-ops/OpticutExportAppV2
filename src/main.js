@@ -15,12 +15,7 @@ import { getCutListRowsForExport } from './logic/exportRows.js';
 import { formatDecimalForDisplay } from './logic/widths.js';
 import { loadSettings, saveSettings, rememberFile, clearStoredSettings } from './logic/settingsStore.js';
 import { DEMO_CSV } from './logic/demoData.js';
-import {
-  resetCheckboxCounter,
-  renderStackMatrixRows,
-  buildCompactPrintCard,
-  buildCutListPrintCard,
-} from './ui/stackMatrixView.js';
+import { buildCutListPrintCard } from './ui/stackMatrixView.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -248,8 +243,6 @@ function showWorkspace() {
     $('current-view-title').innerText = 'No Batches Available';
     $('table-head').innerHTML = '';
     $('table-body').innerHTML = '';
-    $('stack-table-head').innerHTML = '';
-    $('stack-table-body').innerHTML = '';
   }
 }
 
@@ -442,16 +435,11 @@ function selectGroup(batchKey) {
 
 function renderCurrentView() {
   const ci = state.colIndices;
-  resetCheckboxCounter();
   const batch = state.splitGroups[state.activeGroupKey];
   const tableHead = $('table-head');
   const tableBody = $('table-body');
-  const stackHead = $('stack-table-head');
-  const stackBody = $('stack-table-body');
   tableHead.innerHTML = '';
   tableBody.innerHTML = '';
-  stackHead.innerHTML = '';
-  stackBody.innerHTML = '';
 
   if (!batch) {
     $('current-view-title').innerText = 'No Batches Available';
@@ -490,15 +478,6 @@ function renderCurrentView() {
     bodyHTML += '</tr>';
   });
   tableBody.innerHTML = bodyHTML;
-
-  stackHead.innerHTML = `
-    <tr>
-      <th style="width:90px;">Seq</th>
-      <th>Front / Back Stack</th>
-      <th>Side Stack</th>
-    </tr>
-  `;
-  stackBody.innerHTML = renderStackMatrixRows(batch, ci, false);
 }
 
 function isOrderExcluded(order) {
@@ -865,23 +844,6 @@ async function downloadAllZip() {
   }
 }
 
-function triggerPrintCurrent() {
-  const printContainer = $('all-print-container');
-  const batch = state.splitGroups[state.activeGroupKey];
-  if (!printContainer || !batch) return;
-  printContainer.innerHTML = '';
-  const cardDiv = document.createElement('div');
-  cardDiv.className = 'category-card';
-  cardDiv.innerHTML = buildCompactPrintCard(state.activeGroupKey, batch, state.colIndices);
-  printContainer.appendChild(cardDiv);
-  document.body.classList.add('print-all-active');
-  window.print();
-  setTimeout(() => {
-    document.body.classList.remove('print-all-active');
-    printContainer.innerHTML = '';
-  }, 1000);
-}
-
 function triggerPrintCutList() {
   const printContainer = $('all-print-container');
   const batch = state.splitGroups[state.activeGroupKey];
@@ -926,36 +888,6 @@ function printAllCutLists() {
   }, 1000);
 }
 
-function printAllSummaries() {
-  const printContainer = $('all-print-container');
-  if (!printContainer) return;
-  printContainer.innerHTML = '';
-  const keys = Object.keys(state.splitGroups).sort();
-  keys.forEach((batchKey, idx) => {
-    const batch = state.splitGroups[batchKey];
-    const cardDiv = document.createElement('div');
-    cardDiv.className = 'category-card';
-    cardDiv.innerHTML = buildCompactPrintCard(batchKey, batch, state.colIndices, {
-      index: idx + 1,
-      count: keys.length,
-    });
-    printContainer.appendChild(cardDiv);
-  });
-  document.body.classList.add('print-all-active');
-  window.print();
-  setTimeout(() => {
-    document.body.classList.remove('print-all-active');
-    printContainer.innerHTML = '';
-  }, 1000);
-}
-
-function triggerPDF() {
-  alert(
-    "To save this stack matrix as a PDF, please choose 'Save as PDF' or 'Microsoft Print to PDF' as the Destination in the print dialog that appears next."
-  );
-  triggerPrintCurrent();
-}
-
 function toggleErrorDetails() {
   const details = $('error-list');
   const icon = $('error-toggle-icon');
@@ -985,7 +917,7 @@ function shareApplication() {
 function handleRoundExportWidthToggle(checkbox) {
   if (!checkbox?.checked) {
     alert(
-      'Warning: export Width rounding is now OFF. CSV exports will keep original Width values, matching rows may not merge, and the file can have more rows. The stack matrix will still show rounded whole-number widths for operators.'
+      'Warning: export Width rounding is now OFF. CSV exports will keep original Width values, matching rows may not merge, and the file can have more rows.'
     );
   }
 }
@@ -1019,11 +951,8 @@ function wireEvents() {
   });
   $('btn-download-all').addEventListener('click', downloadAllZip);
   $('btn-export-current').addEventListener('click', downloadCurrentFile);
-  $('btn-print-summary').addEventListener('click', triggerPrintCurrent);
   $('btn-print-cutlist').addEventListener('click', triggerPrintCutList);
-  $('btn-print-all-summaries').addEventListener('click', printAllSummaries);
   $('btn-print-all-cutlists').addEventListener('click', printAllCutLists);
-  $('btn-pdf-summary').addEventListener('click', triggerPDF);
   $('btn-share').addEventListener('click', shareApplication);
   $('demo-link').addEventListener('click', loadDemoData);
   $('btn-apply-max-orders').addEventListener('click', updateMaxOrdersSplit);
@@ -1055,26 +984,6 @@ function wireEvents() {
     restoreAllExclusions();
   });
 
-  document.querySelectorAll('.preview-tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      const target = tab.dataset.preview;
-      document.querySelectorAll('.preview-tab').forEach((t) => {
-        const active = t === tab;
-        t.classList.toggle('active', active);
-        t.setAttribute('aria-selected', active ? 'true' : 'false');
-      });
-      const cutlist = $('preview-cutlist');
-      const stack = $('preview-stack');
-      if (cutlist && stack) {
-        const showCutlist = target === 'cutlist';
-        cutlist.hidden = !showCutlist;
-        cutlist.classList.toggle('active', showCutlist);
-        stack.hidden = showCutlist;
-        stack.classList.toggle('active', !showCutlist);
-      }
-    });
-  });
-
   $('chk-round-export-widths').addEventListener('change', (e) =>
     handleRoundExportWidthToggle(e.target)
   );
@@ -1088,14 +997,6 @@ function wireEvents() {
   });
 
   $('error-toggle').addEventListener('click', toggleErrorDetails);
-
-  // Delegated stack-row checkbox toggles
-  $('stack-table-body').addEventListener('change', (e) => {
-    const cb = e.target.closest('[data-toggle-row]');
-    if (!cb) return;
-    const row = $(cb.dataset.toggleRow);
-    if (row) row.classList.toggle('completed-row', cb.checked);
-  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {

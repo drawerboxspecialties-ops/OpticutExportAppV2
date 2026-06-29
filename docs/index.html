@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Sans:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="./assets/index-D-KW1-69.js"></script>
+    <script type="module" crossorigin src="./assets/index-DEQpNPtL.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-DH3D9tYW.css">
   </head>
   <body>
@@ -224,7 +224,7 @@
               </svg>
             </div>
             <h3>Ready when you are</h3>
-            <p>Import an Allmoxy export to split batches, preview cut lists, print stack sheets, and download OptiCut CSV files.</p>
+            <p>Import an Allmoxy export to split batches, preview cut lists, and download OptiCut CSV files.</p>
           </div>
 
           <div id="active-workspace" class="active-workspace" hidden>
@@ -239,9 +239,6 @@
                     <div class="action-group">
                       <span class="action-group-label">All batches</span>
                       <div class="action-group-buttons">
-                        <button id="btn-print-all-summaries" class="btn btn-secondary btn--compact" type="button">
-                          Print all
-                        </button>
                         <button id="btn-print-all-cutlists" class="btn btn-secondary btn--compact" type="button" title="Print cut list for every batch">
                           Cut lists
                         </button>
@@ -254,14 +251,8 @@
                     <div class="action-group">
                       <span class="action-group-label">This batch</span>
                       <div class="action-group-buttons">
-                        <button id="btn-print-summary" class="btn btn-secondary btn--compact" type="button">
-                          Stack
-                        </button>
                         <button id="btn-print-cutlist" class="btn btn-secondary btn--compact" type="button" title="Flat cut list sorted by order, width, length">
                           Cut list
-                        </button>
-                        <button id="btn-pdf-summary" class="btn btn-secondary btn--compact" type="button">
-                          PDF
                         </button>
                         <button id="btn-export-current" class="btn btn-secondary btn--compact" type="button">
                           CSV
@@ -271,29 +262,11 @@
                   </div>
                 </header>
 
-                <div class="preview-tabs" role="tablist" aria-label="Batch preview">
-                  <button type="button" class="preview-tab active" data-preview="cutlist" role="tab" aria-selected="true">
-                    Cut list
-                  </button>
-                  <button type="button" class="preview-tab" data-preview="stack" role="tab" aria-selected="false">
-                    Stack matrix
-                  </button>
-                </div>
-
                 <div id="preview-cutlist" class="preview-panel active" role="tabpanel">
                   <div class="grid-container grid-container--preview">
                     <table id="data-table">
                       <thead id="table-head"></thead>
                       <tbody id="table-body"></tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div id="preview-stack" class="preview-panel" role="tabpanel" hidden>
-                  <div class="grid-container grid-container--preview">
-                    <table id="stack-matrix-table">
-                      <thead id="stack-table-head"></thead>
-                      <tbody id="stack-table-body"></tbody>
                     </table>
                   </div>
                 </div>
