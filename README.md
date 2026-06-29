@@ -1,7 +1,7 @@
 # Opticut Export App (v2)
 
 Local browser tool for converting Allmoxy CSV exports into Weinig OptiCut-ready
-cut-list CSV files and readable shop-floor stack sheets.
+cut-list CSV files and printable shop-floor cut lists.
 
 This is a modernized rebuild of the original single-file `index.html` app:
 modular architecture, build tooling, lint/format, and automated tests for every
@@ -15,9 +15,7 @@ high-risk business rule.
 - Separates **special orders** (Scoop, Slope, Dividers, DrillFront, FileSlots) into `SPECIAL_` batches when enabled (default ON). Laser and GroupID are not special triggers.
 - Strips batching-only columns (`GroupID`, `Laser`, Ship Date, and all secondary-operation columns) from exported CSVs.
 - Exports cut-list CSV files for OptiCut.
-- Prints operator-friendly stack matrix sheets with whole-number rounded widths,
-  GroupID box counts beside each order (`602336 1-15, 2-3, 3-4`), all orders on the
-  batch header, blank ship dates on print, continuation cards, and compact page packing.
+- Prints landscape cut-list sheets per batch (or all batches) with rounded widths, GroupID box counts, and checkboxes.
 - Cut-list preview shows full imported rows (Scoop, GroupID, etc.); export strips batching columns.
 - Export rounding is checked by default; it rounds `Width` up to whole numbers,
   merges matching rows, and records original width quantities in `Label`.
@@ -32,7 +30,7 @@ src/
   main.js               App controller: wires DOM events to logic, holds state
   styles.css            Modern design system (DBS brand) + print styles
   ui/
-    stackMatrixView.js  Pure HTML-string render helpers for stack matrix + print
+    cutListPrintView.js HTML render helpers for cut-list print sheets
   logic/                Pure, tested business rules (no DOM, no side effects)
     csv.js              parseCSV, csvEscape, convertToCSV, escapeHTML, escapeAttr
     headers.js          mapHeaders (column detection + positional fallback)
@@ -47,7 +45,7 @@ src/
     shipDate.js         Ship-date batch grouping + print labels
     groupBoxes.js       Per-GroupID box totals + order-total reconcile for print
     batchOrders.js      Per-batch order exclusions (sidebar panel)
-    stackMatrix.js      Stack matrix sections + print packing
+    cutListPrint.js     Flat cut-list print rows (pair FB/LR, merge, sort)
     exportRows.js       Cut-list export rows, rounded-width merge + Label
     settingsStore.js    Persistent settings (localStorage)
     demoData.js         Demo CSV
@@ -69,6 +67,7 @@ Then open the URL Vite prints (default http://localhost:5173).
 ```bash
 npm run build     # outputs to dist/
 npm run preview   # preview the production build
+npm run deploy    # build + copy dist/ to docs/ for GitHub Pages
 ```
 
 The build is a static site — deploy `dist/` to GitHub Pages, Netlify, Vercel,
@@ -99,14 +98,14 @@ them may break shop-floor operations:
 - When GroupID exists, order box total = sum of per-group `ceil(parts/4)` so print
   GroupID-qty always matches the order total (`src/logic/groupBoxes.js`)
 - Grouping by `Width` (drawer height) instead of `W` (`src/logic/widths.js`)
-- Rounding stack matrix `Width` up to whole numbers for operator guidance
+- Rounding drawer `Width` up to whole numbers for cut-list print and export
 - Rounded-width export checked ON by default, original widths recorded in `Label`
 - Warning before turning rounded-width export OFF
 - `B` top-edge priority for matching `F` rows (`src/logic/grouping.js`)
 - Each order appears in exactly one split batch (`src/logic/splitOrders.js`)
 - Special orders never share a batch with normal orders of the same material/edge (`src/logic/specialOrders.js`)
 - Batching-only columns are excluded from export CSV (`src/logic/headers.js` → `filterForExport`)
-- Print-only continuation cards for tall single orders (`src/logic/stackMatrix.js`)
+- Identical cut-list print lines merge (same order, group, width, and lengths)
 - Export material names ≤ 32 chars, thickness at end, PF/HRM/12mm rules
   (`src/logic/materialNames.js`)
 
@@ -117,17 +116,15 @@ After changes, test:
 1. Load a CSV.
 2. Confirm batch list shows boxes and orders.
 3. Confirm cut-list preview loads.
-4. Confirm stack matrix loads.
-5. Confirm Print Stack Matrix opens compact current-batch print.
-6. Confirm **Print Cut List** opens flat one-row-per-line sheet (merged identical lines).
-7. Confirm Print All prints batches separately with order cards inside each batch.
-8. Export ZIP and confirm only cut-list CSVs are included.
-9. Confirm rounded-width export is checked by default.
-10. Uncheck rounded-width export and confirm the warning appears.
-11. With rounded-width export checked, confirm matching rounded rows merge,
-    `Width` is whole number, and `Label` records original width quantities.
-12. Confirm material names are under 32 characters and keep thickness at end.
-13. Split a batch and confirm no order number appears in two split batches from
+4. Confirm **Cut list** print opens a landscape sheet for the current batch.
+5. Confirm **Cut lists** prints every batch on separate pages.
+6. Export ZIP and confirm only cut-list CSVs are included.
+7. Confirm rounded-width export is checked by default.
+8. Uncheck rounded-width export and confirm the warning appears.
+9. With rounded-width export checked, confirm matching rounded rows merge,
+   `Width` is whole number, and `Label` records original width quantities.
+10. Confirm material names are under 32 characters and keep thickness at end.
+11. Split a batch and confirm no order number appears in two split batches from
     the same source group.
 
 ## Persistent Settings

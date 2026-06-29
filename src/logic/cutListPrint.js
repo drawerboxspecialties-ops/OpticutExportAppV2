@@ -21,6 +21,7 @@ function getPartSide(row, colIndices) {
   if (part.startsWith('B') || part.includes('BACK')) return 'back';
   if (part.startsWith('L') || part.includes('LEFT')) return 'left';
   if (part.startsWith('R') || part.includes('RIGHT')) return 'right';
+  if (part.includes('SIDE')) return 'left';
   return '';
 }
 
@@ -65,6 +66,36 @@ function setSide(target, dim) {
 
 function sumPartQtys(parts) {
   return parts.reduce((sum, p) => sum + p.qty, 0);
+}
+
+function boxRowMergeKey(row) {
+  return [
+    row.order,
+    row.groupId,
+    row.width,
+    row.front.length,
+    row.back.length,
+    row.left.length,
+    row.right.length,
+    row.special ? '1' : '0',
+  ].join('|');
+}
+
+/** Combine rows with identical dimensions so print matches export merge behavior. */
+function mergeIdenticalBoxRows(rows) {
+  const merged = [];
+  const indexByKey = new Map();
+  rows.forEach((row) => {
+    const key = boxRowMergeKey(row);
+    const existingIndex = indexByKey.get(key);
+    if (existingIndex !== undefined) {
+      merged[existingIndex].parts += row.parts;
+      return;
+    }
+    indexByKey.set(key, merged.length);
+    merged.push({ ...row });
+  });
+  return merged;
 }
 
 /**
@@ -258,8 +289,10 @@ export function getCutListPrintSections(batch, colIndices) {
     return bLen - aLen;
   });
 
+  const mergedBoxRows = mergeIdenticalBoxRows(boxRows);
+
   const sections = [];
-  boxRows.forEach((row) => {
+  mergedBoxRows.forEach((row) => {
     const last = sections[sections.length - 1];
     if (!last || last.order !== row.order) {
       sections.push({ order: row.order, special: false, rows: [] });

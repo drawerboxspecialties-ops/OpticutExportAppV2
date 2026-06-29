@@ -10,9 +10,6 @@ function formatPrintBatchOrders(batch) {
   return orders.map((o) => escapeHTML(String(o).trim())).join(', ');
 }
 
-/**
- * Shared print header banner (batch name, totals, material/edge/ship date).
- */
 function buildPrintHeaderBanner(batchKey, batch, colIndices, position = null) {
   const safeBatchKey = escapeHTML(batchKey);
   const safePrintedAt = escapeHTML(
@@ -72,10 +69,6 @@ function buildPrintHeaderBanner(batchKey, batch, colIndices, position = null) {
   `;
 }
 
-/**
- * Build the print-only "Cut List" sheet: one row per box line with rounded width,
- * Front/Back length, and Left/Right length. Two tables side-by-side per sheet.
- */
 function renderCutListTableHead(hasGroup) {
   return `
       <colgroup>
@@ -88,21 +81,21 @@ function renderCutListTableHead(hasGroup) {
         <col class="cutlist-col-check">
       </colgroup>
       <thead>
-        <tr class="stack-order-columns-row">
+        <tr class="cutlist-columns-row">
           ${hasGroup ? '<th>Grp</th>' : ''}
           <th>W</th>
           <th>F / B</th>
           <th>L / R</th>
           <th>Bx</th>
           <th>Pcs</th>
-          <th class="cutlist-check-col"></th>
+          <th class="cutlist-check-col" aria-label="Check"></th>
         </tr>
       </thead>`;
 }
 
 function renderCutListDataRow(r, hasGroup, altClass) {
   return `
-      <tr class="stack-data-row${altClass}">
+      <tr class="cutlist-data-row${altClass}">
         ${hasGroup ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</td>` : ''}
         <td class="cutlist-dim">${escapeHTML(r.width)}"</td>
         <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
@@ -117,19 +110,18 @@ function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecia
   const specialMark = section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
   const boxSummary = formatOrderCutListBoxSummary(section.order, batch, colIndices);
   const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
-  const continuedMark = section.continued ? ' — continued' : '';
   let rowOrdinal = startRowOrdinal;
   let rows = '';
 
   section.rows.forEach((r) => {
-    const altClass = rowOrdinal % 2 === 1 ? ' stack-row-alt' : '';
+    const altClass = rowOrdinal % 2 === 1 ? ' cutlist-row-alt' : '';
     rowOrdinal++;
     rows += renderCutListDataRow(r, hasGroup, altClass);
   });
 
   return `
     <div class="cutlist-order-block">
-      <div class="cutlist-order-title">Order ${escapeHTML(section.order)}${boxMark}${continuedMark}${specialMark}</div>
+      <div class="cutlist-order-title">Order ${escapeHTML(section.order)}${boxMark}${specialMark}</div>
       <table class="cutlist-table" cellspacing="0">
         ${renderCutListTableHead(hasGroup)}
         <tbody>${rows}</tbody>
@@ -139,7 +131,7 @@ function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecia
 
 function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount) {
   if (!sections.length) {
-    return `<div class="cutlist-order-block"><table class="cutlist-table" cellspacing="0">${renderCutListTableHead(hasGroup)}<tbody><tr><td colspan="${colCount}" class="stack-cell-empty" style="padding:1rem;">No cut-list rows available.</td></tr></tbody></table></div>`;
+    return `<div class="cutlist-order-block"><table class="cutlist-table" cellspacing="0">${renderCutListTableHead(hasGroup)}<tbody><tr><td colspan="${colCount}" class="cutlist-cell-empty" style="padding:1rem;">No cut-list rows available.</td></tr></tbody></table></div>`;
   }
 
   let rowOrdinal = 0;

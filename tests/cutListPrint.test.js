@@ -210,4 +210,28 @@ describe('getCutListPrintSections', () => {
     expect(sections[0].rows[0].parts).toBe(4);
     expect(sections[0].rows[0].boxes).toBe(1);
   });
+
+  it('treats generic Side parts as left/right stack', () => {
+    const batch = {
+      sourceRows: [
+        row({ order: '601881', part: 'F', length: '22', qty: 4, groupId: '1' }),
+        row({ order: '601881', part: 'Side', length: '18', qty: 4, groupId: '1' }),
+      ],
+    };
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections[0].rows[0].lrLength).toBe('18');
+  });
+
+  it('merges identical cut lines into one row', () => {
+    const batch = {
+      sourceRows: [
+        row({ order: '601881', part: 'F', length: '22', qty: 4, groupId: '1' }),
+        row({ order: '601881', part: 'F', length: '22', qty: 4, groupId: '1' }),
+      ],
+    };
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections[0].rows).toHaveLength(1);
+    expect(sections[0].rows[0].parts).toBe(8);
+    expect(sections[0].rows[0].boxes).toBe(2);
+  });
 });

@@ -15,7 +15,7 @@ import { getCutListRowsForExport } from './logic/exportRows.js';
 import { formatDecimalForDisplay } from './logic/widths.js';
 import { loadSettings, saveSettings, rememberFile, clearStoredSettings } from './logic/settingsStore.js';
 import { DEMO_CSV } from './logic/demoData.js';
-import { buildCutListPrintCard } from './ui/stackMatrixView.js';
+import { buildCutListPrintCard } from './ui/cutListPrintView.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -844,48 +844,57 @@ async function downloadAllZip() {
   }
 }
 
-function triggerPrintCutList() {
-  const printContainer = $('all-print-container');
-  const batch = state.splitGroups[state.activeGroupKey];
-  if (!printContainer || !batch) return;
-  printContainer.innerHTML = '';
-  const cardDiv = document.createElement('div');
-  cardDiv.className = 'category-card';
-  cardDiv.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices);
-  printContainer.appendChild(cardDiv);
-  document.body.classList.add('print-all-active', 'print-cutlist-active');
-  window.print();
-  setTimeout(() => {
-    document.body.classList.remove('print-all-active', 'print-cutlist-active');
-    printContainer.innerHTML = '';
-  }, 1000);
-}
-
-function printAllCutLists() {
+function runPrintJob(buildMarkup, bodyClasses) {
   const printContainer = $('all-print-container');
   if (!printContainer) return;
   printContainer.innerHTML = '';
-  const keys = Object.keys(state.splitGroups).sort();
-  keys.forEach((batchKey, idx) => {
-    const batch = state.splitGroups[batchKey];
-    const cardDiv = document.createElement('div');
-    cardDiv.className = 'category-card';
-    cardDiv.innerHTML = buildCutListPrintCard(batchKey, batch, state.colIndices, {
-      index: idx + 1,
-      count: keys.length,
-    });
-    printContainer.appendChild(cardDiv);
-  });
-  document.body.classList.add('print-all-active', 'print-cutlist-active', 'print-all-cutlists-active');
-  window.print();
-  setTimeout(() => {
-    document.body.classList.remove(
-      'print-all-active',
-      'print-cutlist-active',
-      'print-all-cutlists-active'
-    );
+  printContainer.appendChild(buildMarkup());
+  bodyClasses.forEach((cls) => document.body.classList.add(cls));
+
+  const cleanup = () => {
+    bodyClasses.forEach((cls) => document.body.classList.remove(cls));
     printContainer.innerHTML = '';
-  }, 1000);
+  };
+
+  window.addEventListener('afterprint', cleanup, { once: true });
+  setTimeout(cleanup, 30_000);
+  window.print();
+}
+
+function triggerPrintCutList() {
+  const batch = state.splitGroups[state.activeGroupKey];
+  if (!batch) return;
+  runPrintJob(
+    () => {
+      const cardDiv = document.createElement('div');
+      cardDiv.className = 'print-batch-card';
+      cardDiv.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices);
+      return cardDiv;
+    },
+    ['print-active', 'print-cutlist-active']
+  );
+}
+
+function printAllCutLists() {
+  const keys = Object.keys(state.splitGroups).sort();
+  if (!keys.length) return;
+  runPrintJob(
+    () => {
+      const fragment = document.createDocumentFragment();
+      keys.forEach((batchKey, idx) => {
+        const batch = state.splitGroups[batchKey];
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'print-batch-card';
+        cardDiv.innerHTML = buildCutListPrintCard(batchKey, batch, state.colIndices, {
+          index: idx + 1,
+          count: keys.length,
+        });
+        fragment.appendChild(cardDiv);
+      });
+      return fragment;
+    },
+    ['print-active', 'print-cutlist-active', 'print-all-cutlists-active']
+  );
 }
 
 function toggleErrorDetails() {

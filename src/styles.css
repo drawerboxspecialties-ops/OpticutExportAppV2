@@ -759,64 +759,6 @@ tbody tr:hover td {
   animation: pulseWarn 1.5s ease-in-out infinite alternate;
 }
 
-/* ── Stack matrix (screen) ─────────────────────────────── */
-.pivot-header-row td {
-  font-weight: 700;
-  background: var(--accent-muted);
-  padding: 8px 10px;
-}
-
-.pivot-width-row td {
-  font-weight: 700;
-  background: var(--surface-muted);
-  padding: 6px 10px;
-}
-
-.stack-seq {
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--text-secondary);
-  vertical-align: middle;
-}
-
-.stack-seq span {
-  margin-left: 0.4rem;
-}
-
-.stack-cell {
-  font-weight: 600;
-}
-
-.stack-cell .qty-label {
-  color: var(--text-secondary);
-  font-weight: 400;
-}
-
-.stack-cell-empty {
-  color: var(--text-tertiary);
-}
-
-.w-note {
-  margin-top: 0.15rem;
-  font-size: 0.6875rem;
-  line-height: 1.2;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.check-box {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--accent);
-}
-
-.completed-row td {
-  text-decoration: line-through;
-  opacity: 0.45;
-  background: var(--surface-hover) !important;
-}
-
 /* ── Right rail ────────────────────────────────────────── */
 .sidebar-block {
   display: flex;
@@ -1493,7 +1435,7 @@ tbody tr:hover td {
 }
 
 .print-batch-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Instrument Sans', 'DM Sans', system-ui, sans-serif;
   font-size: 16px;
   font-weight: 900;
   letter-spacing: 0.01em;
@@ -1557,92 +1499,6 @@ tbody tr:hover td {
   letter-spacing: 0.04em;
 }
 
-.print-batch-stats {
-  display: flex;
-  gap: 5px;
-  margin-left: auto;
-}
-
-.print-stat-chip {
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  padding: 3px 8px;
-  text-align: center;
-  line-height: 1.1;
-}
-
-.print-stat-val {
-  font-size: 14px;
-  font-weight: 900;
-}
-
-/*
- * Print card packing uses inline-block columns rather than CSS grid.
- * Grid/flex containers fragment badly in Chrome's print engine (an oversized
- * grid gets pushed wholesale to the next page, leaving a big blank gap under
- * the header). Inline-block cards flow left-to-right and break across pages
- * cleanly, one intact card at a time.
- */
-.stack-card-grid {
-  font-size: 0;
-  line-height: 0;
-}
-
-.stack-order-card {
-  display: inline-block;
-  vertical-align: top;
-  width: 3.25in;
-  margin: 0 0.08in 0.1in 0;
-  font-size: 0.78rem;
-  line-height: 1.2;
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
-.stack-order-table {
-  font-size: 0.78rem;
-  border-collapse: collapse;
-  border: 1.2px solid #000;
-  color: #000 !important;
-  width: 100%;
-}
-
-.stack-order-title {
-  font-weight: 900;
-  text-align: left;
-  background: #e5e7eb;
-  color: #000 !important;
-  border-bottom: 1.8px solid #64748b;
-  padding: 4px 5px;
-}
-
-.stack-order-columns-row th {
-  font-weight: bold;
-  text-align: center;
-  background: #e5e7eb;
-  border-bottom: 1.5px solid #64748b;
-  padding: 3px 4px;
-  color: #000 !important;
-}
-
-.seq-col {
-  width: 34px;
-}
-
-.stack-width-row {
-  font-weight: 800;
-  background: #e2e8f0;
-  color: #000 !important;
-  padding: 3px 4px;
-  text-align: left !important;
-}
-
-.stack-order-card--continued {
-  break-before: avoid;
-  page-break-before: avoid;
-}
-
 .print-batch-index {
   display: inline-block;
   margin-left: 8px;
@@ -1668,13 +1524,31 @@ tbody tr:hover td {
 }
 
 /* Zebra striping for faster row scanning on the shop floor. */
-.stack-order-table {
+.cutlist-table {
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 
-.stack-row-alt td {
+.cutlist-columns-row th {
+  font-weight: 800;
+  text-align: center;
+  background: #e5e7eb;
+  border-bottom: 1.5px solid #64748b;
+  padding: 3px 4px;
+  color: #000 !important;
+}
+
+.cutlist-data-row td {
+  color: #000 !important;
+}
+
+.cutlist-row-alt td {
   background: #f1f5f9;
+}
+
+.cutlist-cell-empty {
+  color: #64748b;
+  text-align: center;
 }
 
 /* ── Cut List print sheet ─────────────────────────────── */
@@ -1730,7 +1604,7 @@ tbody tr:hover td {
   display: inline-block;
   width: 100%;
   break-inside: avoid-column;
-  page-break-inside: auto;
+  page-break-inside: avoid;
 }
 
 .cutlist-order-block .cutlist-order-title {
@@ -1814,11 +1688,6 @@ tbody tr:hover td {
   font-weight: 800;
 }
 
-.cutlist-order-header td {
-  border: 1px solid #64748b;
-  padding: 0;
-}
-
 .cutlist-order-title {
   text-align: left;
   font-size: 10px;
@@ -1836,10 +1705,6 @@ tbody tr:hover td {
   font-weight: 800;
 }
 
-.cutlist-label {
-  white-space: nowrap;
-}
-
 .cutlist-group {
   text-align: center;
 }
@@ -1850,16 +1715,6 @@ tbody tr:hover td {
 }
 
 .cutlist-group-star {
-  color: #b45309 !important;
-  font-weight: 900;
-}
-
-.cutlist-head-sub th {
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.cutlist-special {
   color: #b45309 !important;
   font-weight: 900;
 }
@@ -1919,13 +1774,13 @@ tbody tr:hover td {
     display: block !important;
   }
 
-  body.print-all-active .container,
-  body.print-all-active .app-header,
-  body.print-all-active .app-footer {
+  body.print-active .container,
+  body.print-active .app-header,
+  body.print-active .app-footer {
     display: none !important;
   }
 
-  body.print-all-active #all-print-container {
+  body.print-active #all-print-container {
     display: block !important;
   }
 
@@ -1942,8 +1797,7 @@ tbody tr:hover td {
     padding: 5px 8px;
   }
 
-  .print-meta-chip,
-  .print-stat-chip {
+  .print-meta-chip {
     padding: 2px 5px;
   }
 
@@ -1952,11 +1806,11 @@ tbody tr:hover td {
    * batch still spills to additional pages when it runs past the bottom, and
    * its header (thead) repeats on each of those pages.
    */
-  body.print-all-active .category-card {
+  body.print-active .print-batch-card {
     page-break-after: always;
   }
 
-  body.print-all-active .category-card:last-child {
+  body.print-active .print-batch-card:last-child {
     page-break-after: avoid;
   }
 
@@ -1970,20 +1824,15 @@ tbody tr:hover td {
     page-break-inside: avoid;
   }
 
-  .cutlist-order-header {
-    break-after: avoid;
+  body.print-cutlist-active:not(.print-all-cutlists-active) .print-batch-card {
     page-break-after: avoid;
   }
 
-  body.print-cutlist-active:not(.print-all-cutlists-active) .category-card {
-    page-break-after: avoid;
-  }
-
-  body.print-all-cutlists-active .category-card {
+  body.print-all-cutlists-active .print-batch-card {
     page-break-after: always;
   }
 
-  body.print-all-cutlists-active .category-card:last-child {
+  body.print-all-cutlists-active .print-batch-card:last-child {
     page-break-after: avoid;
   }
 
@@ -1994,7 +1843,7 @@ tbody tr:hover td {
 
   .cutlist-order-block {
     break-inside: avoid-column;
-    page-break-inside: auto;
+    page-break-inside: avoid;
   }
 
   .cutlist-order-title {

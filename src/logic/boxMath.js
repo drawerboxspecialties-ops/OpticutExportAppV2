@@ -1,5 +1,5 @@
 /**
- * Box math for the stack matrix and batch totals.
+ * Box math for batch totals and cut-list print.
  *
  * Critical business rule:
  *   boxes = Math.ceil(parts / 4)

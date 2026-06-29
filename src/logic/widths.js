@@ -1,10 +1,9 @@
 /**
  * Width / W helpers.
  *
- * These encode the "Width vs W" business rule from the dev notes:
- * summary height and stack-matrix grouping use Width (the nominal drawer height),
- * never W (which can be near-size like 3.937). The stack matrix rounds Width UP
- * to a whole number for operator guidance.
+ * Summary height and cut-list grouping use Width (nominal drawer height), never W
+ * (which can be near-size like 3.937). Operator-facing widths round Width UP to
+ * whole numbers.
  */
 
 /**
@@ -47,8 +46,7 @@ export function getSummaryHeight(row, colIndices) {
  * Round a width value UP to the next whole number, returning it as a string.
  * Non-numeric or non-positive values become '0'.
  *
- * This is the operator-guidance rounding used by the stack matrix and (by default)
- * the exported CSV Width column.
+ * Used for cut-list print and (by default) the exported CSV Width column.
  *
  * @param {unknown} value
  * @returns {string}
@@ -60,13 +58,25 @@ export function roundWidthUpToWhole(value) {
 }
 
 /**
- * Stack-matrix width for a row = roundWidthUpToWhole(summaryHeight).
+ * Rounded drawer width for a row = roundWidthUpToWhole(summaryHeight).
  * @param {string[]} row
  * @param {{ w: number, width: number }} colIndices
  * @returns {string}
  */
 export function getStackMatrixWidth(row, colIndices) {
   return roundWidthUpToWhole(getSummaryHeight(row, colIndices));
+}
+
+/**
+ * Format a width-quantity note string like "4.5 x40, 3.937 x8" for export Label.
+ * @param {Record<string, number>} widthQtyMap
+ * @returns {string}
+ */
+export function formatWidthQtyNote(widthQtyMap) {
+  return Object.keys(widthQtyMap)
+    .sort((a, b) => getNumericSortValue(b) - getNumericSortValue(a))
+    .map((width) => `${formatDecimalForDisplay(width)} x${widthQtyMap[width]}`)
+    .join(', ');
 }
 
 /**

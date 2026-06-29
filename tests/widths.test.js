@@ -6,6 +6,7 @@ import {
   getStackMatrixWidth,
   getNumericSortValue,
   getFractionalSortValue,
+  formatWidthQtyNote,
 } from '../src/logic/widths.js';
 
 const cols = { w: 3, width: 7 };
@@ -94,5 +95,14 @@ describe('getFractionalSortValue', () => {
   it('returns 0 for empty / non-numeric', () => {
     expect(getFractionalSortValue('')).toBe(0);
     expect(getFractionalSortValue('abc')).toBe(0);
+  });
+});
+
+describe('formatWidthQtyNote', () => {
+  it('formats widths with quantities, sorted highest width first', () => {
+    expect(formatWidthQtyNote({ '4.000000': 8, '3.937': 40 })).toBe('4 x8, 3.937 x40');
+  });
+  it('returns empty string for empty map', () => {
+    expect(formatWidthQtyNote({})).toBe('');
   });
 });

@@ -1,6 +1,5 @@
 import { getExportMaterialName } from './materialNames.js';
-import { roundWidthUpToWhole, formatDecimalForDisplay } from './widths.js';
-import { formatWidthQtyNote } from './stackMatrix.js';
+import { roundWidthUpToWhole, formatDecimalForDisplay, formatWidthQtyNote } from './widths.js';
 import { getBatchingOnlyColumnIndices } from './headers.js';
 
 /**

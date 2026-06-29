@@ -71,12 +71,6 @@
         font-family: Consolas, monospace; font-size: 0.65rem;
         background: #eef2f7; padding: 0.04rem 0.18rem; border-radius: 3px;
       }
-      .flow { display: flex; flex-wrap: wrap; gap: 0.18rem; align-items: center; font-size: 0.64rem; }
-      .flow span {
-        background: #e0f2fe; border: 1px solid #bae6fd;
-        padding: 0.1rem 0.32rem; border-radius: 999px;
-      }
-      .flow .arrow { background: none; border: none; color: var(--muted); padding: 0; }
       .footer {
         margin-top: 0.32rem; padding-top: 0.22rem; border-top: 1px solid var(--line);
         font-size: 0.65rem; color: var(--muted);
@@ -93,7 +87,7 @@
   <body>
     <div class="toolbar">
       <a href="./index.html">← Back to app</a>
-      <button type="button" class="primary" onclick="window.print()">Save as PDF (Print)</button>
+      <button type="button" class="primary" onclick="window.print()">Print guide</button>
       <a href="./PRESENTATION.pdf" download>Download PDF</a>
     </div>
 
@@ -101,13 +95,13 @@
       <header class="doc-header">
         <div>
           <h1>DBS Drawers — OptiCut CSV Splitter</h1>
-          <p class="subtitle">One-page guide · Allmoxy CSV → OptiCut cut lists &amp; stack sheets</p>
+          <p class="subtitle">One-page guide · Allmoxy CSV → OptiCut cut lists</p>
         </div>
         <div class="live-url">drawerboxspecialties-ops.github.io/OpticutExportAppV2/</div>
       </header>
 
       <h2>What it does</h2>
-      <p>Runs in your browser — drop an Allmoxy CSV, get material/edge/ship-date batches, printable stack sheets, and OptiCut-ready export files.</p>
+      <p>Runs in your browser — drop an Allmoxy CSV, get material/edge/ship-date batches, printable cut lists, and OptiCut-ready export files.</p>
 
       <div class="cols" style="margin-top:0.28rem">
         <div class="box">
@@ -134,13 +128,13 @@
           <p>Click <b>▸</b> on any batch to expand orders. Each row shows <span class="mono">#order · bx</span>. Use <b>−</b> to remove from batch; click <b>+#order</b> chips to add back.</p>
         </div>
         <div class="box">
-          <strong>Print sheets</strong>
+          <strong>Cut-list print</strong>
           <ul>
-            <li><b>Stack Matrix</b> — per-order cards, GroupID-qty, width box subtotals</li>
-            <li><b>Cut List</b> — order header once; each width row pairs its own F/B + L/R; Grp, ★</li>
-            <li>Identical cut lines merge; sorted by order → width ↓ → length ↓</li>
-            <li>Batch header: <b>total boxes</b> + comma-separated <b>order numbers only</b></li>
-            <li>Box math: <span class="mono">ceil(parts ÷ 4)</span> per group and per height</li>
+            <li>Landscape letter; two columns of order blocks when space allows</li>
+            <li>Order header once per block with box summary (e.g. <span class="mono">3 boxes (1-2, 2-1)</span>)</li>
+            <li>Columns: Grp, W, F/B, L/R, Bx, Pcs, checkbox</li>
+            <li>Identical lines merge; sorted order → width ↓ → length ↓</li>
+            <li>★ on special groups; batch header lists total boxes + order numbers</li>
           </ul>
         </div>
         <div class="box">
@@ -163,12 +157,12 @@
         <li>Export CSV from Allmoxy (include Ship Date + extra columns if used).</li>
         <li>Open app → drag &amp; drop file → review batches (SPECIAL badge, ship date in meta).</li>
         <li>Expand batch ▸ to verify/remove/add orders.</li>
-        <li>Print stack matrix or <b>Print Cut List</b> → export CSV or ZIP → import into OptiCut.</li>
+        <li>Print <b>Cut list</b> or <b>Cut lists</b> → export CSV or ZIP → import into OptiCut.</li>
       </ol>
 
       <div class="footer">
         <span>DBS Drawers — Drawer Box Specialties</span>
-        <span>v2 · 176 tests</span>
+        <span>v2</span>
       </div>
     </article>
   </body>

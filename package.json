@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Local browser tool for converting Allmoxy CSV exports into Weinig OptiCut-ready cut-list CSV files and shop-floor stack sheets.",
+  "description": "Local browser tool for converting Allmoxy CSV exports into Weinig OptiCut-ready cut-list CSV files and shop-floor cut-list print sheets.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
