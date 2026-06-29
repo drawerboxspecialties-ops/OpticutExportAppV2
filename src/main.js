@@ -935,6 +935,30 @@ function loadDemoData() {
   parseAndLoad(DEMO_CSV);
 }
 
+function scrollSidebarDetailsIntoView(details) {
+  const controls = $('controls-sidebar-card');
+  if (!controls || !details.open) return;
+  requestAnimationFrame(() => {
+    const summary = details.querySelector('.sidebar-details-summary');
+    if (!summary) return;
+    const parentRect = controls.getBoundingClientRect();
+    const summaryRect = summary.getBoundingClientRect();
+    if (summaryRect.top < parentRect.top) {
+      controls.scrollTop += summaryRect.top - parentRect.top - 6;
+    } else if (summaryRect.bottom > parentRect.bottom) {
+      controls.scrollTop += summaryRect.bottom - parentRect.bottom + 6;
+    }
+  });
+}
+
+function wireSidebarDetailsScroll() {
+  const controls = $('controls-sidebar-card');
+  if (!controls) return;
+  controls.querySelectorAll('.sidebar-details').forEach((details) => {
+    details.addEventListener('toggle', () => scrollSidebarDetailsIntoView(details));
+  });
+}
+
 function wireEvents() {
   const dropZone = $('drop-zone');
   const fileInput = $('file-input');
@@ -1006,6 +1030,7 @@ function wireEvents() {
   });
 
   $('error-toggle').addEventListener('click', toggleErrorDetails);
+  wireSidebarDetailsScroll();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -102,19 +102,17 @@
           </section>
 
           <section class="panel panel--controls" id="controls-sidebar-card" hidden>
-            <details id="split-batches-config" class="sidebar-details">
-              <summary class="sidebar-details-summary">Split settings</summary>
-              <div class="sidebar-details-body">
-                <label for="max-orders-input" class="field-label">Max orders per batch</label>
-                <div class="split-config-row">
-                  <input type="number" id="max-orders-input" class="input input--small" value="999" min="1" />
-                  <button id="btn-apply-max-orders" class="btn btn-secondary btn--compact" type="button">Apply</button>
-                </div>
+            <div class="split-config-block" id="split-batches-config">
+              <h3 class="split-config-heading">Split settings</h3>
+              <label for="max-orders-input" class="field-label">Max orders per batch</label>
+              <div class="split-config-row">
+                <input type="number" id="max-orders-input" class="input input--small" value="999" min="1" />
+                <button id="btn-apply-max-orders" class="btn btn-secondary btn--compact" type="button">Apply</button>
               </div>
-            </details>
+            </div>
 
             <div id="exclude-order-section">
-              <details class="sidebar-details" open>
+              <details class="sidebar-details">
                 <summary class="sidebar-details-summary">
                   Filters
                   <button

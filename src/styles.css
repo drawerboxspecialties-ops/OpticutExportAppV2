@@ -152,9 +152,10 @@ body {
     gap: 0.75rem;
     position: sticky;
     top: 4.75rem;
-    align-self: stretch;
+    align-self: start;
     max-height: calc(100vh - 5.5rem);
     min-height: 0;
+    overflow: hidden;
   }
 
   .sidebar--right {
@@ -244,7 +245,11 @@ body {
   gap: 0.5rem;
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-block: 0.5rem;
 }
 
 #controls-sidebar-card[hidden] {
@@ -1035,6 +1040,21 @@ tbody tr:hover td {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.split-config-block {
+  flex-shrink: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.split-config-heading {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--text);
 }
 
 /* ── Batch list ────────────────────────────────────────── */
