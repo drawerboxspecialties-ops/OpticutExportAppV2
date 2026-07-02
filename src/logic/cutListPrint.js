@@ -71,6 +71,36 @@ function sumPartQtys(parts) {
   return parts.reduce((sum, p) => sum + p.qty, 0);
 }
 
+function pickClosestWPart(list, used, lead, { requireLength } = {}) {
+  let best = null;
+  let bestIdx = -1;
+  let bestDiff = Infinity;
+
+  list.forEach((p, i) => {
+    if (used.has(i)) return;
+    if (requireLength && p.dim.length !== lead.dim.length) return;
+    if (lead.dim.w && p.dim.w) {
+      const diff = Math.abs(parseFloat(p.dim.w) - parseFloat(lead.dim.w));
+      if (Number.isFinite(diff) && diff < bestDiff) {
+        best = p;
+        bestIdx = i;
+        bestDiff = diff;
+      }
+      return;
+    }
+    if (!requireLength && p.stackWidth === lead.stackWidth && bestDiff === Infinity) {
+      best = p;
+      bestIdx = i;
+    }
+  });
+
+  if (best) {
+    used.add(bestIdx);
+    return best;
+  }
+  return null;
+}
+
 function boxRowMergeKey(row) {
   return [
     row.order,
@@ -211,7 +241,7 @@ export function getCutListPrintSections(batch, colIndices) {
     const usedLeft = new Set();
     const usedRight = new Set();
 
-    frontKeys.forEach((key, index) => {
+    frontKeys.forEach((key) => {
       const group = frontGroups.get(key);
       const lead = group[0];
       const line = {
@@ -228,14 +258,8 @@ export function getCutListPrintSections(batch, colIndices) {
         parts: frontKeys.length === 1 ? sumPartQtys(bucket.parts) : sumPartQtys(group),
       };
 
-      const back = backs.find(
-        (p, i) =>
-          !usedBack.has(i) &&
-          p.dim.length === lead.dim.length &&
-          (p.dim.w === lead.dim.w || !p.dim.w || !lead.dim.w)
-      );
+      const back = pickClosestWPart(backs, usedBack, lead, { requireLength: true });
       if (back) {
-        usedBack.add(backs.indexOf(back));
         setSide(line.back, back.dim);
         if (frontKeys.length > 1) line.parts += back.qty;
       }
@@ -249,19 +273,7 @@ export function getCutListPrintSections(batch, colIndices) {
           }
           return null;
         }
-        const match = list.find(
-          (p, i) => !used.has(i) && p.stackWidth === lead.stackWidth
-        );
-        if (match) {
-          used.add(list.indexOf(match));
-          return match;
-        }
-        const byIndex = list.find((_, i) => !used.has(i) && index === 0);
-        if (byIndex) {
-          used.add(list.indexOf(byIndex));
-          return byIndex;
-        }
-        return null;
+        return pickClosestWPart(list, used, lead);
       };
 
       const leftPart = pickSide(lefts, usedLeft);
