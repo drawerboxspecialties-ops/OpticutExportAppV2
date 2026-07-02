@@ -40,8 +40,11 @@ function readPartDim(row, colIndices) {
 }
 
 function drawerSetKey(order, groupId, label) {
-  if (groupId) return `${order}|g:${groupId}`;
-  if (label) return `${order}|l:${label}`;
+  const gid = String(groupId ?? '').trim();
+  const lab = String(label ?? '').trim();
+  if (gid && lab) return `${order}|g:${gid}|l:${lab}`;
+  if (gid) return `${order}|g:${gid}`;
+  if (lab) return `${order}|l:${lab}`;
   return '';
 }
 

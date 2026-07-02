@@ -234,4 +234,30 @@ describe('getCutListPrintSections', () => {
     expect(sections[0].rows[0].parts).toBe(8);
     expect(sections[0].rows[0].boxes).toBe(2);
   });
+
+  it('treats each Label as its own drawer when GroupID is shared (602437-style)', () => {
+    function drawer({ label, w, length, drawerWidth, qty = 1 }) {
+      const partW = w ?? drawerWidth;
+      return [
+        row({ order: '602437', part: 'F', w: partW, length, qty, drawerWidth, groupId: '1', label }),
+        row({ order: '602437', part: 'B', w: partW, length, qty, drawerWidth, groupId: '1', label }),
+        row({ order: '602437', part: 'L', w: partW, length, qty, drawerWidth, groupId: '1', label }),
+        row({ order: '602437', part: 'R', w: partW, length, qty, drawerWidth, groupId: '1', label }),
+      ];
+    }
+    const sourceRows = [
+      ...drawer({ label: '51', w: '5.687', length: '8.75', drawerWidth: '6' }),
+      ...drawer({ label: '12', w: '5.687', length: '8.75', drawerWidth: '6' }),
+      ...drawer({ label: '15', w: '8.437', length: '10.25', drawerWidth: '8.5' }),
+    ];
+    const sections = getCutListPrintSections({ sourceRows }, cols);
+    const rows = sections[0].rows;
+    const sumBx = rows.reduce((sum, r) => sum + r.boxes, 0);
+    const sumPcs = rows.reduce((sum, r) => sum + r.parts, 0);
+    expect(sumPcs).toBe(12);
+    expect(sumBx).toBe(3);
+    expect(rows).toHaveLength(2);
+    expect(rows.find((r) => r.width === '6')).toMatchObject({ parts: 8, boxes: 2 });
+    expect(rows.find((r) => r.width === '9')).toMatchObject({ parts: 4, boxes: 1 });
+  });
 });
