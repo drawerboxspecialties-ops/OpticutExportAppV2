@@ -57,6 +57,18 @@ function addCountToMap(map, key, qty) {
 }
 
 /**
+ * Rows to feed into export: always prefer unmerged source rows so part sides and
+ * distinct drawer sizes are not lost before rounded-width merging.
+ *
+ * @param {{ sourceRows?: string[][], rows?: string[][] }} batch
+ * @returns {string[][]}
+ */
+export function getBatchExportRows(batch) {
+  if (batch?.sourceRows?.length) return batch.sourceRows;
+  return batch?.rows || [];
+}
+
+/**
  * Build the cut-list rows for export.
  *
  * When roundExportWidths is true:

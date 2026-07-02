@@ -76,14 +76,15 @@ describe('splitDataIntoGroups (integration via demo CSV)', () => {
     expect(ply.totalParts).toBe(104);
   });
 
-  it('merges rows with the same order/material/length/height/edge and sums quantity', () => {
+  it('merges duplicate rows with the same order/material/length/height/edge/part and sums quantity', () => {
     const { rows, colIndices } = loadDemo();
     const groups = splitDataIntoGroups(rows, colIndices, 999, {});
     const mdf = groups['MDF_PVC_601882'];
-    // Two MDF rows for 601882 with the same material/length/height/edge should merge into one row of qty 32
     const mergedQty = mdf.rows.reduce((sum, r) => sum + (parseInt(r[colIndices.quantity]) || 0), 0);
-    expect(mdf.rows.length).toBe(1);
+    expect(mdf.rows.length).toBe(2);
     expect(mergedQty).toBe(32);
+    const parts = mdf.rows.map((r) => r[colIndices.partName]).sort();
+    expect(parts).toEqual(['B', 'F']);
   });
 
   it('keeps each order in exactly one split batch', () => {

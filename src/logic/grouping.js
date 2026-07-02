@@ -104,32 +104,13 @@ function getBackTopEdgeMatchKey(row, colIndices) {
  */
 function normalizePartNameForMergedRow(rList, colIndices) {
   if (colIndices.partName === -1) return '';
-  let hasFrontBack = false;
-  let hasLeftRight = false;
-  rList.forEach((r) => {
-    const pName = (r[colIndices.partName] || '').trim().toUpperCase();
-    if (
-      pName.startsWith('F') ||
-      pName.startsWith('B') ||
-      pName.includes('FRONT') ||
-      pName.includes('BACK')
-    ) {
-      hasFrontBack = true;
-    }
-    if (
-      pName.startsWith('L') ||
-      pName.startsWith('R') ||
-      pName.includes('LEFT') ||
-      pName.includes('RIGHT') ||
-      pName.includes('SIDE')
-    ) {
-      hasLeftRight = true;
-    }
-  });
-  if (hasFrontBack) return 'F';
-  if (hasLeftRight) return 'L';
   const rawP = (rList[0][colIndices.partName] || '').trim().toUpperCase();
-  return rawP ? rawP.charAt(0) : '';
+  if (!rawP) return '';
+  if (rawP.startsWith('B') || rawP.includes('BACK')) return 'B';
+  if (rawP.startsWith('F') || rawP.includes('FRONT')) return 'F';
+  if (rawP.startsWith('L') || rawP.includes('LEFT')) return 'L';
+  if (rawP.startsWith('R') || rawP.includes('RIGHT') || rawP.includes('SIDE')) return 'R';
+  return rawP.charAt(0);
 }
 
 /**
@@ -155,7 +136,7 @@ function sortRowsDescending(rows, colIndices) {
 }
 
 /**
- * Merge rows within a chunk by (Order, Material, Length, SummaryHeight, TopEdge).
+ * Merge rows within a chunk by (Order, Material, Length, SummaryHeight, TopEdge, PartName).
  * Merged rows sum Quantity, clear Label, and normalize PartName.
  *
  * @param {string[][]} chunkRows
@@ -170,7 +151,11 @@ function mergeChunkRows(chunkRows, colIndices) {
     const len = (r[colIndices.length] || '').trim();
     const h = getSummaryHeight(r, colIndices);
     const edge = (r[colIndices.topEdge] || '').trim();
-    const key = `${order}|${mat}|${len}|${h}|${edge}`;
+    const part =
+      colIndices.partName !== -1
+        ? String(r[colIndices.partName] ?? '').trim().toUpperCase()
+        : '';
+    const key = `${order}|${mat}|${len}|${h}|${edge}|${part}`;
     if (!mergedMap[key]) mergedMap[key] = [];
     mergedMap[key].push(r);
   });

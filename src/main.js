@@ -11,7 +11,7 @@ import {
 } from './logic/grouping.js';
 import { applyBatchOrderExclusions, batchOrderKey } from './logic/batchOrders.js';
 import { formatShipDateLabel } from './logic/shipDate.js';
-import { getCutListRowsForExport } from './logic/exportRows.js';
+import { getCutListRowsForExport, getBatchExportRows } from './logic/exportRows.js';
 import { formatDecimalForDisplay } from './logic/widths.js';
 import { loadSettings, saveSettings, rememberFile, clearStoredSettings } from './logic/settingsStore.js';
 import { DEMO_CSV } from './logic/demoData.js';
@@ -793,7 +793,7 @@ function downloadCurrentFile() {
     return;
   }
   const cutRows = getCutListRowsForExport(
-    batch.rows,
+    getBatchExportRows(batch),
     state.colIndices,
     shouldRoundExportWidths(),
     state.parsedHeaders
@@ -822,7 +822,7 @@ async function downloadAllZip() {
   Object.keys(state.splitGroups).forEach((batchKey) => {
     const batch = state.splitGroups[batchKey];
     const cutRows = getCutListRowsForExport(
-      batch.rows,
+      getBatchExportRows(batch),
       state.colIndices,
       shouldRoundExportWidths(),
       state.parsedHeaders

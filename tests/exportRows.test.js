@@ -3,8 +3,10 @@ import {
   prepareBaseExportRow,
   getRoundedExportMergeKey,
   getCutListRowsForExport,
+  getBatchExportRows,
 } from '../src/logic/exportRows.js';
 import { mapHeaders, filterForExport } from '../src/logic/headers.js';
+import { splitDataIntoGroups, normalizeTopEdges, defaultFrontTopEdgesFromBacks } from '../src/logic/grouping.js';
 
 const cols = mapHeaders([
   'OrderNumber',
@@ -137,5 +139,85 @@ describe('filterForExport', () => {
     const filtered = filterForExport(headers, out);
     expect(filtered.rows).toHaveLength(1);
     expect(filtered.rows[0][extendedCols.quantity]).toBe('2');
+  });
+});
+
+describe('getBatchExportRows', () => {
+  it('prefers sourceRows over merged batch rows', () => {
+    const sourceRows = [['602437', 'Mat', 'F', '5', '8.75', '1', '51', '6', 'Edge']];
+    const mergedRows = [['602437', 'Mat', 'F', '5', '8.75', '4', '', '6', 'Edge']];
+    expect(getBatchExportRows({ sourceRows, rows: mergedRows })).toBe(sourceRows);
+  });
+
+  it('falls back to rows when sourceRows are absent', () => {
+    const mergedRows = [['602437', 'Mat', 'B', '5', '8.75', '1', '', '6', 'Edge']];
+    expect(getBatchExportRows({ rows: mergedRows })).toBe(mergedRows);
+  });
+});
+
+describe('getCutListRowsForExport — preserves part sides', () => {
+  const headers = [
+    'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge', 'GroupID',
+  ];
+  const extendedCols = mapHeaders(headers);
+
+  function drawerRow(part, label, length, drawerWidth, w = drawerWidth, qty = 1) {
+    return [
+      '602437',
+      'PBC: 1/2" White Melamine',
+      part,
+      String(w),
+      String(length),
+      String(qty),
+      label,
+      String(drawerWidth),
+      'PVC Flat Flush',
+      '1',
+    ];
+  }
+
+  it('keeps F/B/L/R as separate export lines before identical-dimension merging', () => {
+    const sourceRows = [
+      drawerRow('F', '51', '8.75', '6', '5.687'),
+      drawerRow('B', '51', '8.75', '6', '5.687'),
+      drawerRow('L', '51', '15.063', '6', '5.75'),
+      drawerRow('R', '51', '15.063', '6', '5.75'),
+    ];
+    const out = getCutListRowsForExport(sourceRows, extendedCols, true, headers);
+    const parts = out.map((r) => r[extendedCols.partName]);
+    expect(parts.sort()).toEqual(['B', 'F', 'L', 'R']);
+  });
+
+  it('exports all drawer widths from grouped sourceRows (602437-style)', () => {
+    const sourceRows = [
+      drawerRow('F', '51', '8.75', '6'),
+      drawerRow('B', '51', '8.75', '6'),
+      drawerRow('L', '51', '15.063', '6'),
+      drawerRow('R', '51', '15.063', '6'),
+      drawerRow('F', '51/2', '8.75', '8.5', '8.437', 2),
+      drawerRow('B', '51/2', '8.75', '8.5', '8.437', 2),
+      drawerRow('L', '51/2', '15.063', '8.5', '8.5', 2),
+      drawerRow('R', '51/2', '15.063', '8.5', '8.5', 2),
+      drawerRow('F', '15', '10.25', '8.5', '8.437'),
+      drawerRow('B', '15', '10.25', '8.5', '8.437'),
+      drawerRow('L', '15', '21.063', '8.5', '8.5'),
+      drawerRow('R', '15', '21.063', '8.5', '8.5'),
+    ];
+    normalizeTopEdges(sourceRows, extendedCols);
+    defaultFrontTopEdgesFromBacks(sourceRows, extendedCols);
+    const groups = splitDataIntoGroups(sourceRows, extendedCols, 999, {}, false);
+    const batch = Object.values(groups)[0];
+    const exportRows = getCutListRowsForExport(
+      getBatchExportRows(batch),
+      extendedCols,
+      true,
+      headers
+    );
+    const { rows } = filterForExport(headers, exportRows);
+    const widths = new Set(rows.map((r) => r[extendedCols.width]));
+    expect(widths.has('6')).toBe(true);
+    expect(widths.has('9')).toBe(true);
+    const totalQty = rows.reduce((sum, r) => sum + (parseInt(r[extendedCols.quantity]) || 0), 0);
+    expect(totalQty).toBe(16);
   });
 });
