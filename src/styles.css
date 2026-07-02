@@ -1573,7 +1573,6 @@ tbody tr:hover td {
 
 /* ── Cut List print sheet ─────────────────────────────── */
 .cutlist-print-sheet {
-  page: cutlist;
   width: 100%;
 }
 
@@ -1614,17 +1613,15 @@ tbody tr:hover td {
 
 .cutlist-print-columns {
   column-count: 2;
-  column-gap: 0.06in;
+  column-gap: 0.12in;
   column-fill: auto;
   width: 100%;
 }
 
 .cutlist-order-block {
-  margin-bottom: 0.05in;
-  display: inline-block;
+  margin-bottom: 0.06in;
   width: 100%;
-  break-inside: avoid-column;
-  page-break-inside: avoid;
+  display: block;
 }
 
 .cutlist-order-block .cutlist-order-title {
@@ -1757,18 +1754,25 @@ tbody tr:hover td {
 @media print {
   @page {
     size: letter landscape;
-    margin: 0.22in;
-  }
-
-  @page cutlist {
-    size: letter landscape;
     margin: 0.12in;
   }
 
+  html,
   body {
     background: #fff !important;
     color: #000 !important;
     padding: 0 !important;
+    margin: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  body.print-active .app-shell {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    min-height: 0 !important;
   }
 
   .app-header,
@@ -1802,11 +1806,29 @@ tbody tr:hover td {
 
   body.print-active #all-print-container {
     display: block !important;
+    position: static !important;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-batch-card {
+    margin: 0;
+    padding: 0;
+    break-inside: auto;
+    page-break-inside: auto;
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  /* New page only between batches when printing all cut lists. */
+  body.print-all-cutlists-active .print-batch-card:not(:last-child) {
+    break-after: page;
+    page-break-after: always;
   }
 
   .print-batch-header {
-    margin-bottom: 0.08in;
-    /* Never strand the banner alone: keep it with the first order card. */
+    margin-bottom: 0.06in;
     break-after: avoid;
     page-break-after: avoid;
     break-inside: avoid;
@@ -1821,20 +1843,26 @@ tbody tr:hover td {
     padding: 2px 5px;
   }
 
-  /*
-   * Each batch prints on its own sheet (never mixed with another batch). A
-   * batch still spills to additional pages when it runs past the bottom, and
-   * its header (thead) repeats on each of those pages.
-   */
-  body.print-active .print-batch-card {
-    page-break-after: always;
+  .cutlist-print-columns {
+    column-count: 2;
+    column-gap: 0.12in;
+    column-fill: auto;
   }
 
-  body.print-active .print-batch-card:last-child {
+  .cutlist-order-block {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.06in;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .cutlist-order-title {
+    break-after: avoid;
     page-break-after: avoid;
   }
 
-  /* Cut-list table: repeat header on every page, never split a row. */
+  /* Repeat column headers when a table spans pages. */
   .cutlist-table thead {
     display: table-header-group;
   }
@@ -1842,33 +1870,6 @@ tbody tr:hover td {
   .cutlist-table tr {
     break-inside: avoid;
     page-break-inside: avoid;
-  }
-
-  body.print-cutlist-active:not(.print-all-cutlists-active) .print-batch-card {
-    page-break-after: avoid;
-  }
-
-  body.print-all-cutlists-active .print-batch-card {
-    page-break-after: always;
-  }
-
-  body.print-all-cutlists-active .print-batch-card:last-child {
-    page-break-after: avoid;
-  }
-
-  .cutlist-print-columns {
-    column-count: 2;
-    column-fill: auto;
-  }
-
-  .cutlist-order-block {
-    break-inside: avoid-column;
-    page-break-inside: avoid;
-  }
-
-  .cutlist-order-title {
-    break-after: avoid;
-    page-break-after: avoid;
   }
 }
 
