@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCutListPrintCard,
+  splitRowsForPrintColumns,
   PRINT_CUTLIST_COLUMNS,
 } from '../src/ui/cutListPrintView.js';
 import { mapHeaders } from '../src/logic/headers.js';
@@ -34,8 +35,25 @@ function drawerRows(order, label, length, drawerWidth, qty = 4) {
   ]);
 }
 
+describe('splitRowsForPrintColumns', () => {
+  it('fills column 1 top-to-bottom before column 2', () => {
+    const rows = Array.from({ length: 32 }, (_, i) => ({ id: i + 1 }));
+    const chunks = splitRowsForPrintColumns(rows, 4);
+    expect(chunks).toHaveLength(4);
+    expect(chunks[0]).toHaveLength(8);
+    expect(chunks[1]).toHaveLength(8);
+    expect(chunks[2]).toHaveLength(8);
+    expect(chunks[3]).toHaveLength(8);
+    expect(chunks.flat().map((r) => r.id)).toEqual(rows.map((r) => r.id));
+  });
+
+  it('uses fewer columns when there are fewer rows', () => {
+    expect(splitRowsForPrintColumns([{ id: 1 }, { id: 2 }], 4)).toEqual([[{ id: 1 }], [{ id: 2 }]]);
+  });
+});
+
 describe('buildCutListPrintCard', () => {
-  it('renders vertically flowing row columns per order for print', () => {
+  it('renders one self-contained table per print column with its own header', () => {
     const batch = {
       materialName: 'PF: 12MM Baltic Birch Ply',
       topEdge: 'PVC',
@@ -49,33 +67,31 @@ describe('buildCutListPrintCard', () => {
     };
 
     const html = buildCutListPrintCard('MDF_PVC_602479', batch, cols, null, PRINT_CUTLIST_COLUMNS);
-    expect(html).toContain('cutlist-print-flow');
-    expect(html).toContain('cutlist-order-flow');
-    expect(html).toContain('cutlist-flow-row');
-    expect(html).toContain('cutlist-flow-header');
-    expect(html).not.toContain('cutlist-order-columns');
+    expect(html).toContain('cutlist-order-columns');
+    expect(html).not.toContain('cutlist-order-flow');
     expect(html.match(/cutlist-order-block/g)?.length).toBe(2);
+    expect(html.match(/<thead>/g)?.length).toBe(2);
     expect(html).toContain('Order 602479');
     expect(html).toContain('Order 602485');
   });
 
-  it('uses four CSS columns for large orders so rows flow top-to-bottom', () => {
+  it('splits a large order into four aligned tables for print', () => {
     const sourceRows = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 32; i++) {
       sourceRows.push(...drawerRows('602504', String(i + 1), String(20 + i), '9', 4));
     }
     const batch = {
       materialName: 'PF: 12MM Baltic Birch Ply',
       topEdge: 'PVC',
-      totalBoxes: 12,
+      totalBoxes: 32,
       sortedOrders: ['602504'],
-      orderColTotals: { 602504: 12 },
+      orderColTotals: { 602504: 32 },
       sourceRows,
     };
 
     const html = buildCutListPrintCard('TEST', batch, cols, null, 4);
-    expect(html).toContain('--cutlist-print-cols: 4');
-    expect(html.match(/cutlist-flow-row/g)?.length).toBe(12);
-    expect(html.match(/cutlist-order-flow/g)?.length).toBe(1);
+    expect(html.match(/class="cutlist-order-column"/g)?.length).toBe(4);
+    expect(html.match(/cutlist-table--flow/g)?.length).toBe(4);
+    expect(html.match(/<thead>/g)?.length).toBe(4);
   });
 });

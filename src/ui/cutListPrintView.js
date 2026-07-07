@@ -69,69 +69,112 @@ function buildPrintHeaderBanner(batchKey, batch, colIndices, position = null) {
   `;
 }
 
-function flowGridClass(hasGroup) {
-  return hasGroup ? 'cutlist-flow-grid cutlist-flow-grid--group' : 'cutlist-flow-grid';
-}
-
-function renderCutListFlowHeader(hasGroup) {
+function renderCutListTableHead(hasGroup) {
   return `
-    <div class="${flowGridClass(hasGroup)} cutlist-flow-header">
-      ${hasGroup ? '<span class="cutlist-flow-cell cutlist-flow-head">Grp</span>' : ''}
-      <span class="cutlist-flow-cell cutlist-flow-head">W</span>
-      <span class="cutlist-flow-cell cutlist-flow-head">F / B</span>
-      <span class="cutlist-flow-cell cutlist-flow-head">L / R</span>
-      <span class="cutlist-flow-cell cutlist-flow-head">Bx</span>
-      <span class="cutlist-flow-cell cutlist-flow-head">Pcs</span>
-      <span class="cutlist-flow-cell cutlist-flow-head cutlist-flow-check" aria-hidden="true"></span>
-    </div>`;
+      <colgroup>
+        ${hasGroup ? '<col class="cutlist-col-grp">' : ''}
+        <col class="cutlist-col-width">
+        <col class="cutlist-col-length">
+        <col class="cutlist-col-length">
+        <col class="cutlist-col-count">
+        <col class="cutlist-col-count">
+        <col class="cutlist-col-check">
+      </colgroup>
+      <thead>
+        <tr class="cutlist-columns-row">
+          ${hasGroup ? '<th>Grp</th>' : ''}
+          <th>W</th>
+          <th>F / B</th>
+          <th>L / R</th>
+          <th>Bx</th>
+          <th>Pcs</th>
+          <th class="cutlist-check-col" aria-label="Check"></th>
+        </tr>
+      </thead>`;
 }
 
-function renderCutListFlowRow(r, hasGroup, altClass) {
+function renderCutListDataRow(r, hasGroup, altClass) {
   return `
-    <div class="${flowGridClass(hasGroup)} cutlist-flow-row${altClass}">
-      ${hasGroup ? `<span class="cutlist-flow-cell cutlist-group${r.special ? ' cutlist-group-special' : ''}">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</span>` : ''}
-      <span class="cutlist-flow-cell cutlist-dim">${escapeHTML(r.width)}"</span>
-      <span class="cutlist-flow-cell cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</span>
-      <span class="cutlist-flow-cell cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</span>
-      <span class="cutlist-flow-cell cutlist-qty"><b>${r.boxes}</b></span>
-      <span class="cutlist-flow-cell cutlist-qty"><b>${r.parts}</b></span>
-      <span class="cutlist-flow-cell cutlist-check"><span class="print-check" aria-hidden="true"></span></span>
-    </div>`;
+      <tr class="cutlist-data-row${altClass}">
+        ${hasGroup ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</td>` : ''}
+        <td class="cutlist-dim">${escapeHTML(r.width)}"</td>
+        <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
+        <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
+        <td class="cutlist-qty"><b>${r.boxes}</b></td>
+        <td class="cutlist-qty"><b>${r.parts}</b></td>
+        <td class="cutlist-check"><span class="print-check" aria-hidden="true"></span></td>
+      </tr>`;
 }
 
-function renderCutListFlowRows(rows, hasGroup) {
+/**
+ * Fill print columns top-to-bottom: column 1 gets the first chunk of rows,
+ * column 2 the next chunk, and so on (reading order down then across).
+ */
+export function splitRowsForPrintColumns(rows, columnCount = 4) {
+  if (!rows?.length) return [];
+  const cols = Math.min(columnCount, rows.length);
+  const perCol = Math.ceil(rows.length / cols);
+  const chunks = [];
+  for (let c = 0; c < cols; c++) {
+    const chunk = rows.slice(c * perCol, (c + 1) * perCol);
+    if (chunk.length) chunks.push(chunk);
+  }
+  return chunks;
+}
+
+function renderCutListTableBody(rows, hasGroup) {
   let rowOrdinal = 0;
   let html = '';
   rows.forEach((r) => {
     const altClass = rowOrdinal % 2 === 1 ? ' cutlist-row-alt' : '';
     rowOrdinal++;
-    html += renderCutListFlowRow(r, hasGroup, altClass);
+    html += renderCutListDataRow(r, hasGroup, altClass);
   });
   return html;
+}
+
+function renderCutListColumnTable(rows, hasGroup) {
+  return `
+      <table class="cutlist-table cutlist-table--flow" cellspacing="0">
+        ${renderCutListTableHead(hasGroup)}
+        <tbody>${renderCutListTableBody(rows, hasGroup)}</tbody>
+      </table>`;
 }
 
 function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial, printColumns) {
   const specialMark = section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
   const boxSummary = formatOrderCutListBoxSummary(section.order, batch, colIndices);
   const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
+  const rowChunks = splitRowsForPrintColumns(section.rows, printColumns);
+  const columns = rowChunks
+    .map(
+      (chunk) => `
+      <div class="cutlist-order-column">
+        ${renderCutListColumnTable(chunk, hasGroup)}
+      </div>`
+    )
+    .join('');
 
   return `
     <div class="cutlist-order-block">
       <div class="cutlist-order-title">Order ${escapeHTML(section.order)}${boxMark}${specialMark}</div>
-      ${renderCutListFlowHeader(hasGroup)}
-      <div class="cutlist-order-flow" style="--cutlist-print-cols: ${printColumns}">
-        ${renderCutListFlowRows(section.rows, hasGroup)}
+      <div class="cutlist-order-columns">
+        ${columns}
       </div>
     </div>`;
 }
 
-function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, printColumns) {
+function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, printColumns) {
   if (!sections.length) {
     return `<div class="cutlist-order-block">
-      ${renderCutListFlowHeader(hasGroup)}
-      <div class="cutlist-order-flow" style="--cutlist-print-cols: 1">
-        <div class="${flowGridClass(hasGroup)} cutlist-flow-row">
-          <span class="cutlist-flow-cell cutlist-cell-empty" style="grid-column: 1 / -1;">No cut-list rows available.</span>
+      <div class="cutlist-order-columns">
+        <div class="cutlist-order-column">
+          <table class="cutlist-table cutlist-table--flow" cellspacing="0">
+            ${renderCutListTableHead(hasGroup)}
+            <tbody>
+              <tr><td colspan="${colCount}" class="cutlist-cell-empty" style="padding:1rem;">No cut-list rows available.</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>`;
@@ -152,6 +195,7 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
   const sections = getCutListPrintSections(batch, colIndices);
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
+  const colCount = 6 + (hasGroup ? 1 : 0);
 
-  return `<div class="cutlist-print-sheet">${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, printColumns)}</div></div>`;
+  return `<div class="cutlist-print-sheet">${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, printColumns)}</div></div>`;
 }
