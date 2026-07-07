@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildCutListPrintCard } from '../src/ui/cutListPrintView.js';
+import {
+  buildCutListPrintCard,
+  splitRowsForPrintColumns,
+  PRINT_CUTLIST_COLUMNS,
+} from '../src/ui/cutListPrintView.js';
 import { mapHeaders } from '../src/logic/headers.js';
 
 const cols = mapHeaders([
@@ -31,8 +35,24 @@ function drawerRows(order, label, length, drawerWidth, qty = 4) {
   ]);
 }
 
+describe('splitRowsForPrintColumns', () => {
+  it('splits rows top-to-bottom across four columns', () => {
+    const rows = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ id: n }));
+    expect(splitRowsForPrintColumns(rows, 4)).toEqual([
+      [{ id: 1 }, { id: 2 }],
+      [{ id: 3 }, { id: 4 }],
+      [{ id: 5 }, { id: 6 }],
+      [{ id: 7 }, { id: 8 }],
+    ]);
+  });
+
+  it('uses fewer columns when there are fewer rows', () => {
+    expect(splitRowsForPrintColumns([{ id: 1 }, { id: 2 }], 4)).toEqual([[{ id: 1 }], [{ id: 2 }]]);
+  });
+});
+
 describe('buildCutListPrintCard', () => {
-  it('renders one table per order in a fluid-flow container for the batch', () => {
+  it('renders parallel table columns per order for print', () => {
     const batch = {
       materialName: 'PF: 12MM Baltic Birch Ply',
       topEdge: 'PVC',
@@ -45,11 +65,33 @@ describe('buildCutListPrintCard', () => {
       ],
     };
 
-    const html = buildCutListPrintCard('MDF_PVC_602479', batch, cols);
+    const html = buildCutListPrintCard('MDF_PVC_602479', batch, cols, null, PRINT_CUTLIST_COLUMNS);
     expect(html).toContain('cutlist-print-flow');
+    expect(html).toContain('cutlist-order-columns');
     expect(html.match(/cutlist-order-block/g)?.length).toBe(2);
     expect(html.match(/cutlist-table--flow/g)?.length).toBe(2);
     expect(html).toContain('Order 602479');
     expect(html).toContain('Order 602485');
+  });
+
+  it('splits a large order into four side-by-side tables', () => {
+    const sourceRows = [];
+    for (let i = 0; i < 12; i++) {
+      sourceRows.push(
+        ...drawerRows('602504', String(i + 1), String(20 + i), '9', 4)
+      );
+    }
+    const batch = {
+      materialName: 'PF: 12MM Baltic Birch Ply',
+      topEdge: 'PVC',
+      totalBoxes: 12,
+      sortedOrders: ['602504'],
+      orderColTotals: { 602504: 12 },
+      sourceRows,
+    };
+
+    const html = buildCutListPrintCard('TEST', batch, cols, null, 4);
+    expect(html.match(/class="cutlist-order-column"/g)?.length).toBe(4);
+    expect(html.match(/cutlist-table--flow/g)?.length).toBe(4);
   });
 });

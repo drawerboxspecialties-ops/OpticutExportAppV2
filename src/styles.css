@@ -1612,10 +1612,41 @@ tbody tr:hover td {
 }
 
 .cutlist-print-flow {
-  column-count: 2;
-  column-gap: 0.12in;
-  column-fill: auto;
   width: 100%;
+}
+
+.cutlist-order-columns {
+  display: grid;
+  grid-template-columns: repeat(var(--cutlist-print-cols, 4), minmax(0, 1fr));
+  gap: 0.08in;
+  width: 100%;
+}
+
+.cutlist-order-column {
+  min-width: 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.cutlist-order-columns .cutlist-table {
+  font-size: 10px;
+}
+
+.cutlist-order-columns .cutlist-table th {
+  font-size: 9px;
+  padding: 2px 3px;
+}
+
+.cutlist-order-columns .cutlist-table td {
+  padding: 2px 3px;
+}
+
+.cutlist-order-columns .cutlist-dim {
+  font-size: 9px;
+}
+
+.cutlist-order-columns .cutlist-qty {
+  font-size: 9px;
 }
 
 .cutlist-table--flow {
@@ -1630,11 +1661,8 @@ tbody tr:hover td {
 .cutlist-order-block {
   margin-bottom: 0.06in;
   width: 100%;
-  display: inline-block;
   break-inside: avoid;
   page-break-inside: avoid;
-  -webkit-column-break-inside: avoid;
-  vertical-align: top;
 }
 
 .cutlist-order-block .cutlist-order-title {
@@ -1803,7 +1831,8 @@ tbody tr:hover td {
   .stats-section,
   .stats-bar,
   .error-notification,
-  .demo-section {
+  .demo-section,
+  .toast-container {
     display: none !important;
   }
 
@@ -1857,20 +1886,18 @@ tbody tr:hover td {
   }
 
   .cutlist-print-flow {
-    column-count: 2;
-    column-gap: 0.12in;
-    column-fill: auto;
     width: 100%;
   }
 
+  .print-batch-card .print-batch-header + .cutlist-print-flow {
+    break-before: avoid;
+    page-break-before: avoid;
+  }
+
   .cutlist-order-block {
-    display: inline-block;
-    width: 100%;
     margin-bottom: 0.06in;
     break-inside: avoid;
     page-break-inside: avoid;
-    -webkit-column-break-inside: avoid;
-    vertical-align: top;
   }
 
   .cutlist-order-title {

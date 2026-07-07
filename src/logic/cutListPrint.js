@@ -71,6 +71,49 @@ function sumPartQtys(parts) {
   return parts.reduce((sum, p) => sum + p.qty, 0);
 }
 
+function sortFrontParts(fronts) {
+  return fronts.slice().sort((a, b) => {
+    const swDiff = b.stackWidthSort - a.stackWidthSort;
+    if (swDiff !== 0) return swDiff;
+    return getFractionalSortValue(b.dim.length) - getFractionalSortValue(a.dim.length);
+  });
+}
+
+function buildBoxLineFromFront(lead, bucket) {
+  return {
+    order: bucket.order,
+    groupId: bucket.groupId,
+    lineLabel: bucket.lineLabel,
+    special: bucket.special,
+    width: lead.stackWidth,
+    stackWidthSort: lead.stackWidthSort,
+    front: { ...lead.dim },
+    back: emptySide(),
+    left: emptySide(),
+    right: emptySide(),
+    parts: 0,
+  };
+}
+
+function pairDrawerSides(line, lead, backs, lefts, rights, usedBack, usedLeft, usedRight) {
+  line.parts = lead.qty;
+  const back = pickClosestWPart(backs, usedBack, lead, { requireLength: true });
+  if (back) {
+    setSide(line.back, back.dim);
+    line.parts += back.qty;
+  }
+  const leftPart = pickClosestWPart(lefts, usedLeft, lead);
+  if (leftPart) {
+    setSide(line.left, leftPart.dim);
+    line.parts += leftPart.qty;
+  }
+  const rightPart = pickClosestWPart(rights, usedRight, lead);
+  if (rightPart) {
+    setSide(line.right, rightPart.dim);
+    line.parts += rightPart.qty;
+  }
+}
+
 function pickClosestWPart(list, used, lead, { requireLength } = {}) {
   let best = null;
   let bestIdx = -1;
@@ -229,64 +272,37 @@ export function getCutListPrintSections(batch, colIndices) {
       frontGroups.get(key).push(p);
     });
 
-    const frontKeys = Array.from(frontGroups.keys()).sort((a, b) => {
-      const [, lA, swA] = a.split('|');
-      const [, lB, swB] = b.split('|');
-      const swDiff = getFractionalSortValue(swB) - getFractionalSortValue(swA);
-      if (swDiff !== 0) return swDiff;
-      return getFractionalSortValue(lB) - getFractionalSortValue(lA);
-    });
-
     const usedBack = new Set();
     const usedLeft = new Set();
     const usedRight = new Set();
 
-    frontKeys.forEach((key) => {
-      const group = frontGroups.get(key);
+    if (frontGroups.size === 1) {
+      const group = frontGroups.values().next().value;
       const lead = group[0];
-      const line = {
-        order: bucket.order,
-        groupId: bucket.groupId,
-        lineLabel: bucket.lineLabel,
-        special: bucket.special,
-        width: lead.stackWidth,
-        stackWidthSort: lead.stackWidthSort,
-        front: { ...lead.dim },
-        back: emptySide(),
-        left: emptySide(),
-        right: emptySide(),
-        parts: frontKeys.length === 1 ? sumPartQtys(bucket.parts) : sumPartQtys(group),
-      };
+      const line = buildBoxLineFromFront(lead, bucket);
+      line.parts = sumPartQtys(bucket.parts);
 
       const back = pickClosestWPart(backs, usedBack, lead, { requireLength: true });
-      if (back) {
-        setSide(line.back, back.dim);
-        if (frontKeys.length > 1) line.parts += back.qty;
-      }
+      if (back) setSide(line.back, back.dim);
 
-      const pickSide = (list, used) => {
-        if (frontKeys.length === 1) {
-          const part = list.find((_, i) => !used.has(i));
-          if (part) {
-            used.add(list.indexOf(part));
-            return part;
-          }
-          return null;
-        }
-        return pickClosestWPart(list, used, lead);
+      const pickFirstUnused = (list, used) => {
+        const idx = list.findIndex((_, i) => !used.has(i));
+        if (idx === -1) return null;
+        used.add(idx);
+        return list[idx];
       };
+      const leftPart = pickFirstUnused(lefts, usedLeft);
+      const rightPart = pickFirstUnused(rights, usedRight);
+      if (leftPart) setSide(line.left, leftPart.dim);
+      if (rightPart) setSide(line.right, rightPart.dim);
 
-      const leftPart = pickSide(lefts, usedLeft);
-      const rightPart = pickSide(rights, usedRight);
-      if (leftPart) {
-        setSide(line.left, leftPart.dim);
-        if (frontKeys.length > 1) line.parts += leftPart.qty;
-      }
-      if (rightPart) {
-        setSide(line.right, rightPart.dim);
-        if (frontKeys.length > 1) line.parts += rightPart.qty;
-      }
+      boxRows.push(line);
+      return;
+    }
 
+    sortFrontParts(fronts).forEach((lead) => {
+      const line = buildBoxLineFromFront(lead, bucket);
+      pairDrawerSides(line, lead, backs, lefts, rights, usedBack, usedLeft, usedRight);
       boxRows.push(line);
     });
   });

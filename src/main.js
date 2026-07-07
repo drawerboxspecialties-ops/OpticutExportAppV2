@@ -15,7 +15,7 @@ import { getCutListRowsForExport, getBatchExportRows } from './logic/exportRows.
 import { formatDecimalForDisplay } from './logic/widths.js';
 import { loadSettings, saveSettings, rememberFile, clearStoredSettings } from './logic/settingsStore.js';
 import { DEMO_CSV } from './logic/demoData.js';
-import { buildCutListPrintCard } from './ui/cutListPrintView.js';
+import { buildCutListPrintCard, PRINT_ALL_CUTLIST_COLUMNS, PRINT_CUTLIST_COLUMNS } from './ui/cutListPrintView.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -868,7 +868,13 @@ function triggerPrintCutList() {
     () => {
       const cardDiv = document.createElement('div');
       cardDiv.className = 'print-batch-card';
-      cardDiv.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices);
+      cardDiv.innerHTML = buildCutListPrintCard(
+        state.activeGroupKey,
+        batch,
+        state.colIndices,
+        null,
+        PRINT_CUTLIST_COLUMNS
+      );
       return cardDiv;
     },
     ['print-active', 'print-cutlist-active']
@@ -885,10 +891,13 @@ function printAllCutLists() {
         const batch = state.splitGroups[batchKey];
         const cardDiv = document.createElement('div');
         cardDiv.className = 'print-batch-card';
-        cardDiv.innerHTML = buildCutListPrintCard(batchKey, batch, state.colIndices, {
-          index: idx + 1,
-          count: keys.length,
-        });
+        cardDiv.innerHTML = buildCutListPrintCard(
+          batchKey,
+          batch,
+          state.colIndices,
+          { index: idx + 1, count: keys.length },
+          PRINT_ALL_CUTLIST_COLUMNS
+        );
         fragment.appendChild(cardDiv);
       });
       return fragment;
