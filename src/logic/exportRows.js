@@ -57,6 +57,107 @@ function addCountToMap(map, key, qty) {
 }
 
 /**
+ * Merge key for pairing opposite sides: all columns except PartName, Quantity, and Label.
+ * @param {string[]} exportRow
+ * @param {object} colIndices
+ * @param {number[]} [excludedIndices=[]]
+ * @returns {string}
+ */
+export function getExportCombineKey(exportRow, colIndices, excludedIndices = []) {
+  const excluded = new Set([
+    ...excludedIndices,
+    colIndices.partName,
+    colIndices.quantity,
+    colIndices.label,
+  ]);
+  return exportRow
+    .map((value, idx) => {
+      if (excluded.has(idx)) return '';
+      return String(value ?? '').trim();
+    })
+    .join('|');
+}
+
+function normalizeExportPartSide(partName) {
+  const part = String(partName ?? '').trim().toUpperCase();
+  if (part.startsWith('F') || part.includes('FRONT')) return 'F';
+  if (part.startsWith('B') || part.includes('BACK')) return 'B';
+  if (part.startsWith('L') || part.includes('LEFT')) return 'L';
+  if (part.startsWith('R') || part.includes('RIGHT')) return 'R';
+  return part;
+}
+
+function mergeLabelValues(labelA, labelB) {
+  const a = String(labelA ?? '').trim();
+  const b = String(labelB ?? '').trim();
+  if (!a) return b;
+  if (!b || a === b) return a;
+  return a;
+}
+
+/**
+ * When F and B (or L and R) share the same exported Width and Length, emit one row
+ * with PartName F/B or L/R and summed Quantity.
+ *
+ * @param {string[][]} rows
+ * @param {object} colIndices
+ * @param {number[]} [excludedIndices=[]]
+ * @returns {string[][]}
+ */
+export function combineOppositePartSides(rows, colIndices, excludedIndices = []) {
+  if (colIndices.partName === -1 || colIndices.length === -1) return rows;
+
+  const mergePair = (inputRows, sideA, sideB, combinedName) => {
+    const passthrough = [];
+    /** @type {Map<string, { row: string[], [key: string]: string[] }>} */
+    const groups = new Map();
+
+    inputRows.forEach((row) => {
+      const side = normalizeExportPartSide(row[colIndices.partName]);
+      if (side !== sideA && side !== sideB) {
+        passthrough.push(row);
+        return;
+      }
+
+      const key = getExportCombineKey(row, colIndices, excludedIndices);
+      if (!groups.has(key)) {
+        groups.set(key, { row: [...row] });
+      }
+      groups.get(key)[side] = row;
+    });
+
+    const combined = [];
+    groups.forEach((bucket) => {
+      const rowA = bucket[sideA];
+      const rowB = bucket[sideB];
+      if (rowA && rowB) {
+        const mergedRow = [...bucket.row];
+        mergedRow[colIndices.partName] = combinedName;
+        const qtyA = parseInt(rowA[colIndices.quantity]) || 0;
+        const qtyB = parseInt(rowB[colIndices.quantity]) || 0;
+        mergedRow[colIndices.quantity] = String(qtyA + qtyB);
+        if (colIndices.label !== -1 && colIndices.label < mergedRow.length) {
+          mergedRow[colIndices.label] = mergeLabelValues(
+            rowA[colIndices.label],
+            rowB[colIndices.label]
+          );
+        }
+        combined.push(mergedRow);
+        return;
+      }
+      if (rowA) combined.push(rowA);
+      if (rowB) combined.push(rowB);
+    });
+
+    return [...passthrough, ...combined];
+  };
+
+  let result = mergePair(rows, 'F', 'B', 'F/B');
+  result = mergePair(result, 'L', 'R', 'L/R');
+  return result;
+}
+
+/**
  * Rows to feed into export: always prefer unmerged source rows so part sides and
  * distinct drawer sizes are not lost before rounded-width merging.
  *
@@ -109,7 +210,7 @@ export function getCutListRowsForExport(rows, colIndices, roundExportWidths, hea
       addCountToMap(merged[key].originalWidths, originalWidth, qty);
     });
 
-    return Object.values(merged).map((group) => {
+    const roundedRows = Object.values(merged).map((group) => {
       const exportRow = group.row;
       if (colIndices.quantity !== -1 && colIndices.quantity < exportRow.length) {
         exportRow[colIndices.quantity] = String(group.qty);
@@ -129,7 +230,9 @@ export function getCutListRowsForExport(rows, colIndices, roundExportWidths, hea
       }
       return exportRow;
     });
+    return combineOppositePartSides(roundedRows, colIndices, excludedIndices);
   }
 
-  return rows.map((row) => prepareBaseExportRow(row, colIndices, false));
+  const preparedRows = rows.map((row) => prepareBaseExportRow(row, colIndices, false));
+  return combineOppositePartSides(preparedRows, colIndices, excludedIndices);
 }

@@ -4,6 +4,7 @@ import {
   getRoundedExportMergeKey,
   getCutListRowsForExport,
   getBatchExportRows,
+  getExportCombineKey,
 } from '../src/logic/exportRows.js';
 import { mapHeaders, filterForExport } from '../src/logic/headers.js';
 import { splitDataIntoGroups, normalizeTopEdges, defaultFrontTopEdgesFromBacks } from '../src/logic/grouping.js';
@@ -176,7 +177,7 @@ describe('getCutListRowsForExport — preserves part sides', () => {
     ];
   }
 
-  it('keeps F/B/L/R as separate export lines before identical-dimension merging', () => {
+  it('combines F/B and L/R when exported Width and Length match', () => {
     const sourceRows = [
       drawerRow('F', '51', '8.75', '6', '5.687'),
       drawerRow('B', '51', '8.75', '6', '5.687'),
@@ -184,8 +185,20 @@ describe('getCutListRowsForExport — preserves part sides', () => {
       drawerRow('R', '51', '15.063', '6', '5.75'),
     ];
     const out = getCutListRowsForExport(sourceRows, extendedCols, true, headers);
-    const parts = out.map((r) => r[extendedCols.partName]);
-    expect(parts.sort()).toEqual(['B', 'F', 'L', 'R']);
+    const parts = out.map((r) => r[extendedCols.partName]).sort();
+    expect(parts).toEqual(['F/B', 'L/R']);
+    expect(out.find((r) => r[extendedCols.partName] === 'F/B')[extendedCols.quantity]).toBe('2');
+    expect(out.find((r) => r[extendedCols.partName] === 'L/R')[extendedCols.quantity]).toBe('2');
+  });
+
+  it('keeps F and B separate when exported Width differs', () => {
+    const sourceRows = [
+      drawerRow('F', '1', '13.375', '4', '3.437'),
+      drawerRow('B', '1', '13.375', '3', '2.437'),
+    ];
+    const out = getCutListRowsForExport(sourceRows, extendedCols, true, headers);
+    const parts = out.map((r) => r[extendedCols.partName]).sort();
+    expect(parts).toEqual(['B', 'F']);
   });
 
   it('exports all drawer widths from grouped sourceRows (602437-style)', () => {
@@ -219,5 +232,18 @@ describe('getCutListRowsForExport — preserves part sides', () => {
     expect(widths.has('9')).toBe(true);
     const totalQty = rows.reduce((sum, r) => sum + (parseInt(r[extendedCols.quantity]) || 0), 0);
     expect(totalQty).toBe(16);
+    const partNames = new Set(rows.map((r) => r[extendedCols.partName]));
+    expect(partNames.has('F/B')).toBe(true);
+    expect(partNames.has('L/R')).toBe(true);
+  });
+});
+
+describe('combineOppositePartSides', () => {
+  it('builds a combine key without PartName, Quantity, or Label', () => {
+    const row = ['100', 'Mat', 'F', '', '20', '4', 'note', '6', 'PVC'];
+    const key = getExportCombineKey(row, cols);
+    expect(key).not.toContain('F');
+    expect(key).toContain('20');
+    expect(key).toContain('6');
   });
 });
