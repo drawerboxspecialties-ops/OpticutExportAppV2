@@ -1611,10 +1611,27 @@ tbody tr:hover td {
   font-size: 8px;
 }
 
+.cutlist-print-flow {
+  width: 100%;
+}
+
+.cutlist-table--flow {
+  margin-bottom: 0;
+}
+
+.cutlist-order-title-row td {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 900;
+  background: #e5e7eb;
+  color: #000 !important;
+  border-bottom: 1.5px solid #475569;
+  padding: 3px 5px;
+  letter-spacing: 0.01em;
+}
+
+/* Legacy order-block styles kept for any cached markup references. */
 .cutlist-print-columns {
-  column-count: 2;
-  column-gap: 0.12in;
-  column-fill: auto;
   width: 100%;
 }
 
@@ -1843,10 +1860,18 @@ tbody tr:hover td {
     padding: 2px 5px;
   }
 
-  .cutlist-print-columns {
-    column-count: 2;
-    column-gap: 0.12in;
-    column-fill: auto;
+  .cutlist-print-flow {
+    width: 100%;
+  }
+
+  .cutlist-order-title-row {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .cutlist-order-title-row td {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 
   .cutlist-order-block {
