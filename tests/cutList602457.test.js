@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getCutListPrintSections } from '../src/logic/cutListPrint.js';
 import { mapHeaders } from '../src/logic/headers.js';
-import { parseCSV } from '../src/logic/csv.js';
-import fs from 'node:fs';
-import path from 'node:path';
 
 const cols = mapHeaders([
   'OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge',
@@ -51,11 +48,26 @@ describe('602457 cut-list box totals', () => {
   });
 
   it('full order 602457 cut-list rows reconcile to 17 boxes', () => {
-    const csvPath = path.resolve('c:/Users/kovas/Downloads/OPTICUT.csv');
-    if (!fs.existsSync(csvPath)) return;
-    const { rows } = parseCSV(fs.readFileSync(csvPath, 'utf8'));
-    const orderRows = rows.filter((r) => r[cols.orderNumber] === '602457');
-    const sections = getCutListPrintSections({ sourceRows: orderRows }, cols);
+    const sourceRows = [
+      ...group1Rows602457(),
+      melamineRow('F', 10.375, 13.375, 1, '1', 2, 10.5),
+      melamineRow('B', 9.375, 13.375, 1, '1', 2, 9.5),
+      melamineRow('L', 10.438, 12, 1, '1', 2, 10.5),
+      melamineRow('R', 10.438, 12, 1, '1', 2, 10.5),
+      melamineRow('F', 10.375, 13.375, 4, '7. 8. 11. 12', 2, 10.5),
+      melamineRow('B', 9.375, 13.375, 4, '7. 8. 11. 12', 2, 9.5),
+      melamineRow('L', 10.438, 15, 4, '7. 8. 11. 12', 2, 10.5),
+      melamineRow('R', 10.438, 15, 4, '7. 8. 11. 12', 2, 10.5),
+      melamineRow('F', 2.687, 18.468, 2, '6. 13', 3, 3),
+      melamineRow('B', 2.687, 18.468, 2, '6. 13', 3, 3),
+      melamineRow('L', 2.75, 18, 2, '6. 13', 3, 3),
+      melamineRow('R', 2.75, 18, 2, '6. 13', 3, 3),
+    ];
+    for (let i = 16; i < 24; i++) {
+      sourceRows[i][cols.fileSlots] = '1" Letter: Front - Back';
+    }
+
+    const sections = getCutListPrintSections({ sourceRows }, cols);
     const cutRows = sections[0].rows;
     expect(cutRows.reduce((s, r) => s + r.parts, 0)).toBe(68);
     expect(cutRows.reduce((s, r) => s + r.boxes, 0)).toBe(17);

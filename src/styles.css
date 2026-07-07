@@ -1612,6 +1612,9 @@ tbody tr:hover td {
 }
 
 .cutlist-print-flow {
+  column-count: 2;
+  column-gap: 0.12in;
+  column-fill: auto;
   width: 100%;
 }
 
@@ -1619,18 +1622,7 @@ tbody tr:hover td {
   margin-bottom: 0;
 }
 
-.cutlist-order-title-row td {
-  text-align: left;
-  font-size: 10px;
-  font-weight: 900;
-  background: #e5e7eb;
-  color: #000 !important;
-  border-bottom: 1.5px solid #475569;
-  padding: 3px 5px;
-  letter-spacing: 0.01em;
-}
-
-/* Legacy order-block styles kept for any cached markup references. */
+/* Legacy alias */
 .cutlist-print-columns {
   width: 100%;
 }
@@ -1638,7 +1630,11 @@ tbody tr:hover td {
 .cutlist-order-block {
   margin-bottom: 0.06in;
   width: 100%;
-  display: block;
+  display: inline-block;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  vertical-align: top;
 }
 
 .cutlist-order-block .cutlist-order-title {
@@ -1861,25 +1857,20 @@ tbody tr:hover td {
   }
 
   .cutlist-print-flow {
+    column-count: 2;
+    column-gap: 0.12in;
+    column-fill: auto;
     width: 100%;
-  }
-
-  .cutlist-order-title-row {
-    break-after: avoid;
-    page-break-after: avoid;
-  }
-
-  .cutlist-order-title-row td {
-    break-after: avoid;
-    page-break-after: avoid;
   }
 
   .cutlist-order-block {
-    display: block;
+    display: inline-block;
     width: 100%;
     margin-bottom: 0.06in;
-    break-inside: auto;
-    page-break-inside: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    vertical-align: top;
   }
 
   .cutlist-order-title {
