@@ -177,7 +177,7 @@ describe('getCutListRowsForExport — preserves part sides', () => {
     ];
   }
 
-  it('combines F/B and L/R when exported Width and Length match', () => {
+  it('combines F+B as F and L+R as L when exported Width and Length match', () => {
     const sourceRows = [
       drawerRow('F', '51', '8.75', '6', '5.687'),
       drawerRow('B', '51', '8.75', '6', '5.687'),
@@ -186,9 +186,9 @@ describe('getCutListRowsForExport — preserves part sides', () => {
     ];
     const out = getCutListRowsForExport(sourceRows, extendedCols, true, headers);
     const parts = out.map((r) => r[extendedCols.partName]).sort();
-    expect(parts).toEqual(['F/B', 'L/R']);
-    expect(out.find((r) => r[extendedCols.partName] === 'F/B')[extendedCols.quantity]).toBe('2');
-    expect(out.find((r) => r[extendedCols.partName] === 'L/R')[extendedCols.quantity]).toBe('2');
+    expect(parts).toEqual(['F', 'L']);
+    expect(out.find((r) => r[extendedCols.partName] === 'F')[extendedCols.quantity]).toBe('2');
+    expect(out.find((r) => r[extendedCols.partName] === 'L')[extendedCols.quantity]).toBe('2');
   });
 
   it('keeps F and B separate when exported Width differs', () => {
@@ -233,8 +233,10 @@ describe('getCutListRowsForExport — preserves part sides', () => {
     const totalQty = rows.reduce((sum, r) => sum + (parseInt(r[extendedCols.quantity]) || 0), 0);
     expect(totalQty).toBe(16);
     const partNames = new Set(rows.map((r) => r[extendedCols.partName]));
-    expect(partNames.has('F/B')).toBe(true);
-    expect(partNames.has('L/R')).toBe(true);
+    expect(partNames.has('F')).toBe(true);
+    expect(partNames.has('L')).toBe(true);
+    expect(partNames.has('B')).toBe(false);
+    expect(partNames.has('R')).toBe(false);
   });
 });
 

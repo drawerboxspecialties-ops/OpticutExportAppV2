@@ -97,7 +97,7 @@ function mergeLabelValues(labelA, labelB) {
 
 /**
  * When F and B (or L and R) share the same exported Width and Length, emit one row
- * with PartName F/B or L/R and summed Quantity.
+ * with PartName F (front/back) or L (left/right) and summed Quantity.
  *
  * @param {string[][]} rows
  * @param {object} colIndices
@@ -152,8 +152,8 @@ export function combineOppositePartSides(rows, colIndices, excludedIndices = [])
     return [...passthrough, ...combined];
   };
 
-  let result = mergePair(rows, 'F', 'B', 'F/B');
-  result = mergePair(result, 'L', 'R', 'L/R');
+  let result = mergePair(rows, 'F', 'B', 'F');
+  result = mergePair(result, 'L', 'R', 'L');
   return result;
 }
 
