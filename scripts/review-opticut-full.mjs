@@ -35,6 +35,6 @@ for (const [key, batch] of Object.entries(groups).sort()) {
   }
   const html = buildCutListPrintCard(key, batch, colIndices, { index: 1, count: 4 });
   const orderBlocks = (html.match(/cutlist-order-block/g) || []).length;
-  const tables = (html.match(/cutlist-table--flow/g) || []).length;
-  console.log(`HTML: ${orderBlocks} order blocks, ${tables} tables`);
+  const tables = (html.match(/cutlist-flow-row/g) || []).length;
+  console.log(`HTML: ${orderBlocks} order blocks, ${tables} flow rows`);
 }

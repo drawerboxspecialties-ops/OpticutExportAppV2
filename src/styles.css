@@ -1615,38 +1615,72 @@ tbody tr:hover td {
   width: 100%;
 }
 
-.cutlist-order-columns {
-  display: grid;
-  grid-template-columns: repeat(var(--cutlist-print-cols, 4), minmax(0, 1fr));
-  gap: 0.08in;
+.cutlist-order-flow {
+  column-count: var(--cutlist-print-cols, 4);
+  column-gap: 0.1in;
+  column-fill: auto;
   width: 100%;
 }
 
-.cutlist-order-column {
-  min-width: 0;
+.cutlist-flow-grid {
+  display: grid;
+  grid-template-columns: 9% 1fr 1fr 8% 8% 6%;
+  width: 100%;
+  border-left: 1px solid #64748b;
+  border-right: 1px solid #64748b;
+}
+
+.cutlist-flow-grid--group {
+  grid-template-columns: 7% 9% 1fr 1fr 8% 8% 6%;
+}
+
+.cutlist-flow-header {
+  border: 1px solid #64748b;
+  border-bottom: 1.5px solid #475569;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.cutlist-flow-row {
+  display: inline-block;
+  width: 100%;
+  border-bottom: 1px solid #64748b;
   break-inside: avoid;
   page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
 }
 
-.cutlist-order-columns .cutlist-table {
-  font-size: 10px;
+.cutlist-flow-row.cutlist-row-alt {
+  background: #f3f4f6;
 }
 
-.cutlist-order-columns .cutlist-table th {
+.cutlist-flow-cell {
+  border-right: 1px solid #64748b;
+  text-align: center;
+  padding: 2px 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 9px;
+}
+
+.cutlist-flow-cell:last-child {
+  border-right: none;
+}
+
+.cutlist-flow-head {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: #e5e7eb;
   padding: 2px 3px;
 }
 
-.cutlist-order-columns .cutlist-table td {
-  padding: 2px 3px;
+.cutlist-flow-check {
+  min-width: 0;
 }
 
-.cutlist-order-columns .cutlist-dim {
-  font-size: 9px;
-}
-
-.cutlist-order-columns .cutlist-qty {
-  font-size: 9px;
+.cutlist-order-block .cutlist-flow-header {
+  margin-top: 0;
 }
 
 .cutlist-table--flow {
@@ -1661,8 +1695,8 @@ tbody tr:hover td {
 .cutlist-order-block {
   margin-bottom: 0.06in;
   width: 100%;
-  break-inside: avoid;
-  page-break-inside: avoid;
+  break-inside: auto;
+  page-break-inside: auto;
 }
 
 .cutlist-order-block .cutlist-order-title {
@@ -1894,25 +1928,32 @@ tbody tr:hover td {
     page-break-before: avoid;
   }
 
+  .cutlist-order-flow {
+    column-count: var(--cutlist-print-cols, 4);
+    column-gap: 0.1in;
+    column-fill: auto;
+  }
+
   .cutlist-order-block {
     margin-bottom: 0.06in;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .cutlist-flow-header {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .cutlist-flow-row {
     break-inside: avoid;
     page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
   }
 
   .cutlist-order-title {
     break-after: avoid;
     page-break-after: avoid;
-  }
-
-  /* Repeat column headers when a table spans pages. */
-  .cutlist-table thead {
-    display: table-header-group;
-  }
-
-  .cutlist-table tr {
-    break-inside: avoid;
-    page-break-inside: avoid;
   }
 }
 
