@@ -117,33 +117,25 @@ function renderCutListTableBody(rows, hasGroup) {
   return html;
 }
 
-/** Side-by-side print tables per order (landscape letter). */
+/** Always use 3 side-by-side tables per order. */
 export const PRINT_TABLES_PER_ORDER = 3;
 
-/** Compact rows that fit in one print column before flowing to the next. */
-export function rowsPerPrintColumn(orderCountOnBatch = 1) {
-  return orderCountOnBatch >= 2 ? 12 : 24;
-}
-
 /**
- * Fill table 1 top-to-bottom, then table 2, then table 3 (up to maxTables).
- * Small orders use one table; medium orders split only when they exceed one column.
+ * Always split rows into exactly 3 tables. Rows fill down table 1 first,
+ * then table 2, then table 3. Reading order: down column 1, down column 2, down column 3.
  */
-export function splitRowsForPrintTables(rows, maxTables = 3, orderCountOnBatch = 1) {
-  if (!rows?.length) return [];
-  if (rows.length <= 10) return [rows];
-
-  const cap = rowsPerPrintColumn(orderCountOnBatch);
+export function splitRowsForPrintTables(rows, tableCount = 3) {
+  if (!rows?.length) return [[], [], []].slice(0, tableCount);
+  
+  const perTable = Math.ceil(rows.length / tableCount);
   const chunks = [];
-
-  for (let i = 0; i < rows.length && chunks.length < maxTables; i += cap) {
-    if (chunks.length === maxTables - 1) {
-      chunks.push(rows.slice(i));
-      break;
-    }
-    chunks.push(rows.slice(i, i + cap));
+  
+  for (let t = 0; t < tableCount; t++) {
+    const start = t * perTable;
+    const chunk = rows.slice(start, start + perTable);
+    chunks.push(chunk);
   }
-
+  
   return chunks;
 }
 
@@ -151,19 +143,15 @@ function renderCutListColumnTable(rows, hasGroup) {
   return `
       <table class="cutlist-table cutlist-table--flow" cellspacing="0">
         ${renderCutListTableHead(hasGroup)}
-        <tbody>${renderCutListTableBody(rows, hasGroup)}</tbody>
+        <tbody>${rows.length ? renderCutListTableBody(rows, hasGroup) : '<tr><td colspan="7" style="height:1em;"></td></tr>'}</tbody>
       </table>`;
 }
 
-function orderColumnsClass(orderCountOnBatch) {
-  return orderCountOnBatch >= 2 ? 'cutlist-order-columns cutlist-order-columns--compact' : 'cutlist-order-columns';
-}
-
-function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial, tableCount, orderCountOnBatch) {
+function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial, tableCount) {
   const specialMark = section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
   const boxSummary = formatOrderCutListBoxSummary(section.order, batch, colIndices);
   const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
-  const rowChunks = splitRowsForPrintTables(section.rows, tableCount, orderCountOnBatch);
+  const rowChunks = splitRowsForPrintTables(section.rows, tableCount);
   const tables = rowChunks
     .map((chunk) => `<div class="cutlist-order-column">${renderCutListColumnTable(chunk, hasGroup)}</div>`)
     .join('');
@@ -171,13 +159,11 @@ function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecia
   return `
     <div class="cutlist-order-block">
       <div class="cutlist-order-title">Order ${escapeHTML(section.order)}${boxMark}${specialMark}</div>
-      <div class="${orderColumnsClass(orderCountOnBatch)}">${tables}</div>
+      <div class="cutlist-order-columns">${tables}</div>
     </div>`;
 }
 
 function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, tableCount) {
-  const orderCountOnBatch = Math.max(sections.length, (batch?.sortedOrders || []).length);
-
   if (!sections.length) {
     return `<div class="cutlist-order-block">
       <div class="cutlist-order-columns">
@@ -195,15 +181,7 @@ function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial
 
   return sections
     .map((section) =>
-      renderCutListOrderBlock(
-        section,
-        batch,
-        colIndices,
-        hasGroup,
-        anySpecial,
-        tableCount,
-        orderCountOnBatch
-      )
+      renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial, tableCount)
     )
     .join('');
 }
