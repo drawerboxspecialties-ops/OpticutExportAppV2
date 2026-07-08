@@ -117,35 +117,69 @@ function renderCutListTableBody(rows, hasGroup) {
   return html;
 }
 
-function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial) {
+/** Default rows per stacked table on a landscape print page. */
+export const PRINT_ROWS_PER_TABLE = 15;
+
+/** Fewer rows per table when multiple orders share the same page. */
+export function rowsPerPrintTable(orderCountOnBatch = 1) {
+  return orderCountOnBatch >= 2 ? 12 : 15;
+}
+
+/**
+ * Fill table 1 top-to-bottom, then start table 2 below it on the same page,
+ * and so on. Each chunk is a full-width table with its own header.
+ */
+export function splitRowsForPrintTables(rows, rowsPerTable = PRINT_ROWS_PER_TABLE) {
+  if (!rows?.length) return [];
+  const chunks = [];
+  for (let i = 0; i < rows.length; i += rowsPerTable) {
+    chunks.push(rows.slice(i, i + rowsPerTable));
+  }
+  return chunks;
+}
+
+function renderCutListTable(rows, hasGroup) {
+  return `
+      <table class="cutlist-table cutlist-table--flow" cellspacing="0">
+        ${renderCutListTableHead(hasGroup)}
+        <tbody>${renderCutListTableBody(rows, hasGroup)}</tbody>
+      </table>`;
+}
+
+function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial, orderCountOnBatch) {
   const specialMark = section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
   const boxSummary = formatOrderCutListBoxSummary(section.order, batch, colIndices);
   const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
+  const rowChunks = splitRowsForPrintTables(section.rows, rowsPerPrintTable(orderCountOnBatch));
+  const tables = rowChunks.map((chunk) => renderCutListTable(chunk, hasGroup)).join('');
 
   return `
     <div class="cutlist-order-block">
       <div class="cutlist-order-title">Order ${escapeHTML(section.order)}${boxMark}${specialMark}</div>
-      <table class="cutlist-table cutlist-table--flow" cellspacing="0">
-        ${renderCutListTableHead(hasGroup)}
-        <tbody>${renderCutListTableBody(section.rows, hasGroup)}</tbody>
-      </table>
+      <div class="cutlist-order-stack">${tables}</div>
     </div>`;
 }
 
 function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount) {
+  const orderCountOnBatch = Math.max(sections.length, (batch?.sortedOrders || []).length);
+
   if (!sections.length) {
     return `<div class="cutlist-order-block">
-      <table class="cutlist-table cutlist-table--flow" cellspacing="0">
-        ${renderCutListTableHead(hasGroup)}
-        <tbody>
-          <tr><td colspan="${colCount}" class="cutlist-cell-empty" style="padding:1rem;">No cut-list rows available.</td></tr>
-        </tbody>
-      </table>
+      <div class="cutlist-order-stack">
+        <table class="cutlist-table cutlist-table--flow" cellspacing="0">
+          ${renderCutListTableHead(hasGroup)}
+          <tbody>
+            <tr><td colspan="${colCount}" class="cutlist-cell-empty" style="padding:1rem;">No cut-list rows available.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>`;
   }
 
   return sections
-    .map((section) => renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial))
+    .map((section) =>
+      renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial, orderCountOnBatch)
+    )
     .join('');
 }
 

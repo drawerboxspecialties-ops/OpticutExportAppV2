@@ -1615,6 +1615,24 @@ tbody tr:hover td {
   width: 100%;
 }
 
+.cutlist-order-stack {
+  display: block;
+  width: 100%;
+}
+
+.cutlist-order-stack .cutlist-table {
+  width: 100%;
+}
+
+.cutlist-order-stack .cutlist-table + .cutlist-table {
+  margin-top: 0;
+  border-top: none;
+}
+
+.cutlist-order-stack .cutlist-table + .cutlist-table thead tr th {
+  border-top: none;
+}
+
 .cutlist-table--flow {
   margin-bottom: 0;
 }
@@ -1858,6 +1876,15 @@ tbody tr:hover td {
   .print-batch-card .print-batch-header + .cutlist-print-flow {
     break-before: avoid;
     page-break-before: avoid;
+  }
+
+  .cutlist-order-stack {
+    width: 100%;
+  }
+
+  .cutlist-order-stack .cutlist-table {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .cutlist-order-block {
