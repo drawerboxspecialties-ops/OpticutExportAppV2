@@ -117,19 +117,33 @@ function renderCutListTableBody(rows, hasGroup) {
   return html;
 }
 
+/** Side-by-side print tables per order (landscape letter). */
+export const PRINT_TABLES_PER_ORDER = 3;
+
+/** Compact rows that fit in one print column before flowing to the next. */
+export function rowsPerPrintColumn(orderCountOnBatch = 1) {
+  return orderCountOnBatch >= 2 ? 12 : 24;
+}
+
 /**
- * Split rows across print tables top-to-bottom: table 1 first, then table 2, then table 3.
- * Uses fewer tables when the order has fewer rows than the target count.
+ * Fill table 1 top-to-bottom, then table 2, then table 3 (up to maxTables).
+ * Small orders use one table; medium orders split only when they exceed one column.
  */
-export function splitRowsForPrintTables(rows, tableCount = 3) {
+export function splitRowsForPrintTables(rows, maxTables = 3, orderCountOnBatch = 1) {
   if (!rows?.length) return [];
-  const tables = Math.min(tableCount, rows.length);
-  const perTable = Math.ceil(rows.length / tables);
+  if (rows.length <= 10) return [rows];
+
+  const cap = rowsPerPrintColumn(orderCountOnBatch);
   const chunks = [];
-  for (let t = 0; t < tables; t++) {
-    const chunk = rows.slice(t * perTable, (t + 1) * perTable);
-    if (chunk.length) chunks.push(chunk);
+
+  for (let i = 0; i < rows.length && chunks.length < maxTables; i += cap) {
+    if (chunks.length === maxTables - 1) {
+      chunks.push(rows.slice(i));
+      break;
+    }
+    chunks.push(rows.slice(i, i + cap));
   }
+
   return chunks;
 }
 
@@ -141,11 +155,15 @@ function renderCutListColumnTable(rows, hasGroup) {
       </table>`;
 }
 
-function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial, tableCount) {
+function orderColumnsClass(orderCountOnBatch) {
+  return orderCountOnBatch >= 2 ? 'cutlist-order-columns cutlist-order-columns--compact' : 'cutlist-order-columns';
+}
+
+function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial, tableCount, orderCountOnBatch) {
   const specialMark = section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
   const boxSummary = formatOrderCutListBoxSummary(section.order, batch, colIndices);
   const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
-  const rowChunks = splitRowsForPrintTables(section.rows, tableCount);
+  const rowChunks = splitRowsForPrintTables(section.rows, tableCount, orderCountOnBatch);
   const tables = rowChunks
     .map((chunk) => `<div class="cutlist-order-column">${renderCutListColumnTable(chunk, hasGroup)}</div>`)
     .join('');
@@ -153,11 +171,13 @@ function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecia
   return `
     <div class="cutlist-order-block">
       <div class="cutlist-order-title">Order ${escapeHTML(section.order)}${boxMark}${specialMark}</div>
-      <div class="cutlist-order-columns">${tables}</div>
+      <div class="${orderColumnsClass(orderCountOnBatch)}">${tables}</div>
     </div>`;
 }
 
 function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, tableCount) {
+  const orderCountOnBatch = Math.max(sections.length, (batch?.sortedOrders || []).length);
+
   if (!sections.length) {
     return `<div class="cutlist-order-block">
       <div class="cutlist-order-columns">
@@ -175,13 +195,18 @@ function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial
 
   return sections
     .map((section) =>
-      renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial, tableCount)
+      renderCutListOrderBlock(
+        section,
+        batch,
+        colIndices,
+        hasGroup,
+        anySpecial,
+        tableCount,
+        orderCountOnBatch
+      )
     )
     .join('');
 }
-
-/** Number of side-by-side cut-list tables per order on a printed page. */
-export const PRINT_TABLES_PER_ORDER = 3;
 
 export function buildCutListPrintCard(
   batchKey,

@@ -1618,14 +1618,29 @@ tbody tr:hover td {
 .cutlist-order-columns {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 0.08in;
   width: 100%;
+}
+
+.cutlist-order-columns--compact {
+  min-height: 3.15in;
+}
+
+.cutlist-order-columns:not(.cutlist-order-columns--compact) {
+  min-height: 6.35in;
 }
 
 .cutlist-order-column {
   flex: 1 1 0;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cutlist-order-column .cutlist-table {
+  flex: 1 1 auto;
+  height: 100%;
 }
 
 .cutlist-order-columns .cutlist-table {
@@ -1894,13 +1909,28 @@ tbody tr:hover td {
   .cutlist-order-columns {
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 0.08in;
+  }
+
+  .cutlist-order-columns--compact {
+    min-height: 3.15in;
+  }
+
+  .cutlist-order-columns:not(.cutlist-order-columns--compact) {
+    min-height: 6.35in;
   }
 
   .cutlist-order-column {
     flex: 1 1 0;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cutlist-order-column .cutlist-table {
+    flex: 1 1 auto;
+    height: 100%;
   }
 
   .cutlist-order-block {
