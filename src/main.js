@@ -15,7 +15,7 @@ import { getCutListRowsForExport, getBatchExportRows } from './logic/exportRows.
 import { formatDecimalForDisplay } from './logic/widths.js';
 import { loadSettings, saveSettings, rememberFile, clearStoredSettings } from './logic/settingsStore.js';
 import { DEMO_CSV } from './logic/demoData.js';
-import { buildCutListPrintCard, PRINT_TABLES_PER_ORDER } from './ui/cutListPrintView.js';
+import { buildCutListPrintCard } from './ui/cutListPrintView.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -871,9 +871,7 @@ function triggerPrintCutList() {
       cardDiv.innerHTML = buildCutListPrintCard(
         state.activeGroupKey,
         batch,
-        state.colIndices,
-        null,
-        PRINT_TABLES_PER_ORDER
+        state.colIndices
       );
       return cardDiv;
     },
@@ -895,8 +893,7 @@ function printAllCutLists() {
           batchKey,
           batch,
           state.colIndices,
-          { index: idx + 1, count: keys.length },
-          PRINT_TABLES_PER_ORDER
+          { index: idx + 1, count: keys.length }
         );
         fragment.appendChild(cardDiv);
       });
