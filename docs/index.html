@@ -10,8 +10,8 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Sans:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="./assets/index-CxJ7A47y.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-Cmmg9YPa.css">
+    <script type="module" crossorigin src="./assets/index-BWZFzptX.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CrGE6ruY.css">
   </head>
   <body>
     <div class="app-shell">
@@ -34,10 +34,19 @@
           </div>
         </div>
         <div class="header-actions">
-          <a href="./presentation.html" class="btn btn-ghost btn--compact" title="One-page operator guide">
+          <a
+            href="./presentation.html"
+            class="btn btn-ghost btn--compact"
+            title="One-page operator guide"
+          >
             Guide
           </a>
-          <button id="btn-share" class="btn btn-ghost btn--compact" type="button" title="Copy app URL">
+          <button
+            id="btn-share"
+            class="btn btn-ghost btn--compact"
+            type="button"
+            title="Copy app URL"
+          >
             Share
           </button>
         </div>
@@ -49,7 +58,16 @@
             <input type="file" id="file-input" accept=".csv" hidden />
             <button id="drop-zone" class="drop-zone" type="button">
               <span class="drop-icon" aria-hidden="true">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
@@ -108,8 +126,20 @@
               <h3 class="split-config-heading">Split settings</h3>
               <label for="max-orders-input" class="field-label">Max orders per batch</label>
               <div class="split-config-row">
-                <input type="number" id="max-orders-input" class="input input--small" value="999" min="1" />
-                <button id="btn-apply-max-orders" class="btn btn-secondary btn--compact" type="button">Apply</button>
+                <input
+                  type="number"
+                  id="max-orders-input"
+                  class="input input--small"
+                  value="999"
+                  min="1"
+                />
+                <button
+                  id="btn-apply-max-orders"
+                  class="btn btn-secondary btn--compact"
+                  type="button"
+                >
+                  Apply
+                </button>
               </div>
             </div>
 
@@ -128,7 +158,10 @@
                   </button>
                 </summary>
                 <div class="sidebar-details-body">
-                  <p class="field-hint">Select items, then <b>−</b> remove or <b>+</b> restore. Removed = <i>(removed)</i>.</p>
+                  <p class="field-hint">
+                    Select items, then <b>−</b> remove or <b>+</b> restore. Removed =
+                    <i>(removed)</i>.
+                  </p>
 
                   <div class="filter-field">
                     <label class="field-label" for="order-filter-select">Orders</label>
@@ -141,8 +174,22 @@
                         title="Ctrl+click to select"
                       ></select>
                       <div class="filter-action-buttons">
-                        <button class="mini-restore-btn" id="btn-restore-order" type="button" title="Restore">+</button>
-                        <button class="mini-danger-btn" id="btn-exclude-order" type="button" title="Remove">−</button>
+                        <button
+                          class="mini-restore-btn"
+                          id="btn-restore-order"
+                          type="button"
+                          title="Restore"
+                        >
+                          +
+                        </button>
+                        <button
+                          class="mini-danger-btn"
+                          id="btn-exclude-order"
+                          type="button"
+                          title="Remove"
+                        >
+                          −
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -157,8 +204,22 @@
                         title="Ctrl+click to select"
                       ></select>
                       <div class="filter-action-buttons">
-                        <button class="mini-restore-btn" id="btn-restore-material" type="button" title="Restore">+</button>
-                        <button class="mini-danger-btn" id="btn-exclude-material" type="button" title="Remove">−</button>
+                        <button
+                          class="mini-restore-btn"
+                          id="btn-restore-material"
+                          type="button"
+                          title="Restore"
+                        >
+                          +
+                        </button>
+                        <button
+                          class="mini-danger-btn"
+                          id="btn-exclude-material"
+                          type="button"
+                          title="Remove"
+                        >
+                          −
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -173,8 +234,22 @@
                         title="Ctrl+click to select"
                       ></select>
                       <div class="filter-action-buttons">
-                        <button class="mini-restore-btn" id="btn-restore-top-edge" type="button" title="Restore">+</button>
-                        <button class="mini-danger-btn" id="btn-exclude-top-edge" type="button" title="Remove">−</button>
+                        <button
+                          class="mini-restore-btn"
+                          id="btn-restore-top-edge"
+                          type="button"
+                          title="Restore"
+                        >
+                          +
+                        </button>
+                        <button
+                          class="mini-danger-btn"
+                          id="btn-exclude-top-edge"
+                          type="button"
+                          title="Remove"
+                        >
+                          −
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -188,14 +263,18 @@
                     <input type="checkbox" id="chk-combine-ship-dates" />
                     <span class="checkbox-text">
                       <span class="checkbox-title">Combine ship dates</span>
-                      <span class="checkbox-help">One batch per material &amp; edge; print shows all dates.</span>
+                      <span class="checkbox-help"
+                        >One batch per material &amp; edge; print shows all dates.</span
+                      >
                     </span>
                   </label>
                   <label class="checkbox-row checkbox-row--compact">
                     <input type="checkbox" id="chk-separate-special-orders" checked />
                     <span class="checkbox-text">
                       <span class="checkbox-title">Separate special orders</span>
-                      <span class="checkbox-help">Scoop, slope, dividers, drill, file slots → SPECIAL batches.</span>
+                      <span class="checkbox-help"
+                        >Scoop, slope, dividers, drill, file slots → SPECIAL batches.</span
+                      >
                     </span>
                   </label>
                   <label class="checkbox-row checkbox-row--compact">
@@ -214,7 +293,16 @@
         <section class="workspace" id="workspace">
           <div id="workspace-placeholder" class="placeholder">
             <div class="placeholder-icon" aria-hidden="true">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
                 <line x1="16" y1="13" x2="8" y2="13" />
@@ -222,7 +310,10 @@
               </svg>
             </div>
             <h3>Ready when you are</h3>
-            <p>Import an Allmoxy export to split batches, preview cut lists, and download OptiCut CSV files.</p>
+            <p>
+              Import an Allmoxy export to split batches, preview cut lists, and download OptiCut CSV
+              files.
+            </p>
           </div>
 
           <div id="active-workspace" class="active-workspace" hidden>
@@ -237,10 +328,19 @@
                     <div class="action-group">
                       <span class="action-group-label">All batches</span>
                       <div class="action-group-buttons">
-                        <button id="btn-print-all-cutlists" class="btn btn-secondary btn--compact" type="button" title="Print cut list for every batch">
+                        <button
+                          id="btn-print-all-cutlists"
+                          class="btn btn-secondary btn--compact"
+                          type="button"
+                          title="Print cut list for every batch"
+                        >
                           Cut lists
                         </button>
-                        <button id="btn-download-all" class="btn btn-primary btn--compact" type="button">
+                        <button
+                          id="btn-download-all"
+                          class="btn btn-primary btn--compact"
+                          type="button"
+                        >
                           Export ZIP
                         </button>
                       </div>
@@ -249,10 +349,19 @@
                     <div class="action-group">
                       <span class="action-group-label">This batch</span>
                       <div class="action-group-buttons">
-                        <button id="btn-print-cutlist" class="btn btn-secondary btn--compact" type="button" title="Flat cut list sorted by order, width, length">
+                        <button
+                          id="btn-print-cutlist"
+                          class="btn btn-secondary btn--compact"
+                          type="button"
+                          title="Flat cut list sorted by order, width, length"
+                        >
                           Cut list
                         </button>
-                        <button id="btn-export-current" class="btn btn-secondary btn--compact" type="button">
+                        <button
+                          id="btn-export-current"
+                          class="btn btn-secondary btn--compact"
+                          type="button"
+                        >
                           CSV
                         </button>
                       </div>
@@ -260,7 +369,47 @@
                   </div>
                 </header>
 
-                <div id="preview-cutlist" class="preview-panel active" role="tabpanel">
+                <div class="preview-tabs" role="tablist" aria-label="Batch preview">
+                  <button
+                    type="button"
+                    class="preview-tab active"
+                    id="tab-preview-print"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="preview-print"
+                    data-preview="print"
+                  >
+                    Cut list
+                  </button>
+                  <button
+                    type="button"
+                    class="preview-tab"
+                    id="tab-preview-import"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="preview-import"
+                    data-preview="import"
+                  >
+                    Import rows
+                  </button>
+                </div>
+
+                <div
+                  id="preview-print"
+                  class="preview-panel active"
+                  role="tabpanel"
+                  aria-labelledby="tab-preview-print"
+                >
+                  <div id="cutlist-print-preview" class="cutlist-screen-preview"></div>
+                </div>
+
+                <div
+                  id="preview-import"
+                  class="preview-panel"
+                  role="tabpanel"
+                  aria-labelledby="tab-preview-import"
+                  hidden
+                >
                   <div class="grid-container grid-container--preview">
                     <table id="data-table">
                       <thead id="table-head"></thead>
@@ -273,7 +422,11 @@
           </div>
         </section>
 
-        <aside class="sidebar sidebar--right panel panel--rail card card--sidebar" id="batches-sidebar-card" hidden>
+        <aside
+          class="sidebar sidebar--right panel panel--rail card card--sidebar"
+          id="batches-sidebar-card"
+          hidden
+        >
           <div class="sidebar-block sidebar-block--batches">
             <div class="sidebar-block-header">
               <h2 class="sidebar-heading">Batches</h2>
