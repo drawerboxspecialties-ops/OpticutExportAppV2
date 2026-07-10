@@ -117,57 +117,132 @@ function renderCutListTableBody(rows, hasGroup) {
   return html;
 }
 
-/** Always use 3 side-by-side tables per order on a landscape print page. */
-export const PRINT_TABLES_PER_ORDER = 3;
+/** Side-by-side columns on a landscape print page. */
+export const PRINT_FLOW_COLUMNS = 3;
+
+/** Approx. data rows that fit in one print column under the batch header. */
+export const PRINT_ROWS_PER_COLUMN = 28;
+
+/** Order title band cost in row-units (keeps packing honest). */
+const ORDER_TITLE_ROW_COST = 2;
 
 /**
- * Split rows into side-by-side tables. Rows fill down table 1 first,
- * then table 2, then table 3 (vertical fluid flow across columns).
+ * Pack order sections into page bands of columns.
+ * Fill column 1 top-to-bottom, then column 2, then column 3.
+ * The next order continues in the same column under the previous table
+ * when vertical space remains.
+ *
+ * @returns {Array<Array<Array<{order: string, titleHtml: string, rows: object[]}>>>}
+ *   pages → columns → fragments
  */
-export function splitRowsForPrintTables(rows, tableCount = PRINT_TABLES_PER_ORDER) {
-  const chunks = Array.from({ length: tableCount }, () => []);
-  if (!rows?.length) return chunks;
+export function packCutListPrintFlow(
+  sections,
+  {
+    columnCount = PRINT_FLOW_COLUMNS,
+    rowsPerColumn = PRINT_ROWS_PER_COLUMN,
+    titleCost = ORDER_TITLE_ROW_COST,
+  } = {}
+) {
+  const pages = [];
+  let columns = Array.from({ length: columnCount }, () => []);
+  let colIndex = 0;
+  let used = 0;
 
-  const perTable = Math.ceil(rows.length / tableCount);
-  for (let t = 0; t < tableCount; t++) {
-    const start = t * perTable;
-    chunks[t] = rows.slice(start, start + perTable);
+  const flushPage = () => {
+    if (columns.some((col) => col.length)) {
+      pages.push(columns);
+      columns = Array.from({ length: columnCount }, () => []);
+      colIndex = 0;
+      used = 0;
+    }
+  };
+
+  const advanceColumn = () => {
+    colIndex += 1;
+    used = 0;
+    if (colIndex >= columnCount) flushPage();
+  };
+
+  const ensureSpace = (needed) => {
+    if (used > 0 && used + needed > rowsPerColumn) {
+      advanceColumn();
+    }
+  };
+
+  for (const section of sections || []) {
+    const rows = section.rows || [];
+    if (!rows.length) continue;
+
+    let offset = 0;
+    let firstFragment = true;
+
+    while (offset < rows.length) {
+      const overhead = firstFragment ? titleCost : 1; // thead on continuations
+      ensureSpace(overhead + 1);
+      const spaceForRows = Math.max(1, rowsPerColumn - used - overhead);
+      const chunk = rows.slice(offset, offset + spaceForRows);
+      offset += chunk.length;
+
+      columns[colIndex].push({
+        order: section.order,
+        titleHtml: firstFragment ? section.titleHtml : '',
+        rows: chunk,
+      });
+      used += overhead + chunk.length;
+      firstFragment = false;
+
+      if (offset < rows.length) {
+        advanceColumn();
+      }
+    }
   }
-  return chunks;
+
+  flushPage();
+  return pages;
 }
 
-function renderCutListColumnTable(rows, hasGroup, colCount) {
-  const body = rows.length
-    ? renderCutListTableBody(rows, hasGroup)
-    : `<tr><td colspan="${colCount}" style="height:1em;"></td></tr>`;
+function renderCutListColumnTable(rows, hasGroup) {
   return `
       <table class="cutlist-table cutlist-table--flow" cellspacing="0">
         ${renderCutListTableHead(hasGroup)}
-        <tbody>${body}</tbody>
+        <tbody>${renderCutListTableBody(rows, hasGroup)}</tbody>
       </table>`;
 }
 
-function renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial, tableCount, colCount) {
+function renderFlowFragment(fragment, hasGroup) {
+  const title = fragment.titleHtml
+    ? `<div class="cutlist-order-title">${fragment.titleHtml}</div>`
+    : '';
+  return `<div class="cutlist-order-fragment">${title}${renderCutListColumnTable(fragment.rows, hasGroup)}</div>`;
+}
+
+function renderFlowColumn(fragments, hasGroup) {
+  if (!fragments.length) {
+    return `<div class="cutlist-order-column cutlist-order-column--empty"></div>`;
+  }
+  return `<div class="cutlist-order-column">${fragments
+    .map((fragment) => renderFlowFragment(fragment, hasGroup))
+    .join('')}</div>`;
+}
+
+function renderFlowPage(columns, hasGroup) {
+  return `<div class="cutlist-print-columns">${columns
+    .map((fragments) => renderFlowColumn(fragments, hasGroup))
+    .join('')}</div>`;
+}
+
+function buildSectionTitleHtml(section, batch, colIndices, anySpecial) {
   const specialMark = section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
   const boxSummary = formatOrderCutListBoxSummary(section.order, batch, colIndices);
   const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
-  const rowChunks = splitRowsForPrintTables(section.rows, tableCount);
-  const tables = rowChunks
-    .map((chunk) => `<div class="cutlist-order-column">${renderCutListColumnTable(chunk, hasGroup, colCount)}</div>`)
-    .join('');
-
-  return `
-    <div class="cutlist-order-block">
-      <div class="cutlist-order-title">Order ${escapeHTML(section.order)}${boxMark}${specialMark}</div>
-      <div class="cutlist-order-columns">${tables}</div>
-    </div>`;
+  return `Order ${escapeHTML(section.order)}${boxMark}${specialMark}`;
 }
 
-function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, tableCount) {
+function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount) {
   if (!sections.length) {
-    return `<div class="cutlist-order-block">
-      <div class="cutlist-order-columns">
-        <div class="cutlist-order-column">
+    return `<div class="cutlist-print-columns">
+      <div class="cutlist-order-column">
+        <div class="cutlist-order-fragment">
           <table class="cutlist-table cutlist-table--flow" cellspacing="0">
             ${renderCutListTableHead(hasGroup)}
             <tbody>
@@ -179,25 +254,21 @@ function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial
     </div>`;
   }
 
-  return sections
-    .map((section) =>
-      renderCutListOrderBlock(section, batch, colIndices, hasGroup, anySpecial, tableCount, colCount)
-    )
-    .join('');
+  const titled = sections.map((section) => ({
+    ...section,
+    titleHtml: buildSectionTitleHtml(section, batch, colIndices, anySpecial),
+  }));
+  const pages = packCutListPrintFlow(titled);
+
+  return pages.map((columns) => renderFlowPage(columns, hasGroup)).join('');
 }
 
-export function buildCutListPrintCard(
-  batchKey,
-  batch,
-  colIndices,
-  position = null,
-  tableCount = PRINT_TABLES_PER_ORDER
-) {
+export function buildCutListPrintCard(batchKey, batch, colIndices, position = null) {
   const headerBanner = buildPrintHeaderBanner(batchKey, batch, colIndices, position);
   const sections = getCutListPrintSections(batch, colIndices);
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
   const colCount = 6 + (hasGroup ? 1 : 0);
 
-  return `<div class="cutlist-print-sheet">${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, tableCount)}</div></div>`;
+  return `<div class="cutlist-print-sheet">${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount)}</div></div>`;
 }

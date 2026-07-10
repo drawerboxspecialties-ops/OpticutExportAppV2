@@ -1615,45 +1615,61 @@ tbody tr:hover td {
   width: 100%;
 }
 
-.cutlist-order-columns {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
+.cutlist-print-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
   gap: 0.08in;
   width: 100%;
 }
 
+.cutlist-print-columns + .cutlist-print-columns {
+  margin-top: 0.1in;
+}
+
 .cutlist-order-column {
-  flex: 1 1 0;
   min-width: 0;
 }
 
-.cutlist-order-columns .cutlist-table {
+.cutlist-order-column--empty {
+  min-height: 0;
+}
+
+.cutlist-order-fragment {
+  width: 100%;
+  margin-bottom: 0.06in;
+}
+
+.cutlist-order-fragment:last-child {
+  margin-bottom: 0;
+}
+
+.cutlist-order-fragment .cutlist-order-title {
+  border: 1px solid #64748b;
+  border-bottom: none;
+}
+
+.cutlist-print-columns .cutlist-table {
   width: 100%;
   font-size: 9px;
 }
 
-.cutlist-order-columns .cutlist-table th {
+.cutlist-print-columns .cutlist-table th {
   font-size: 8px;
   padding: 2px 3px;
 }
 
-.cutlist-order-columns .cutlist-table td {
+.cutlist-print-columns .cutlist-table td {
   padding: 2px 3px;
 }
 
-.cutlist-order-columns .cutlist-dim,
-.cutlist-order-columns .cutlist-qty {
+.cutlist-print-columns .cutlist-dim,
+.cutlist-print-columns .cutlist-qty {
   font-size: 9px;
 }
 
 .cutlist-table--flow {
   margin-bottom: 0;
-}
-
-/* Legacy alias */
-.cutlist-print-columns {
-  width: 100%;
 }
 
 .cutlist-order-block {
@@ -1892,27 +1908,27 @@ tbody tr:hover td {
     page-break-before: avoid;
   }
 
-  .cutlist-order-columns {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
+  .cutlist-print-columns {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
     gap: 0.08in;
   }
 
-  .cutlist-order-column {
-    flex: 1 1 0;
-    min-width: 0;
+  .cutlist-print-columns + .cutlist-print-columns {
+    break-before: page;
+    page-break-before: always;
   }
 
-  .cutlist-order-column .cutlist-table {
+  .cutlist-order-column {
+    min-width: 0;
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  .cutlist-order-block {
-    margin-bottom: 0.06in;
-    break-inside: auto;
-    page-break-inside: auto;
+  .cutlist-order-fragment {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .cutlist-order-title {
