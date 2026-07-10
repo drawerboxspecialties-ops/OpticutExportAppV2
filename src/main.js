@@ -13,7 +13,12 @@ import { applyBatchOrderExclusions, batchOrderKey } from './logic/batchOrders.js
 import { formatShipDateLabel } from './logic/shipDate.js';
 import { getCutListRowsForExport, getBatchExportRows } from './logic/exportRows.js';
 import { formatDecimalForDisplay } from './logic/widths.js';
-import { loadSettings, saveSettings, rememberFile, clearStoredSettings } from './logic/settingsStore.js';
+import {
+  loadSettings,
+  saveSettings,
+  rememberFile,
+  clearStoredSettings,
+} from './logic/settingsStore.js';
 import { DEMO_CSV } from './logic/demoData.js';
 import { buildCutListPrintCard } from './ui/cutListPrintView.js';
 
@@ -142,7 +147,10 @@ function parseAndLoad(text) {
   rebuild();
   const batchCount = Object.keys(state.splitGroups).length;
   if (batchCount > 0) {
-    showToast(`Loaded ${rows.length} rows into ${batchCount} batch${batchCount === 1 ? '' : 'es'}.`, 'success');
+    showToast(
+      `Loaded ${rows.length} rows into ${batchCount} batch${batchCount === 1 ? '' : 'es'}.`,
+      'success'
+    );
   }
 }
 
@@ -155,7 +163,9 @@ function validateRows() {
     const mat = row[ci.materialName] || '';
     const edge = row[ci.topEdge] || '';
     if (!mat.trim()) {
-      state.validationErrors.push(`Row ${lineNum} (Order #${orderNum}) is missing a Material Name.`);
+      state.validationErrors.push(
+        `Row ${lineNum} (Order #${orderNum}) is missing a Material Name.`
+      );
     }
     if (!edge.trim()) {
       state.validationErrors.push(`Row ${lineNum} (Order #${orderNum}) is missing a Top Edge.`);
@@ -234,9 +244,10 @@ function showWorkspace() {
 
   const keys = Object.keys(state.splitGroups).sort();
   if (keys.length > 0) {
-    const first = state.activeGroupKey && state.splitGroups[state.activeGroupKey]
-      ? state.activeGroupKey
-      : keys[0];
+    const first =
+      state.activeGroupKey && state.splitGroups[state.activeGroupKey]
+        ? state.activeGroupKey
+        : keys[0];
     selectGroup(first);
   } else {
     state.activeGroupKey = '';
@@ -361,68 +372,66 @@ function renderBatchTabs() {
     return;
   }
   batchKeys.forEach((batchKey) => {
-      const batch = state.splitGroups[batchKey];
-      const wrapper = document.createElement('div');
-      wrapper.className = 'batch-item';
-      wrapper.id = `batch-item-${batchKey}`;
-      if (batchKey === state.activeGroupKey) wrapper.classList.add('active');
-      if (state.expandedBatches.has(batchKey)) wrapper.classList.add('expanded');
+    const batch = state.splitGroups[batchKey];
+    const wrapper = document.createElement('div');
+    wrapper.className = 'batch-item';
+    wrapper.id = `batch-item-${batchKey}`;
+    if (batchKey === state.activeGroupKey) wrapper.classList.add('active');
+    if (state.expandedBatches.has(batchKey)) wrapper.classList.add('expanded');
 
-      const row = document.createElement('div');
-      row.className = 'batch-item-row';
+    const row = document.createElement('div');
+    row.className = 'batch-item-row';
 
-      const expandBtn = document.createElement('button');
-      expandBtn.type = 'button';
-      expandBtn.className = 'batch-expand-btn';
-      expandBtn.innerText = state.expandedBatches.has(batchKey) ? '▾' : '▸';
-      expandBtn.title = 'Show orders in this batch';
-      expandBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleBatchExpanded(batchKey);
-      });
-
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'batch-btn';
-      btn.id = `tab-${batchKey}`;
-      const specialBadge = batch.isSpecial
-        ? '<span class="batch-special-badge">SPECIAL</span>'
-        : '';
-      const shipMeta = formatBatchShipMeta(batch);
-      const orderCount = batch.sortedOrders.length;
-      const boxLabel = `${batch.totalBoxes} ${batch.totalBoxes === 1 ? 'Box' : 'Boxes'}`;
-      const orderLabel = `${orderCount} ${orderCount === 1 ? 'Order' : 'Orders'}`;
-      btn.innerHTML = `<span class="batch-name">${escapeHTML(batchKey)}${specialBadge}</span><span class="batch-meta">${boxLabel} • ${orderLabel}${escapeHTML(shipMeta)}</span>`;
-      btn.addEventListener('click', () => selectGroup(batchKey));
-
-      const splitBtn = document.createElement('button');
-      splitBtn.type = 'button';
-      splitBtn.className = 'batch-del-btn';
-      splitBtn.innerText = '✂';
-      splitBtn.title = 'Split this material/top-edge group by max orders';
-      splitBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        splitSingleBatch(batchKey);
-      });
-
-      const delBtn = document.createElement('button');
-      delBtn.type = 'button';
-      delBtn.className = 'batch-del-btn';
-      delBtn.innerText = '✕';
-      delBtn.title = 'Delete this batch';
-      delBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteBatch(batchKey);
-      });
-
-      row.appendChild(expandBtn);
-      row.appendChild(btn);
-      row.appendChild(splitBtn);
-      row.appendChild(delBtn);
-      wrapper.appendChild(row);
-      wrapper.appendChild(renderBatchOrdersPanel(batchKey, batch));
-      container.appendChild(wrapper);
+    const expandBtn = document.createElement('button');
+    expandBtn.type = 'button';
+    expandBtn.className = 'batch-expand-btn';
+    expandBtn.innerText = state.expandedBatches.has(batchKey) ? '▾' : '▸';
+    expandBtn.title = 'Show orders in this batch';
+    expandBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleBatchExpanded(batchKey);
     });
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'batch-btn';
+    btn.id = `tab-${batchKey}`;
+    const specialBadge = batch.isSpecial ? '<span class="batch-special-badge">SPECIAL</span>' : '';
+    const shipMeta = formatBatchShipMeta(batch);
+    const orderCount = batch.sortedOrders.length;
+    const boxLabel = `${batch.totalBoxes} ${batch.totalBoxes === 1 ? 'Box' : 'Boxes'}`;
+    const orderLabel = `${orderCount} ${orderCount === 1 ? 'Order' : 'Orders'}`;
+    btn.innerHTML = `<span class="batch-name">${escapeHTML(batchKey)}${specialBadge}</span><span class="batch-meta">${boxLabel} • ${orderLabel}${escapeHTML(shipMeta)}</span>`;
+    btn.addEventListener('click', () => selectGroup(batchKey));
+
+    const splitBtn = document.createElement('button');
+    splitBtn.type = 'button';
+    splitBtn.className = 'batch-del-btn';
+    splitBtn.innerText = '✂';
+    splitBtn.title = 'Split this material/top-edge group by max orders';
+    splitBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      splitSingleBatch(batchKey);
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'batch-del-btn';
+    delBtn.innerText = '✕';
+    delBtn.title = 'Delete this batch';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteBatch(batchKey);
+    });
+
+    row.appendChild(expandBtn);
+    row.appendChild(btn);
+    row.appendChild(splitBtn);
+    row.appendChild(delBtn);
+    wrapper.appendChild(row);
+    wrapper.appendChild(renderBatchOrdersPanel(batchKey, batch));
+    container.appendChild(wrapper);
+  });
 }
 
 function selectGroup(batchKey) {
@@ -433,13 +442,39 @@ function selectGroup(batchKey) {
   renderCurrentView();
 }
 
+function getBatchPreviewRows(batch) {
+  if (batch?.sourceRows?.length) return batch.sourceRows;
+  if (batch?.rows?.length) return batch.rows;
+  return [];
+}
+
+function setPreviewTab(which) {
+  const printTab = $('tab-preview-print');
+  const importTab = $('tab-preview-import');
+  const printPanel = $('preview-print');
+  const importPanel = $('preview-import');
+  if (!printTab || !importTab || !printPanel || !importPanel) return;
+
+  const showPrint = which !== 'import';
+  printTab.classList.toggle('active', showPrint);
+  importTab.classList.toggle('active', !showPrint);
+  printTab.setAttribute('aria-selected', showPrint ? 'true' : 'false');
+  importTab.setAttribute('aria-selected', showPrint ? 'false' : 'true');
+  printPanel.hidden = !showPrint;
+  importPanel.hidden = showPrint;
+  printPanel.classList.toggle('active', showPrint);
+  importPanel.classList.toggle('active', !showPrint);
+}
+
 function renderCurrentView() {
   const ci = state.colIndices;
   const batch = state.splitGroups[state.activeGroupKey];
   const tableHead = $('table-head');
   const tableBody = $('table-body');
-  tableHead.innerHTML = '';
-  tableBody.innerHTML = '';
+  const printPreview = $('cutlist-print-preview');
+  if (tableHead) tableHead.innerHTML = '';
+  if (tableBody) tableBody.innerHTML = '';
+  if (printPreview) printPreview.innerHTML = '';
 
   if (!batch) {
     $('current-view-title').innerText = 'No Batches Available';
@@ -448,36 +483,41 @@ function renderCurrentView() {
 
   $('current-view-title').innerText = `${state.activeGroupKey}.csv`;
 
-  const previewOrders = new Set((batch.sortedOrders || []).map((o) => String(o).trim()));
-  const previewRows = state.parsedRows.filter((row) =>
-    previewOrders.has(String(row[ci.orderNumber] ?? '').trim())
-  );
+  if (printPreview) {
+    printPreview.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices);
+  }
 
-  tableHead.innerHTML = `<tr>${state.parsedHeaders
-    .map((h) => `<th>${escapeHTML(h)}</th>`)
-    .join('')}</tr>`;
+  const previewRows = getBatchPreviewRows(batch);
 
-  let bodyHTML = '';
-  previewRows.forEach((row) => {
-    bodyHTML += '<tr>';
-    row.forEach((cell, idx) => {
-      if (idx === ci.materialName) {
-        const matName = cleanMaterialName(cell);
-        bodyHTML += matName
-          ? `<td><span class="badge">${escapeHTML(matName)}</span></td>`
-          : `<td><span class="badge badge--danger">⚠️ MISSING MATERIAL</span></td>`;
-      } else if (idx === ci.topEdge) {
-        const edgeName = (cell || '').trim();
-        bodyHTML += edgeName
-          ? `<td>${escapeHTML(formatDecimalForDisplay(cell))}</td>`
-          : `<td><span class="badge badge--danger">⚠️ MISSING TOP EDGE</span></td>`;
-      } else {
-        bodyHTML += `<td>${escapeHTML(formatDecimalForDisplay(cell))}</td>`;
-      }
+  if (tableHead) {
+    tableHead.innerHTML = `<tr>${state.parsedHeaders
+      .map((h) => `<th>${escapeHTML(h)}</th>`)
+      .join('')}</tr>`;
+  }
+
+  if (tableBody) {
+    let bodyHTML = '';
+    previewRows.forEach((row) => {
+      bodyHTML += '<tr>';
+      row.forEach((cell, idx) => {
+        if (idx === ci.materialName) {
+          const matName = cleanMaterialName(cell);
+          bodyHTML += matName
+            ? `<td><span class="badge">${escapeHTML(matName)}</span></td>`
+            : `<td><span class="badge badge--danger">⚠️ MISSING MATERIAL</span></td>`;
+        } else if (idx === ci.topEdge) {
+          const edgeName = (cell || '').trim();
+          bodyHTML += edgeName
+            ? `<td>${escapeHTML(formatDecimalForDisplay(cell))}</td>`
+            : `<td><span class="badge badge--danger">⚠️ MISSING TOP EDGE</span></td>`;
+        } else {
+          bodyHTML += `<td>${escapeHTML(formatDecimalForDisplay(cell))}</td>`;
+        }
+      });
+      bodyHTML += '</tr>';
     });
-    bodyHTML += '</tr>';
-  });
-  tableBody.innerHTML = bodyHTML;
+    tableBody.innerHTML = bodyHTML;
+  }
 }
 
 function isOrderExcluded(order) {
@@ -491,9 +531,7 @@ function isMaterialExcluded(material) {
 }
 
 function isTopEdgeExcluded(edge) {
-  return state.excludedTopEdges.some(
-    (excluded) => excluded.toLowerCase() === edge.toLowerCase()
-  );
+  return state.excludedTopEdges.some((excluded) => excluded.toLowerCase() === edge.toLowerCase());
 }
 
 function populateUnifiedFilterSelect(select, values, isExcludedFn, formatLabel = (value) => value) {
@@ -538,7 +576,12 @@ function updateExclusionOptions() {
     new Set(state.originalParsedRows.map(rowTopEdgeName).filter(Boolean))
   ).sort();
 
-  populateUnifiedFilterSelect(orderSelect, allOrders, isOrderExcluded, (order) => `Order #${order}`);
+  populateUnifiedFilterSelect(
+    orderSelect,
+    allOrders,
+    isOrderExcluded,
+    (order) => `Order #${order}`
+  );
   populateUnifiedFilterSelect(materialSelect, allMaterials, isMaterialExcluded);
   populateUnifiedFilterSelect(topEdgeSelect, allTopEdges, isTopEdgeExcluded);
 }
@@ -672,8 +715,7 @@ function restoreMaterials() {
   }
 
   state.excludedMaterials = state.excludedMaterials.filter(
-    (material) =>
-      !selected.some((value) => value.toLowerCase() === material.toLowerCase())
+    (material) => !selected.some((value) => value.toLowerCase() === material.toLowerCase())
   );
   applyExclusionsAndRebuild();
 }
@@ -755,7 +797,11 @@ function splitSingleBatch(batchKey) {
 function deleteBatch(batchKey) {
   const batch = state.splitGroups[batchKey];
   if (!batch) return;
-  if (confirm(`Are you sure you want to delete the batch "${batchKey}"? This will exclude all orders in this batch.`)) {
+  if (
+    confirm(
+      `Are you sure you want to delete the batch "${batchKey}"? This will exclude all orders in this batch.`
+    )
+  ) {
     const orders = batch.sortedOrders || [];
     orders.forEach((order) => {
       const orderStr = String(order).trim();
@@ -851,56 +897,48 @@ function runPrintJob(buildMarkup, bodyClasses) {
   printContainer.appendChild(buildMarkup());
   bodyClasses.forEach((cls) => document.body.classList.add(cls));
 
+  let cleaned = false;
   const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
     bodyClasses.forEach((cls) => document.body.classList.remove(cls));
     printContainer.innerHTML = '';
   };
 
   window.addEventListener('afterprint', cleanup, { once: true });
-  setTimeout(cleanup, 30_000);
+  // Long fallback only — short timers can wipe the sheet while the dialog is open.
+  setTimeout(cleanup, 120_000);
   window.print();
 }
 
 function triggerPrintCutList() {
   const batch = state.splitGroups[state.activeGroupKey];
   if (!batch) return;
-  runPrintJob(
-    () => {
-      const cardDiv = document.createElement('div');
-      cardDiv.className = 'print-batch-card';
-      cardDiv.innerHTML = buildCutListPrintCard(
-        state.activeGroupKey,
-        batch,
-        state.colIndices
-      );
-      return cardDiv;
-    },
-    ['print-active', 'print-cutlist-active']
-  );
+  runPrintJob(() => {
+    const cardDiv = document.createElement('div');
+    cardDiv.className = 'print-batch-card';
+    cardDiv.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices);
+    return cardDiv;
+  }, ['print-active', 'print-cutlist-active']);
 }
 
 function printAllCutLists() {
   const keys = Object.keys(state.splitGroups).sort();
   if (!keys.length) return;
-  runPrintJob(
-    () => {
-      const fragment = document.createDocumentFragment();
-      keys.forEach((batchKey, idx) => {
-        const batch = state.splitGroups[batchKey];
-        const cardDiv = document.createElement('div');
-        cardDiv.className = 'print-batch-card';
-        cardDiv.innerHTML = buildCutListPrintCard(
-          batchKey,
-          batch,
-          state.colIndices,
-          { index: idx + 1, count: keys.length }
-        );
-        fragment.appendChild(cardDiv);
+  runPrintJob(() => {
+    const fragment = document.createDocumentFragment();
+    keys.forEach((batchKey, idx) => {
+      const batch = state.splitGroups[batchKey];
+      const cardDiv = document.createElement('div');
+      cardDiv.className = 'print-batch-card';
+      cardDiv.innerHTML = buildCutListPrintCard(batchKey, batch, state.colIndices, {
+        index: idx + 1,
+        count: keys.length,
       });
-      return fragment;
-    },
-    ['print-active', 'print-cutlist-active', 'print-all-cutlists-active']
-  );
+      fragment.appendChild(cardDiv);
+    });
+    return fragment;
+  }, ['print-active', 'print-cutlist-active', 'print-all-cutlists-active']);
 }
 
 function toggleErrorDetails() {
@@ -992,6 +1030,8 @@ function wireEvents() {
   $('btn-export-current').addEventListener('click', downloadCurrentFile);
   $('btn-print-cutlist').addEventListener('click', triggerPrintCutList);
   $('btn-print-all-cutlists').addEventListener('click', printAllCutLists);
+  $('tab-preview-print')?.addEventListener('click', () => setPreviewTab('print'));
+  $('tab-preview-import')?.addEventListener('click', () => setPreviewTab('import'));
   $('btn-share').addEventListener('click', shareApplication);
   $('demo-link').addEventListener('click', loadDemoData);
   $('btn-apply-max-orders').addEventListener('click', updateMaxOrdersSplit);

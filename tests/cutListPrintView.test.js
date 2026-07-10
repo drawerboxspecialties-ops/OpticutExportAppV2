@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   buildCutListPrintCard,
   packCutListPrintFlow,
+  estimateRowsPerPrintColumn,
+  formatPrintBatchOrders,
   PRINT_FLOW_COLUMNS,
   PRINT_ROWS_PER_COLUMN,
+  PRINT_HEADER_ORDER_LIMIT,
 } from '../src/ui/cutListPrintView.js';
 import { mapHeaders } from '../src/logic/headers.js';
 
@@ -182,5 +185,48 @@ describe('buildCutListPrintCard', () => {
     } else {
       expect(secondFrag).toMatch(/cutlist-data-row cutlist-row-alt/);
     }
+  });
+
+  it('summarizes long order lists in the print header', () => {
+    const orders = Array.from({ length: PRINT_HEADER_ORDER_LIMIT + 5 }, (_, i) =>
+      String(600000 + i)
+    );
+    const batch = {
+      materialName: 'PF: 12MM Baltic Birch Ply',
+      topEdge: 'PVC',
+      totalBoxes: orders.length,
+      sortedOrders: orders,
+      orderColTotals: Object.fromEntries(orders.map((o) => [o, 1])),
+      sourceRows: orders.flatMap((o, i) => drawerRows(o, '1', String(20 + i), '9')),
+    };
+    const html = buildCutListPrintCard('TEST', batch, cols);
+    const headerList = html.match(/print-batch-orders-list">([\s\S]*?)<\/span>/)?.[1] || '';
+    expect(headerList).toContain('print-batch-orders-more');
+    expect(headerList).toContain('+5 more');
+    expect(headerList).not.toContain(orders[orders.length - 1]);
+    expect(headerList).toContain(orders[0]);
+  });
+});
+
+describe('estimateRowsPerPrintColumn', () => {
+  it('leaves fewer rows when the header is denser', () => {
+    const base = estimateRowsPerPrintColumn({ orderCount: 1, hasShipDate: false });
+    const dense = estimateRowsPerPrintColumn({ orderCount: 40, hasShipDate: true });
+    expect(dense).toBeLessThan(base);
+    expect(dense).toBeGreaterThanOrEqual(14);
+  });
+});
+
+describe('formatPrintBatchOrders', () => {
+  it('lists every order when under the limit', () => {
+    expect(formatPrintBatchOrders({ sortedOrders: ['1', '2'] })).toBe('1, 2');
+  });
+
+  it('caps long lists with a +N more marker', () => {
+    const orders = Array.from({ length: 15 }, (_, i) => String(i + 1));
+    const html = formatPrintBatchOrders({ sortedOrders: orders }, 10);
+    expect(html).toContain('+5 more');
+    expect(html).toContain('1, 2, 3');
+    expect(html).not.toContain(', 15');
   });
 });

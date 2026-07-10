@@ -693,6 +693,62 @@ body {
   display: none !important;
 }
 
+.preview-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.preview-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.preview-tab:hover {
+  color: var(--text);
+}
+
+.preview-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.cutlist-screen-preview {
+  flex: 1;
+  min-height: min(62vh, 640px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+  padding: 0.75rem;
+}
+
+.cutlist-screen-preview .cutlist-print-sheet {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  padding: 0.35in 0.3in;
+  min-width: 10.2in;
+}
+
+@media (min-width: 960px) {
+  .cutlist-screen-preview {
+    min-height: calc(100vh - 16rem);
+  }
+}
+
 .grid-container {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -710,7 +766,7 @@ body {
 
 @media (min-width: 960px) {
   .grid-container--preview {
-    min-height: calc(100vh - 14rem);
+    min-height: calc(100vh - 16rem);
   }
 }
 
@@ -1490,6 +1546,12 @@ tbody tr:hover td {
   max-width: 4.5in;
 }
 
+.print-batch-orders-more {
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
 .print-batch-time {
   font-size: 10px;
   color: #475569;
@@ -1833,6 +1895,8 @@ tbody tr:hover td {
   .action-bar,
   .app-layout,
   .preview-tabs,
+  .preview-panel,
+  .cutlist-screen-preview,
   .grid-container,
   .stats-section,
   .stats-bar,

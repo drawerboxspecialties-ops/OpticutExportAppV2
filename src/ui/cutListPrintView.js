@@ -4,10 +4,25 @@ import { formatShipDateLabel } from '../logic/shipDate.js';
 import { formatOrderCutListBoxSummary } from '../logic/groupBoxes.js';
 import { getCutListPrintSections } from '../logic/cutListPrint.js';
 
-function formatPrintBatchOrders(batch) {
-  const orders = batch?.sortedOrders || [];
+/** Max order numbers shown in the print header before summarizing. */
+export const PRINT_HEADER_ORDER_LIMIT = 10;
+
+/**
+ * Compact order list for the print banner so large batches do not steal
+ * vertical space from the 3-column flow.
+ */
+export function formatPrintBatchOrders(batch, limit = PRINT_HEADER_ORDER_LIMIT) {
+  const orders = (batch?.sortedOrders || []).map((o) => String(o).trim()).filter(Boolean);
   if (!orders.length) return '';
-  return orders.map((o) => escapeHTML(String(o).trim())).join(', ');
+  if (orders.length <= limit) {
+    return orders.map((o) => escapeHTML(o)).join(', ');
+  }
+  const shown = orders
+    .slice(0, limit)
+    .map((o) => escapeHTML(o))
+    .join(', ');
+  const more = orders.length - limit;
+  return `${shown} <span class="print-batch-orders-more">+${more} more</span>`;
 }
 
 function buildPrintHeaderBanner(batchKey, batch, colIndices, position = null) {
@@ -116,11 +131,34 @@ function renderCutListTableBody(rows, hasGroup, rowStart = 0) {
 /** Side-by-side columns on a landscape print page. */
 export const PRINT_FLOW_COLUMNS = 3;
 
-/** Approx. data rows that fit in one print column under the batch header. */
+/**
+ * Landscape letter row-unit budget below page margins, before the batch header.
+ * Tuned for current print CSS (compact 9px table rows + title bands).
+ */
+export const PRINT_PAGE_ROW_BUDGET = 36;
+
+/** Fallback rows-per-column when header size is unknown. */
 export const PRINT_ROWS_PER_COLUMN = 28;
 
 /** Order title band cost in row-units (title + table header). */
 export const ORDER_TITLE_ROW_COST = 2;
+
+/**
+ * Estimate how many row-units fit in one print column after the batch header.
+ * Larger headers (many orders, ship date) leave fewer rows per column so
+ * packing stays on the page instead of overflowing.
+ */
+export function estimateRowsPerPrintColumn({
+  orderCount = 1,
+  hasShipDate = false,
+  pageBudget = PRINT_PAGE_ROW_BUDGET,
+} = {}) {
+  let headerUnits = 5; // title row + material/edge meta chips
+  if (hasShipDate) headerUnits += 1;
+  if (orderCount > PRINT_HEADER_ORDER_LIMIT) headerUnits += 1;
+  if (orderCount > 30) headerUnits += 1;
+  return Math.max(14, pageBudget - headerUnits);
+}
 
 /**
  * Pack order sections into page bands of columns.
@@ -246,7 +284,15 @@ function buildSectionContTitleHtml(section) {
   return `Order ${escapeHTML(section.order)} <span class="cutlist-order-cont">(cont.)</span>`;
 }
 
-function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount) {
+function renderCutListFlowBody(
+  sections,
+  batch,
+  colIndices,
+  hasGroup,
+  anySpecial,
+  colCount,
+  rowsPerColumn = PRINT_ROWS_PER_COLUMN
+) {
   if (!sections.length) {
     return `<div class="cutlist-print-columns">
       <div class="cutlist-order-column">
@@ -269,7 +315,7 @@ function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial
     titleHtml: buildSectionTitleHtml(section, batch, colIndices, anySpecial),
     contTitleHtml: buildSectionContTitleHtml(section),
   }));
-  const pages = packCutListPrintFlow(titled);
+  const pages = packCutListPrintFlow(titled, { rowsPerColumn });
 
   return pages.map((columns) => renderFlowPage(columns, hasGroup)).join('');
 }
@@ -280,6 +326,10 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
   const colCount = 6 + (hasGroup ? 1 : 0);
+  const rowsPerColumn = estimateRowsPerPrintColumn({
+    orderCount: Math.max(sections.length, (batch?.sortedOrders || []).length, 1),
+    hasShipDate: Boolean(formatShipDateLabel(batch?.shipDate, colIndices)),
+  });
 
-  return `<div class="cutlist-print-sheet">${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount)}</div></div>`;
+  return `<div class="cutlist-print-sheet">${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, rowsPerColumn)}</div></div>`;
 }
