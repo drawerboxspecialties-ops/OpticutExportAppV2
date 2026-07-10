@@ -407,4 +407,55 @@ describe('different front material (*DFM)', () => {
     expect(frontSections[0].rows.every((r) => r.dfm)).toBe(true);
     expect(sideSections[0].rows.every((r) => r.dfm)).toBe(true);
   });
+
+  it('sets Bx = Pcs on front-only *DFM rows (each front is one drawer box)', () => {
+    const allRows = [
+      matRow({
+        order: '602648',
+        material: 'FAA: 3/4" Premium White Maple FSC',
+        part: 'F',
+        length: '34.875',
+        qty: 3,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 3/4" Premium White Maple FSC',
+        part: 'F',
+        length: '28.938',
+        qty: 2,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'B',
+        length: '34.875',
+        qty: 3,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'L',
+        length: '20.876',
+        qty: 3,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'R',
+        length: '20.876',
+        qty: 3,
+        groupId: '3',
+      }),
+    ];
+
+    const frontBatch = { sourceRows: allRows.filter((r) => r[cols.partName] === 'F') };
+    const rows = getCutListPrintSections(frontBatch, cols, { allRows })[0].rows;
+    expect(rows.every((r) => r.frontOnlyDfm)).toBe(true);
+    expect(rows.every((r) => r.boxes === r.parts)).toBe(true);
+    expect(rows.reduce((s, r) => s + r.boxes, 0)).toBe(5);
+  });
 });

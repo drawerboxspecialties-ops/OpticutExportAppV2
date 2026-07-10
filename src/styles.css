@@ -1753,7 +1753,7 @@ tbody tr:hover td {
 }
 
 .cutlist-col-grp {
-  width: 7%;
+  width: 12%;
 }
 
 .cutlist-col-check {
@@ -1761,11 +1761,11 @@ tbody tr:hover td {
 }
 
 .cutlist-col-width {
-  width: 9%;
+  width: 8%;
 }
 
 .cutlist-col-length {
-  width: 26%;
+  width: 24%;
 }
 
 .cutlist-col-count {
@@ -1779,6 +1779,15 @@ tbody tr:hover td {
   padding: 3px 4px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.cutlist-table td.cutlist-group,
+.cutlist-table td.cutlist-group--dfm {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.15;
+  vertical-align: middle;
 }
 
 .cutlist-table th {
@@ -1835,6 +1844,10 @@ tbody tr:hover td {
   text-align: center;
 }
 
+.cutlist-group-id {
+  display: inline-block;
+}
+
 .cutlist-group-special {
   color: #b45309 !important;
   font-weight: 800;
@@ -1846,11 +1859,18 @@ tbody tr:hover td {
 }
 
 .cutlist-dfm-mark {
+  display: block;
+  margin-top: 1px;
   color: #9a3412 !important;
   font-weight: 900;
-  font-size: 9px;
-  letter-spacing: 0.02em;
+  font-size: 8px;
+  letter-spacing: 0.01em;
   white-space: nowrap;
+  line-height: 1.1;
+}
+
+.cutlist-print-columns .cutlist-dfm-mark {
+  font-size: 7.5px;
 }
 
 .cutlist-row-dfm td {

@@ -108,12 +108,18 @@ function renderCutListTableHead(hasGroup) {
 
 function renderCutListDataRow(r, hasGroup, altClass) {
   const dfmMark = r.dfm
-    ? ` <span class="cutlist-dfm-mark">${escapeHTML(DFM_MARK)}</span>`
+    ? `<span class="cutlist-dfm-mark">${escapeHTML(DFM_MARK)}</span>`
     : '';
+  const groupCell = hasGroup
+    ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}${r.dfm ? ' cutlist-group--dfm' : ''}"><span class="cutlist-group-id">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</span>${dfmMark}</td>`
+    : '';
+  const widthCell = hasGroup
+    ? `<td class="cutlist-dim">${escapeHTML(r.width)}"</td>`
+    : `<td class="cutlist-dim">${escapeHTML(r.width)}"${dfmMark ? ` ${dfmMark}` : ''}</td>`;
   return `
       <tr class="cutlist-data-row${altClass}${r.dfm ? ' cutlist-row-dfm' : ''}">
-        ${hasGroup ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}${dfmMark}</td>` : ''}
-        <td class="cutlist-dim">${escapeHTML(r.width)}"${hasGroup ? '' : dfmMark}</td>
+        ${groupCell}
+        ${widthCell}
         <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
         <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
         <td class="cutlist-qty"><b>${r.boxes}</b></td>
@@ -275,10 +281,33 @@ function renderFlowPage(columns, hasGroup) {
     .join('')}</div>`;
 }
 
+function formatFrontOnlyDfmBoxSummary(section) {
+  const total = section.rows.reduce((sum, r) => sum + (r.boxes || 0), 0);
+  if (total <= 0) return '';
+  const boxWord = total === 1 ? 'box' : 'boxes';
+  const byGroup = new Map();
+  section.rows.forEach((r) => {
+    const id = String(r.groupId ?? '').trim();
+    if (!id) return;
+    byGroup.set(id, (byGroup.get(id) || 0) + (r.boxes || 0));
+  });
+  if (byGroup.size) {
+    const breakdown = [...byGroup.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+      .map(([id, boxes]) => `${id}-${boxes}`)
+      .join(', ');
+    return `${total} ${boxWord} (${breakdown})`;
+  }
+  return `${total} ${boxWord}`;
+}
+
 function buildSectionTitleHtml(section, batch, colIndices, anySpecial) {
   const specialMark =
     section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
-  const boxSummary = formatOrderCutListBoxSummary(section.order, batch, colIndices);
+  const useFrontOnlyDfmTotal = section.rows.some((r) => r.frontOnlyDfm);
+  const boxSummary = useFrontOnlyDfmTotal
+    ? formatFrontOnlyDfmBoxSummary(section)
+    : formatOrderCutListBoxSummary(section.order, batch, colIndices);
   const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
   return `Order ${escapeHTML(section.order)}${boxMark}${specialMark}`;
 }

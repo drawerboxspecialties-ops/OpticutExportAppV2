@@ -405,12 +405,16 @@ export function getCutListPrintSections(batch, colIndices, options = {}) {
       sections.push({ order: row.order, special: false, rows: [] });
     }
     const section = sections[sections.length - 1];
+    const frontOnlyDfm = Boolean(row.dfm) && !row.left.length && !row.right.length;
+    // Front-only *DFM: each front is one drawer box (sides live on another cut list).
+    const boxes = frontOnlyDfm ? row.parts : boxesForParts(row.parts);
     section.rows.push({
       parts: row.parts,
-      boxes: boxesForParts(row.parts),
+      boxes,
       groupId: row.groupId,
       special: row.special,
       dfm: Boolean(row.dfm),
+      frontOnlyDfm,
       width: row.width,
       fbLength: row.front.length || row.back.length,
       lrLength: row.left.length || row.right.length,
