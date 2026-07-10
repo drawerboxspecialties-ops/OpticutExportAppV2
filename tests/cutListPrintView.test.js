@@ -40,17 +40,19 @@ describe('packCutListPrintFlow', () => {
   it('fills column 1 completely before wrapping to column 2', () => {
     const rows = Array.from({ length: 40 }, (_, i) => ({ id: i + 1 }));
     const pages = packCutListPrintFlow(
-      [{ order: 'A', titleHtml: 'Order A', rows }],
+      [{ order: 'A', titleHtml: 'Order A', contTitleHtml: 'Order A (cont.)', rows }],
       { columnCount: 3, rowsPerColumn: 20, titleCost: 2 }
     );
 
     expect(pages).toHaveLength(1);
     expect(pages[0][0]).toHaveLength(1);
     expect(pages[0][0][0].rows).toHaveLength(18); // 20 - titleCost
+    expect(pages[0][0][0].rowStart).toBe(0);
     expect(pages[0][1]).toHaveLength(1);
-    expect(pages[0][1][0].rows).toHaveLength(19); // 20 - continuation thead
-    expect(pages[0][1][0].titleHtml).toBe('');
-    expect(pages[0][2][0].rows.map((r) => r.id)).toEqual([38, 39, 40]);
+    expect(pages[0][1][0].rows).toHaveLength(18); // 20 - cont titleCost
+    expect(pages[0][1][0].titleHtml).toBe('Order A (cont.)');
+    expect(pages[0][1][0].rowStart).toBe(18);
+    expect(pages[0][2][0].rows.map((r) => r.id)).toEqual([37, 38, 39, 40]);
   });
 
   it('starts the next order under the first table when space remains', () => {
@@ -59,11 +61,13 @@ describe('packCutListPrintFlow', () => {
         {
           order: 'A',
           titleHtml: 'Order A',
+          contTitleHtml: 'Order A (cont.)',
           rows: Array.from({ length: 5 }, (_, i) => ({ id: `a${i}` })),
         },
         {
           order: 'B',
           titleHtml: 'Order B',
+          contTitleHtml: 'Order B (cont.)',
           rows: Array.from({ length: 3 }, (_, i) => ({ id: `b${i}` })),
         },
       ],
@@ -82,12 +86,28 @@ describe('packCutListPrintFlow', () => {
   it('uses a second page band after three full columns', () => {
     const rows = Array.from({ length: 90 }, (_, i) => ({ id: i + 1 }));
     const pages = packCutListPrintFlow(
-      [{ order: 'A', titleHtml: 'Order A', rows }],
+      [{ order: 'A', titleHtml: 'Order A', contTitleHtml: 'Order A (cont.)', rows }],
       { columnCount: 3, rowsPerColumn: 20, titleCost: 2 }
     );
 
     expect(pages.length).toBeGreaterThan(1);
     expect(pages[0]).toHaveLength(PRINT_FLOW_COLUMNS);
+  });
+
+  it('skips empty sections without breaking the flow', () => {
+    const pages = packCutListPrintFlow(
+      [
+        { order: 'A', titleHtml: 'Order A', rows: [] },
+        {
+          order: 'B',
+          titleHtml: 'Order B',
+          rows: Array.from({ length: 2 }, (_, i) => ({ id: i + 1 })),
+        },
+      ],
+      { columnCount: 3, rowsPerColumn: 28, titleCost: 2 }
+    );
+    expect(pages[0][0]).toHaveLength(1);
+    expect(pages[0][0][0].order).toBe('B');
   });
 });
 
@@ -112,9 +132,10 @@ describe('buildCutListPrintCard', () => {
     expect(html.match(/cutlist-order-title/g)?.length).toBe(2);
     expect(html.match(/<thead>/g)?.length).toBe(2);
     expect(html).not.toContain('cutlist-order-stack');
+    expect(html).not.toContain('cutlist-order-block');
   });
 
-  it('wraps a tall order into later columns after filling column 1', () => {
+  it('wraps a tall order into later columns with continuation labels', () => {
     const sourceRows = [];
     for (let i = 0; i < PRINT_ROWS_PER_COLUMN + 5; i++) {
       sourceRows.push(...drawerRows('602516', String(i + 1), String(20 + i), '9', 4));
@@ -131,5 +152,35 @@ describe('buildCutListPrintCard', () => {
     const html = buildCutListPrintCard('TEST', batch, cols);
     expect(html.match(/cutlist-order-column"/g)?.length).toBeGreaterThanOrEqual(2);
     expect(html.match(/<thead>/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(html).toContain('cutlist-order-cont');
+    expect(html).toContain('(cont.)');
+  });
+
+  it('keeps zebra striping continuous across wrapped fragments', () => {
+    const sourceRows = [];
+    for (let i = 0; i < PRINT_ROWS_PER_COLUMN + 3; i++) {
+      sourceRows.push(...drawerRows('602516', String(i + 1), String(20 + i), '9', 4));
+    }
+    const batch = {
+      materialName: 'PF: 12MM Baltic Birch Ply',
+      topEdge: 'PVC',
+      totalBoxes: PRINT_ROWS_PER_COLUMN + 3,
+      sortedOrders: ['602516'],
+      orderColTotals: { 602516: PRINT_ROWS_PER_COLUMN + 3 },
+      sourceRows,
+    };
+
+    const html = buildCutListPrintCard('TEST', batch, cols);
+    const firstTable = html.split('</table>')[0];
+    const firstDataRows = firstTable.match(/cutlist-data-row/g)?.length || 0;
+    expect(firstDataRows).toBeGreaterThan(0);
+
+    // Second fragment should continue alt pattern from rowStart.
+    const secondFrag = html.split('cutlist-order-fragment')[2] || '';
+    if (firstDataRows % 2 === 1) {
+      expect(secondFrag).toMatch(/cutlist-data-row"/);
+    } else {
+      expect(secondFrag).toMatch(/cutlist-data-row cutlist-row-alt/);
+    }
   });
 });

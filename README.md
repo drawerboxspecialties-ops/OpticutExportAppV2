@@ -15,7 +15,7 @@ high-risk business rule.
 - Separates **special orders** (Scoop, Slope, Dividers, DrillFront, FileSlots) into `SPECIAL_` batches when enabled (default ON). Laser and GroupID are not special triggers.
 - Strips batching-only columns (`GroupID`, `Laser`, Ship Date, and all secondary-operation columns) from exported CSVs.
 - Exports cut-list CSV files for OptiCut.
-- Prints landscape cut-list sheets per batch (or all batches) with rounded widths, GroupID box counts, and checkboxes.
+- Prints landscape cut-list sheets per batch (or all batches) with a 3-column fluid flow (fill down, wrap across, next order continues under the previous table), rounded widths, GroupID box counts, and checkboxes.
 - Cut-list preview shows full imported rows (Scoop, GroupID, etc.); export strips batching columns.
 - Export rounding is checked by default; it rounds `Width` up to whole numbers,
   merges matching rows, and records original width quantities in `Label`.

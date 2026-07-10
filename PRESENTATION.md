@@ -1,4 +1,5 @@
 # DBS Drawers — OptiCut CSV Splitter
+
 ### What it does and how it works
 
 ---
@@ -17,12 +18,12 @@ This app runs entirely in the browser. No server, no upload. You drop in a CSV a
 
 ## What you get
 
-| Output | Purpose |
-|--------|---------|
-| **Split batches** | Grouped by material category + top edge (+ special orders) |
-| **Cut-list CSV** | One file per batch, formatted for OptiCut import |
+| Output             | Purpose                                                            |
+| ------------------ | ------------------------------------------------------------------ |
+| **Split batches**  | Grouped by material category + top edge (+ special orders)         |
+| **Cut-list CSV**   | One file per batch, formatted for OptiCut import                   |
 | **Cut-list print** | Landscape sheet per batch: widths, F/B and L/R lengths, box counts |
-| **ZIP export** | All batch CSVs in one download |
+| **ZIP export**     | All batch CSVs in one download                                     |
 
 ---
 
@@ -72,11 +73,11 @@ Each row is assigned a batch bucket:
 
 Rows with the same material and edge but different ship dates land in separate batches. Blank ship dates group together internally but print with no ship-date label.
 
-| Category | Code | Examples |
-|----------|------|----------|
-| Plywood sides | `PLY` | Baltic birch ply |
-| FAA sides | `FAA` | FAA-prefixed materials |
-| Solid sides | `SLD` | Alder, maple, oak, etc. |
+| Category               | Code  | Examples                 |
+| ---------------------- | ----- | ------------------------ |
+| Plywood sides          | `PLY` | Baltic birch ply         |
+| FAA sides              | `FAA` | FAA-prefixed materials   |
+| Solid sides            | `SLD` | Alder, maple, oak, etc.  |
 | MDF / PBC / PVC & tape | `MDF` | MDF, melamine, PVC edges |
 
 Within each bucket, orders can be **split** into multiple batches (max orders per batch, or per-group override). Each order number appears in **exactly one** split batch.
@@ -94,7 +95,7 @@ batch total       = sum of order totals
 
 **Print Cut List layout:**
 
-- Landscape letter, two columns of order blocks when space allows.
+- Landscape letter, three-column fluid flow: fill column 1 top-to-bottom, wrap to columns 2–3 on the same page; next order continues under the previous table.
 - Batch header: total boxes, comma-separated order numbers, material, top edge, ship date.
 - Each order block: order number + box summary (e.g. `3 boxes (1-2, 2-1)`).
 - Table columns: **Grp** (when GroupID exists), **W**, **F / B**, **L / R**, **Bx**, **Pcs**, checkbox.
@@ -132,18 +133,18 @@ tests/              Vitest tests lock every critical rule
 
 ## Key files
 
-| File | Role |
-|------|------|
-| `src/logic/headers.js` | Column detection + export column filtering |
-| `src/logic/grouping.js` | Batch creation, merging, splitting, exclusions |
-| `src/logic/specialOrders.js` | Special-order detection |
-| `src/logic/shipDate.js` | Ship-date batch grouping + print labels |
-| `src/logic/groupBoxes.js` | Per-GroupID box totals + order-total reconcile |
-| `src/logic/boxMath.js` | `ceil(parts/4)` box matrix |
-| `src/logic/exportRows.js` | Cut-list row prep, width rounding merge |
-| `src/logic/materialNames.js` | OptiCut material name formatting |
-| `src/logic/cutListPrint.js` | Flat cut-list print rows (pair, merge, sort) |
-| `src/ui/cutListPrintView.js` | Cut-list print sheet HTML |
+| File                         | Role                                           |
+| ---------------------------- | ---------------------------------------------- |
+| `src/logic/headers.js`       | Column detection + export column filtering     |
+| `src/logic/grouping.js`      | Batch creation, merging, splitting, exclusions |
+| `src/logic/specialOrders.js` | Special-order detection                        |
+| `src/logic/shipDate.js`      | Ship-date batch grouping + print labels        |
+| `src/logic/groupBoxes.js`    | Per-GroupID box totals + order-total reconcile |
+| `src/logic/boxMath.js`       | `ceil(parts/4)` box matrix                     |
+| `src/logic/exportRows.js`    | Cut-list row prep, width rounding merge        |
+| `src/logic/materialNames.js` | OptiCut material name formatting               |
+| `src/logic/cutListPrint.js`  | Flat cut-list print rows (pair, merge, sort)   |
+| `src/ui/cutListPrintView.js` | Cut-list print sheet HTML                      |
 
 ---
 
@@ -169,4 +170,4 @@ tests/              Vitest tests lock every critical rule
 
 ---
 
-*DBS Drawers internal tooling — Drawer Box Specialties*
+_DBS Drawers internal tooling — Drawer Box Specialties_

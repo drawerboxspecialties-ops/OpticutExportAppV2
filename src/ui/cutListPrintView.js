@@ -32,9 +32,7 @@ function buildPrintHeaderBanner(batchKey, batch, colIndices, position = null) {
     position && position.count > 1
       ? `<span class="print-batch-index">Batch ${position.index} of ${position.count}</span>`
       : '';
-  const specialTag = batch.isSpecial
-    ? `<span class="print-batch-special">★ SPECIAL</span>`
-    : '';
+  const specialTag = batch.isSpecial ? `<span class="print-batch-special">★ SPECIAL</span>` : '';
   const shipDateLabel = formatShipDateLabel(batch.shipDate, colIndices);
   const shipDateChip = shipDateLabel
     ? `
@@ -106,12 +104,10 @@ function renderCutListDataRow(r, hasGroup, altClass) {
       </tr>`;
 }
 
-function renderCutListTableBody(rows, hasGroup) {
-  let rowOrdinal = 0;
+function renderCutListTableBody(rows, hasGroup, rowStart = 0) {
   let html = '';
-  rows.forEach((r) => {
-    const altClass = rowOrdinal % 2 === 1 ? ' cutlist-row-alt' : '';
-    rowOrdinal++;
+  rows.forEach((r, i) => {
+    const altClass = (rowStart + i) % 2 === 1 ? ' cutlist-row-alt' : '';
     html += renderCutListDataRow(r, hasGroup, altClass);
   });
   return html;
@@ -123,8 +119,8 @@ export const PRINT_FLOW_COLUMNS = 3;
 /** Approx. data rows that fit in one print column under the batch header. */
 export const PRINT_ROWS_PER_COLUMN = 28;
 
-/** Order title band cost in row-units (keeps packing honest). */
-const ORDER_TITLE_ROW_COST = 2;
+/** Order title band cost in row-units (title + table header). */
+export const ORDER_TITLE_ROW_COST = 2;
 
 /**
  * Pack order sections into page bands of columns.
@@ -132,7 +128,7 @@ const ORDER_TITLE_ROW_COST = 2;
  * The next order continues in the same column under the previous table
  * when vertical space remains.
  *
- * @returns {Array<Array<Array<{order: string, titleHtml: string, rows: object[]}>>>}
+ * @returns {Array<Array<Array<{order: string, titleHtml: string, rows: object[], rowStart: number}>>>}
  *   pages → columns → fragments
  */
 export function packCutListPrintFlow(
@@ -177,16 +173,19 @@ export function packCutListPrintFlow(
     let firstFragment = true;
 
     while (offset < rows.length) {
-      const overhead = firstFragment ? titleCost : 1; // thead on continuations
+      // Title (or cont. title) + thead share the same vertical budget.
+      const overhead = Math.max(1, titleCost);
       ensureSpace(overhead + 1);
       const spaceForRows = Math.max(1, rowsPerColumn - used - overhead);
       const chunk = rows.slice(offset, offset + spaceForRows);
+      const rowStart = offset;
       offset += chunk.length;
 
       columns[colIndex].push({
         order: section.order,
-        titleHtml: firstFragment ? section.titleHtml : '',
+        titleHtml: firstFragment ? section.titleHtml || '' : section.contTitleHtml || '',
         rows: chunk,
+        rowStart,
       });
       used += overhead + chunk.length;
       firstFragment = false;
@@ -201,11 +200,11 @@ export function packCutListPrintFlow(
   return pages;
 }
 
-function renderCutListColumnTable(rows, hasGroup) {
+function renderCutListColumnTable(rows, hasGroup, rowStart = 0) {
   return `
       <table class="cutlist-table cutlist-table--flow" cellspacing="0">
         ${renderCutListTableHead(hasGroup)}
-        <tbody>${renderCutListTableBody(rows, hasGroup)}</tbody>
+        <tbody>${renderCutListTableBody(rows, hasGroup, rowStart)}</tbody>
       </table>`;
 }
 
@@ -213,12 +212,16 @@ function renderFlowFragment(fragment, hasGroup) {
   const title = fragment.titleHtml
     ? `<div class="cutlist-order-title">${fragment.titleHtml}</div>`
     : '';
-  return `<div class="cutlist-order-fragment">${title}${renderCutListColumnTable(fragment.rows, hasGroup)}</div>`;
+  return `<div class="cutlist-order-fragment">${title}${renderCutListColumnTable(
+    fragment.rows,
+    hasGroup,
+    fragment.rowStart || 0
+  )}</div>`;
 }
 
 function renderFlowColumn(fragments, hasGroup) {
   if (!fragments.length) {
-    return `<div class="cutlist-order-column cutlist-order-column--empty"></div>`;
+    return `<div class="cutlist-order-column cutlist-order-column--empty" aria-hidden="true"></div>`;
   }
   return `<div class="cutlist-order-column">${fragments
     .map((fragment) => renderFlowFragment(fragment, hasGroup))
@@ -232,10 +235,15 @@ function renderFlowPage(columns, hasGroup) {
 }
 
 function buildSectionTitleHtml(section, batch, colIndices, anySpecial) {
-  const specialMark = section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
+  const specialMark =
+    section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
   const boxSummary = formatOrderCutListBoxSummary(section.order, batch, colIndices);
   const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
   return `Order ${escapeHTML(section.order)}${boxMark}${specialMark}`;
+}
+
+function buildSectionContTitleHtml(section) {
+  return `Order ${escapeHTML(section.order)} <span class="cutlist-order-cont">(cont.)</span>`;
 }
 
 function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount) {
@@ -251,12 +259,15 @@ function renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial
           </table>
         </div>
       </div>
+      <div class="cutlist-order-column cutlist-order-column--empty" aria-hidden="true"></div>
+      <div class="cutlist-order-column cutlist-order-column--empty" aria-hidden="true"></div>
     </div>`;
   }
 
   const titled = sections.map((section) => ({
     ...section,
     titleHtml: buildSectionTitleHtml(section, batch, colIndices, anySpecial),
+    contTitleHtml: buildSectionContTitleHtml(section),
   }));
   const pages = packCutListPrintFlow(titled);
 

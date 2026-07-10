@@ -967,7 +967,9 @@ tbody tr:hover td {
   font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
-  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+  transition:
+    background 0.15s var(--ease),
+    color 0.15s var(--ease);
 }
 
 .mini-danger-btn {
@@ -1672,20 +1674,10 @@ tbody tr:hover td {
   margin-bottom: 0;
 }
 
-.cutlist-order-block {
-  margin-bottom: 0.06in;
-  width: 100%;
-  break-inside: auto;
-  page-break-inside: auto;
-}
-
-.cutlist-order-block .cutlist-order-title {
-  border: 1px solid #64748b;
-  border-bottom: none;
-}
-
-.cutlist-order-block .cutlist-table {
-  margin-bottom: 0;
+.cutlist-order-cont {
+  font-weight: 700;
+  color: #475569 !important;
+  letter-spacing: 0;
 }
 
 .cutlist-table {
@@ -1922,13 +1914,16 @@ tbody tr:hover td {
 
   .cutlist-order-column {
     min-width: 0;
-    break-inside: avoid;
-    page-break-inside: avoid;
   }
 
   .cutlist-order-fragment {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  .cutlist-order-fragment .cutlist-order-title {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 
   .cutlist-order-title {
