@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildCutListPrintCard,
   splitRowsForPrintTables,
-  rowsPerPrintTable,
-  PRINT_ROWS_PER_TABLE,
+  PRINT_TABLES_PER_ORDER,
 } from '../src/ui/cutListPrintView.js';
 import { mapHeaders } from '../src/logic/headers.js';
 
@@ -37,31 +36,30 @@ function drawerRows(order, label, length, drawerWidth, qty = 4) {
 }
 
 describe('splitRowsForPrintTables', () => {
-  it('fills table 1 before starting table 2 below it', () => {
+  it('splits into 3 tables with rows filling down first', () => {
     const rows = Array.from({ length: 22 }, (_, i) => ({ id: i + 1 }));
-    const chunks = splitRowsForPrintTables(rows, 15);
-    expect(chunks).toHaveLength(2);
-    expect(chunks[0]).toHaveLength(15);
-    expect(chunks[1]).toHaveLength(7);
+    const chunks = splitRowsForPrintTables(rows, 3);
+    expect(chunks).toHaveLength(3);
+    expect(chunks[0]).toHaveLength(8);
+    expect(chunks[1]).toHaveLength(8);
+    expect(chunks[2]).toHaveLength(6);
     expect(chunks[0][0].id).toBe(1);
-    expect(chunks[1][0].id).toBe(16);
+    expect(chunks[1][0].id).toBe(9);
+    expect(chunks[2][0].id).toBe(17);
   });
 
-  it('uses one table when rows fit', () => {
+  it('splits small orders into 3 tables too', () => {
     const rows = [{ id: 1 }, { id: 2 }];
-    expect(splitRowsForPrintTables(rows, 15)).toHaveLength(1);
-  });
-});
-
-describe('rowsPerPrintTable', () => {
-  it('uses smaller chunks when multiple orders share a page', () => {
-    expect(rowsPerPrintTable(1)).toBe(PRINT_ROWS_PER_TABLE);
-    expect(rowsPerPrintTable(2)).toBe(12);
+    const chunks = splitRowsForPrintTables(rows, 3);
+    expect(chunks).toHaveLength(3);
+    expect(chunks[0]).toHaveLength(1);
+    expect(chunks[1]).toHaveLength(1);
+    expect(chunks[2]).toHaveLength(0);
   });
 });
 
 describe('buildCutListPrintCard', () => {
-  it('renders stacked full-width tables that fill vertically', () => {
+  it('renders 3 side-by-side tables per order', () => {
     const sourceRows = [];
     for (let i = 0; i < 22; i++) {
       sourceRows.push(...drawerRows('602516', String(i + 1), String(20 + i), '9', 4));
@@ -75,15 +73,14 @@ describe('buildCutListPrintCard', () => {
       sourceRows,
     };
 
-    const html = buildCutListPrintCard('TEST', batch, cols);
-    expect(html.match(/cutlist-order-stack/g)?.length).toBe(1);
-    expect(html.match(/class="cutlist-order-column"/g)).toBeNull();
-    expect(html.match(/cutlist-order-columns/g)).toBeNull();
-    expect(html.match(/<table class="cutlist-table/g)?.length).toBe(2);
-    expect(html.match(/<thead>/g)?.length).toBe(2);
+    const html = buildCutListPrintCard('TEST', batch, cols, null, PRINT_TABLES_PER_ORDER);
+    expect(html.match(/class="cutlist-order-column"/g)?.length).toBe(3);
+    expect(html.match(/cutlist-order-columns/g)?.length).toBe(1);
+    expect(html.match(/cutlist-order-stack/g)).toBeNull();
+    expect(html.match(/<thead>/g)?.length).toBe(3);
   });
 
-  it('renders stacked tables for each order in a batch', () => {
+  it('renders 3 tables for each order in a multi-order batch', () => {
     const batch = {
       materialName: 'PF: 12MM Baltic Birch Ply',
       topEdge: 'PVC',
@@ -98,7 +95,7 @@ describe('buildCutListPrintCard', () => {
 
     const html = buildCutListPrintCard('TEST', batch, cols);
     expect(html.match(/cutlist-order-block/g)?.length).toBe(2);
-    expect(html.match(/cutlist-order-stack/g)?.length).toBe(2);
-    expect(html.match(/<table class="cutlist-table/g)?.length).toBe(2);
+    expect(html.match(/class="cutlist-order-column"/g)?.length).toBe(6);
+    expect(html.match(/<thead>/g)?.length).toBe(6);
   });
 });

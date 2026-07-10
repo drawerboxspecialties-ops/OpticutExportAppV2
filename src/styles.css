@@ -1615,22 +1615,36 @@ tbody tr:hover td {
   width: 100%;
 }
 
-.cutlist-order-stack {
-  display: block;
+.cutlist-order-columns {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.08in;
   width: 100%;
 }
 
-.cutlist-order-stack .cutlist-table {
+.cutlist-order-column {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.cutlist-order-columns .cutlist-table {
   width: 100%;
+  font-size: 9px;
 }
 
-.cutlist-order-stack .cutlist-table + .cutlist-table {
-  margin-top: 0;
-  border-top: none;
+.cutlist-order-columns .cutlist-table th {
+  font-size: 8px;
+  padding: 2px 3px;
 }
 
-.cutlist-order-stack .cutlist-table + .cutlist-table thead tr th {
-  border-top: none;
+.cutlist-order-columns .cutlist-table td {
+  padding: 2px 3px;
+}
+
+.cutlist-order-columns .cutlist-dim,
+.cutlist-order-columns .cutlist-qty {
+  font-size: 9px;
 }
 
 .cutlist-table--flow {
@@ -1878,11 +1892,19 @@ tbody tr:hover td {
     page-break-before: avoid;
   }
 
-  .cutlist-order-stack {
-    width: 100%;
+  .cutlist-order-columns {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.08in;
   }
 
-  .cutlist-order-stack .cutlist-table {
+  .cutlist-order-column {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .cutlist-order-column .cutlist-table {
     break-inside: avoid;
     page-break-inside: avoid;
   }
