@@ -484,7 +484,9 @@ function renderCurrentView() {
   $('current-view-title').innerText = `${state.activeGroupKey}.csv`;
 
   if (printPreview) {
-    printPreview.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices);
+    printPreview.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices, null, {
+      allRows: state.parsedRows,
+    });
   }
 
   const previewRows = getBatchPreviewRows(batch);
@@ -917,7 +919,9 @@ function triggerPrintCutList() {
   runPrintJob(() => {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'print-batch-card';
-    cardDiv.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices);
+    cardDiv.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices, null, {
+      allRows: state.parsedRows,
+    });
     return cardDiv;
   }, ['print-active', 'print-cutlist-active']);
 }
@@ -931,10 +935,16 @@ function printAllCutLists() {
       const batch = state.splitGroups[batchKey];
       const cardDiv = document.createElement('div');
       cardDiv.className = 'print-batch-card';
-      cardDiv.innerHTML = buildCutListPrintCard(batchKey, batch, state.colIndices, {
-        index: idx + 1,
-        count: keys.length,
-      });
+      cardDiv.innerHTML = buildCutListPrintCard(
+        batchKey,
+        batch,
+        state.colIndices,
+        {
+          index: idx + 1,
+          count: keys.length,
+        },
+        { allRows: state.parsedRows }
+      );
       fragment.appendChild(cardDiv);
     });
     return fragment;

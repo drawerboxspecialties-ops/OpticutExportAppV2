@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCutListPrintSections } from '../src/logic/cutListPrint.js';
+import { getCutListPrintSections, getDifferentFrontMaterialKeys, dfmDrawerKey } from '../src/logic/cutListPrint.js';
 import { mapHeaders } from '../src/logic/headers.js';
 
 const headers = [
@@ -259,5 +259,152 @@ describe('getCutListPrintSections', () => {
     expect(rows).toHaveLength(2);
     expect(rows.find((r) => r.width === '6')).toMatchObject({ parts: 8, boxes: 2 });
     expect(rows.find((r) => r.width === '9')).toMatchObject({ parts: 4, boxes: 1 });
+  });
+});
+
+describe('different front material (*DFM)', () => {
+  function matRow({ order, material, part, length, qty, groupId, w = '4', drawerWidth = '4' }) {
+    return [
+      order,
+      material,
+      part,
+      String(w),
+      String(length),
+      String(qty),
+      '',
+      String(drawerWidth),
+      'Bullnose',
+      groupId,
+      'None',
+      'None',
+      'None',
+      'None',
+      'None',
+      'None',
+    ];
+  }
+
+  it('detects order+group when front material differs from B/L/R', () => {
+    const allRows = [
+      matRow({
+        order: '602648',
+        material: 'FAA: 3/4" Premium White Maple FSC',
+        part: 'F',
+        length: '19.063',
+        qty: 2,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'B',
+        length: '19.063',
+        qty: 2,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'L',
+        length: '20.876',
+        qty: 2,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'R',
+        length: '20.876',
+        qty: 2,
+        groupId: '3',
+      }),
+      // same-material drawer should not flag
+      matRow({
+        order: '602648',
+        material: 'PF: 1/2" Maple White',
+        part: 'F',
+        length: '14.375',
+        qty: 4,
+        groupId: '1',
+      }),
+      matRow({
+        order: '602648',
+        material: 'PF: 1/2" Maple White',
+        part: 'B',
+        length: '14.375',
+        qty: 4,
+        groupId: '1',
+      }),
+      matRow({
+        order: '602648',
+        material: 'PF: 1/2" Maple White',
+        part: 'L',
+        length: '20.626',
+        qty: 4,
+        groupId: '1',
+      }),
+      matRow({
+        order: '602648',
+        material: 'PF: 1/2" Maple White',
+        part: 'R',
+        length: '20.626',
+        qty: 4,
+        groupId: '1',
+      }),
+    ];
+
+    const keys = getDifferentFrontMaterialKeys(allRows, cols);
+    expect(keys.has(dfmDrawerKey('602648', '3'))).toBe(true);
+    expect(keys.has(dfmDrawerKey('602648', '1'))).toBe(false);
+  });
+
+  it('marks *DFM on both front-only and side-only cut lists', () => {
+    const allRows = [
+      matRow({
+        order: '602648',
+        material: 'FAA: 3/4" Premium White Maple FSC',
+        part: 'F',
+        length: '19.063',
+        qty: 2,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'B',
+        length: '19.063',
+        qty: 2,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'L',
+        length: '20.876',
+        qty: 2,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'R',
+        length: '20.876',
+        qty: 2,
+        groupId: '3',
+      }),
+    ];
+
+    const frontBatch = {
+      sourceRows: allRows.filter((r) => r[cols.partName] === 'F'),
+    };
+    const sideBatch = {
+      sourceRows: allRows.filter((r) => r[cols.partName] !== 'F'),
+    };
+
+    const frontSections = getCutListPrintSections(frontBatch, cols, { allRows });
+    const sideSections = getCutListPrintSections(sideBatch, cols, { allRows });
+
+    expect(frontSections[0].rows.every((r) => r.dfm)).toBe(true);
+    expect(sideSections[0].rows.every((r) => r.dfm)).toBe(true);
   });
 });

@@ -1845,6 +1845,19 @@ tbody tr:hover td {
   font-weight: 900;
 }
 
+.cutlist-dfm-mark {
+  color: #9a3412 !important;
+  font-weight: 900;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.cutlist-row-dfm td {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
 .print-batch-special {
   display: inline-block;
   margin-left: 8px;

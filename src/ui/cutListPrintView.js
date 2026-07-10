@@ -2,7 +2,7 @@ import { escapeHTML } from '../logic/csv.js';
 import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
 import { formatOrderCutListBoxSummary } from '../logic/groupBoxes.js';
-import { getCutListPrintSections } from '../logic/cutListPrint.js';
+import { getCutListPrintSections, DFM_MARK } from '../logic/cutListPrint.js';
 
 /** Max order numbers shown in the print header before summarizing. */
 export const PRINT_HEADER_ORDER_LIMIT = 10;
@@ -107,10 +107,13 @@ function renderCutListTableHead(hasGroup) {
 }
 
 function renderCutListDataRow(r, hasGroup, altClass) {
+  const dfmMark = r.dfm
+    ? ` <span class="cutlist-dfm-mark">${escapeHTML(DFM_MARK)}</span>`
+    : '';
   return `
-      <tr class="cutlist-data-row${altClass}">
-        ${hasGroup ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</td>` : ''}
-        <td class="cutlist-dim">${escapeHTML(r.width)}"</td>
+      <tr class="cutlist-data-row${altClass}${r.dfm ? ' cutlist-row-dfm' : ''}">
+        ${hasGroup ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}${dfmMark}</td>` : ''}
+        <td class="cutlist-dim">${escapeHTML(r.width)}"${hasGroup ? '' : dfmMark}</td>
         <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
         <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
         <td class="cutlist-qty"><b>${r.boxes}</b></td>
@@ -320,9 +323,12 @@ function renderCutListFlowBody(
   return pages.map((columns) => renderFlowPage(columns, hasGroup)).join('');
 }
 
-export function buildCutListPrintCard(batchKey, batch, colIndices, position = null) {
+export function buildCutListPrintCard(batchKey, batch, colIndices, position = null, options = {}) {
   const headerBanner = buildPrintHeaderBanner(batchKey, batch, colIndices, position);
-  const sections = getCutListPrintSections(batch, colIndices);
+  const sections = getCutListPrintSections(batch, colIndices, {
+    allRows: options.allRows,
+    dfmKeys: options.dfmKeys,
+  });
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
   const colCount = 6 + (hasGroup ? 1 : 0);

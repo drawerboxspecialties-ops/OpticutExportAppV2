@@ -7,7 +7,68 @@ import {
 } from './widths.js';
 import { getSpecialGroupKeys, getGroupSpecialKey } from './specialOrders.js';
 
+/** Shop-floor mark: front material differs from B/L/R for this drawer. */
+export const DFM_MARK = '*DFM';
+
 /** @typedef {{ w: string, length: string }} PartDim */
+
+/**
+ * Stable key for matching a drawer across material batches (order + GroupID).
+ * @param {string} order
+ * @param {string} [groupId='']
+ * @returns {string}
+ */
+export function dfmDrawerKey(order, groupId = '') {
+  return `${String(order ?? '').trim()}|${String(groupId ?? '').trim()}`;
+}
+
+/**
+ * Find drawers whose Front material differs from Back/Left/Right material.
+ * Keys are `order|groupId` (blank groupId when GroupID is absent).
+ *
+ * @param {string[][]} rows
+ * @param {object} colIndices
+ * @returns {Set<string>}
+ */
+export function getDifferentFrontMaterialKeys(rows, colIndices) {
+  const keys = new Set();
+  if (!rows?.length || !colIndices || colIndices.materialName === -1) return keys;
+
+  /** @type {Map<string, { fronts: Set<string>, sides: Set<string> }>} */
+  const byDrawer = new Map();
+
+  rows.forEach((row) => {
+    const order = String(row[colIndices.orderNumber] ?? '').trim();
+    if (!order) return;
+    const side = getPartSide(row, colIndices);
+    if (!side) return;
+    const material = String(row[colIndices.materialName] ?? '')
+      .trim()
+      .toLowerCase();
+    if (!material) return;
+    const groupId =
+      colIndices.groupId !== -1 && colIndices.groupId < row.length
+        ? String(row[colIndices.groupId] ?? '').trim()
+        : '';
+    const key = dfmDrawerKey(order, groupId);
+    if (!byDrawer.has(key)) {
+      byDrawer.set(key, { fronts: new Set(), sides: new Set() });
+    }
+    const entry = byDrawer.get(key);
+    if (side === 'front') entry.fronts.add(material);
+    else entry.sides.add(material);
+  });
+
+  byDrawer.forEach((entry, key) => {
+    if (!entry.fronts.size || !entry.sides.size) return;
+    const same =
+      entry.fronts.size === entry.sides.size &&
+      [...entry.fronts].every((m) => entry.sides.has(m));
+    if (!same) keys.add(key);
+  });
+
+  return keys;
+}
 
 /**
  * @param {string[]} row
@@ -85,6 +146,7 @@ function buildBoxLineFromFront(lead, bucket) {
     groupId: bucket.groupId,
     lineLabel: bucket.lineLabel,
     special: bucket.special,
+    dfm: bucket.dfm,
     width: lead.stackWidth,
     stackWidthSort: lead.stackWidthSort,
     front: { ...lead.dim },
@@ -154,6 +216,7 @@ function boxRowMergeKey(row) {
     row.left.length,
     row.right.length,
     row.special ? '1' : '0',
+    row.dfm ? '1' : '0',
   ].join('|');
 }
 
@@ -177,17 +240,28 @@ function mergeIdenticalBoxRows(rows) {
 /**
  * Build cut-list print sections: one row per box line with rounded drawer width,
  * Front/Back length, and Left/Right length (shop cut-list layout).
+ *
+ * @param {{ sourceRows?: string[][], rows?: string[][] }} batch
+ * @param {object} colIndices
+ * @param {{ allRows?: string[][], dfmKeys?: Set<string> }} [options]
+ *   Pass `allRows` (full import) or precomputed `dfmKeys` so cross-material
+ *   fronts are marked with *DFM on both the front sheet and the side sheet.
  */
-export function getCutListPrintSections(batch, colIndices) {
+export function getCutListPrintSections(batch, colIndices, options = {}) {
   const rows = batch?.sourceRows?.length ? batch.sourceRows : batch?.rows || [];
   if (!rows.length || !colIndices) return [];
+
+  const dfmKeys =
+    options.dfmKeys ||
+    getDifferentFrontMaterialKeys(options.allRows?.length ? options.allRows : rows, colIndices);
+  const isDfm = (order, groupId) => dfmKeys.has(dfmDrawerKey(order, groupId));
 
   const specialGroups = getSpecialGroupKeys(rows, colIndices);
   const hasGroupId = colIndices.groupId !== -1;
   const hasLabel = colIndices.label !== -1;
   const isGroupSpecial = (order, groupId, label) =>
     specialGroups.has(getGroupSpecialKey(order, groupId, label));
-  /** @type {Map<string, { order: string, groupId: string, label: string, lineLabel: string, special: boolean, parts: object[] }>} */
+  /** @type {Map<string, { order: string, groupId: string, label: string, lineLabel: string, special: boolean, dfm: boolean, parts: object[] }>} */
   const buckets = new Map();
 
   rows.forEach((row) => {
@@ -215,6 +289,7 @@ export function getCutListPrintSections(batch, colIndices) {
         label,
         lineLabel: label,
         special: isGroupSpecial(order, groupId, label),
+        dfm: isDfm(order, groupId),
         parts: [],
       });
     }
@@ -246,6 +321,7 @@ export function getCutListPrintSections(batch, colIndices) {
             groupId: bucket.groupId,
             lineLabel: bucket.lineLabel,
             special: bucket.special,
+            dfm: bucket.dfm,
             width: p.stackWidth,
             stackWidthSort: p.stackWidthSort,
             front: emptySide(),
@@ -334,6 +410,7 @@ export function getCutListPrintSections(batch, colIndices) {
       boxes: boxesForParts(row.parts),
       groupId: row.groupId,
       special: row.special,
+      dfm: Boolean(row.dfm),
       width: row.width,
       fbLength: row.front.length || row.back.length,
       lrLength: row.left.length || row.right.length,

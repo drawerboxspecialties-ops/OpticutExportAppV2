@@ -206,6 +206,28 @@ describe('buildCutListPrintCard', () => {
     expect(headerList).not.toContain(orders[orders.length - 1]);
     expect(headerList).toContain(orders[0]);
   });
+
+  it('renders *DFM on rows when front material differs across the file', () => {
+    const frontMat = 'FAA: 3/4" Premium White Maple FSC';
+    const sideMat = 'FAA: 1/2" Maple White';
+    const allRows = [
+      ['602648', frontMat, 'F', '4', '19.063', '2', '', '4', 'Bullnose', '3'],
+      ['602648', sideMat, 'B', '4', '19.063', '2', '', '4', 'Bullnose', '3'],
+      ['602648', sideMat, 'L', '4', '20.876', '2', '', '4', 'Bullnose', '3'],
+      ['602648', sideMat, 'R', '4', '20.876', '2', '', '4', 'Bullnose', '3'],
+    ];
+    const batch = {
+      materialName: frontMat,
+      topEdge: 'Bullnose',
+      totalBoxes: 1,
+      sortedOrders: ['602648'],
+      orderColTotals: { 602648: 1 },
+      sourceRows: [allRows[0]],
+    };
+    const html = buildCutListPrintCard('TEST', batch, cols, null, { allRows });
+    expect(html).toContain('*DFM');
+    expect(html).toContain('cutlist-dfm-mark');
+  });
 });
 
 describe('estimateRowsPerPrintColumn', () => {
