@@ -5,6 +5,7 @@ import {
   subscribeStationJobs,
   stationHashBatchKey,
   updateStationJobCheck,
+  normalizeStationChecks,
 } from '../logic/stationSync.js';
 
 const ZOOM_STORAGE_KEY = 'opticut-station-zoom';
@@ -54,14 +55,14 @@ function sheetRenderKey(job) {
 }
 
 function countChecks(job) {
-  const checks = job?.checks && typeof job.checks === 'object' ? job.checks : {};
-  const checked = Object.keys(checks).filter((k) => checks[k]).length;
+  const checks = normalizeStationChecks(job?.checks);
+  const checked = Object.keys(checks).length;
   const total = job?.html ? (job.html.match(/class="station-check"/g) || []).length : 0;
   return { checked, total };
 }
 
 function applyStationChecks(root, checks) {
-  const map = checks && typeof checks === 'object' ? checks : {};
+  const map = normalizeStationChecks(checks);
   root.querySelectorAll('.station-check[data-row-id]').forEach((input) => {
     const id = input.getAttribute('data-row-id') || '';
     const on = Boolean(map[id]);
@@ -394,24 +395,64 @@ export function mountStationView(root) {
     const checked = input.checked;
     input.closest('tr')?.classList.toggle('cutlist-row-done', checked);
 
-    // Optimistic local update so progress bars refresh immediately.
+    // Optimistic local update — do not rebuild the whole queue (keeps scroll/focus).
     const job = allJobs.find((j) => j.batchKey === batchKey);
     if (job) {
-      job.checks = { ...(job.checks || {}) };
+      job.checks = normalizeStationChecks(job.checks);
       if (checked) job.checks[rowId] = true;
       else delete job.checks[rowId];
-      renderQueue();
+      renderBatchBar(job);
+      const item = [...listEl.querySelectorAll('[data-batch-key]')].find(
+        (el) => el.getAttribute('data-batch-key') === batchKey
+      );
+      if (item) {
+        const { checked: c, total } = countChecks(job);
+        const pct = total ? Math.round((c / total) * 100) : 0;
+        const done = total > 0 && c === total;
+        item.classList.toggle('is-done', done);
+        const bar = item.querySelector('.station-queue-progress');
+        const fill = item.querySelector('.station-queue-progress i');
+        if (bar && fill) {
+          bar.classList.toggle('is-complete', done);
+          fill.style.width = `${pct}%`;
+        }
+        const badge = item.querySelector('.station-queue-done-badge');
+        if (done && !badge) {
+          const top = item.querySelector('.station-queue-item-top');
+          if (top) {
+            top.insertAdjacentHTML(
+              'beforeend',
+              '<span class="station-queue-done-badge">✓ Done</span>'
+            );
+          }
+        } else if (!done && badge) {
+          badge.remove();
+        }
+      }
     }
 
     void updateStationJobCheck(batchKey, rowId, checked).catch((err) => {
       console.error(err);
-      if (job?.checks) {
+      input.checked = !checked;
+      input.closest('tr')?.classList.toggle('cutlist-row-done', !checked);
+      if (job) {
+        job.checks = normalizeStationChecks(job.checks);
         if (checked) delete job.checks[rowId];
         else job.checks[rowId] = true;
+        renderBatchBar(job);
       }
-      renderQueue();
-      setStatus('error', 'Check save failed');
+      setStatus('error', 'Check save failed — try again');
     });
+  });
+
+  // Larger tap target: clicking the check cell toggles the box.
+  bodyEl.addEventListener('click', (e) => {
+    const cell = e.target.closest('td.cutlist-check');
+    if (!cell || e.target.closest('.station-check')) return;
+    const input = cell.querySelector('.station-check');
+    if (!input) return;
+    input.checked = !input.checked;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
   searchEl.addEventListener('input', () => {

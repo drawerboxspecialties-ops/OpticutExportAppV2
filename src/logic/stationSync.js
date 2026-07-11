@@ -176,6 +176,8 @@ export async function publishStationJob(job, options = {}) {
 
 /**
  * Toggle a station cut-list line checkbox (synced live via Firestore).
+ * Row ids include decimals (e.g. 15.875); must use FieldPath so "." is not
+ * treated as a nested-field separator.
  * @param {string} batchKey
  * @param {string} rowId
  * @param {boolean} checked
@@ -185,11 +187,24 @@ export async function updateStationJobCheck(batchKey, rowId, checked) {
   const key = String(rowId || '').trim();
   if (!id || !key) throw new Error('Missing batch or row id.');
 
-  const { doc, updateDoc, deleteField } = await import('firebase/firestore');
+  const { doc, updateDoc, deleteField, FieldPath } = await import('firebase/firestore');
   const ref = doc(await getDb(), STATION_JOBS_COLLECTION, id);
-  await updateDoc(ref, {
-    [`checks.${key}`]: checked ? true : deleteField(),
+  await updateDoc(ref, new FieldPath('checks', key), checked ? true : deleteField());
+}
+
+/**
+ * Keep only real checkbox keys (boolean true). Drops nested junk left by older
+ * dotted-path writes that split decimal lengths like "15.875".
+ * @param {unknown} checks
+ * @returns {Record<string, true>}
+ */
+export function normalizeStationChecks(checks) {
+  if (!checks || typeof checks !== 'object' || Array.isArray(checks)) return {};
+  const out = {};
+  Object.entries(checks).forEach(([key, value]) => {
+    if (value === true && key.includes('|')) out[key] = true;
   });
+  return out;
 }
 
 /**
@@ -206,7 +221,14 @@ export async function subscribeStationJobs(onJobs, onError) {
   return onSnapshot(
     q,
     (snap) => {
-      const jobs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const jobs = snap.docs.map((d) => {
+        const data = d.data() || {};
+        return {
+          id: d.id,
+          ...data,
+          checks: normalizeStationChecks(data.checks),
+        };
+      });
       onJobs(retainActiveStationJobs(jobs));
     },
     (err) => {

@@ -7,6 +7,7 @@ import {
   uniqueStationMaterials,
   retainActiveStationJobs,
   stationJobExpiryCutoff,
+  normalizeStationChecks,
   STATION_JOB_RETENTION_MS,
 } from '../src/logic/stationSync.js';
 
@@ -48,6 +49,20 @@ describe('14-day retention', () => {
       { batchKey: 'old', sentAt: stationJobExpiryCutoff(now) - 1 },
     ];
     expect(retainActiveStationJobs(jobs, now).map((j) => j.batchKey)).toEqual(['new', 'edge']);
+  });
+});
+
+describe('normalizeStationChecks', () => {
+  it('keeps boolean row ids and drops nested dotted-path junk', () => {
+    expect(
+      normalizeStationChecks({
+        '602614|1|12|15.875|20.626': true,
+        '602614|1|12|15': { '875|20': { '626': true } },
+        junk: false,
+      })
+    ).toEqual({
+      '602614|1|12|15.875|20.626': true,
+    });
   });
 });
 
