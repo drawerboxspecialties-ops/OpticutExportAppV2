@@ -28,5 +28,8 @@
     "puppeteer": "^25.2.1",
     "vite": "^5.3.0",
     "vitest": "^2.0.0"
+  },
+  "dependencies": {
+    "firebase": "^12.16.0"
   }
 }

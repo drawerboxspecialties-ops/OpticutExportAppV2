@@ -21,6 +21,8 @@ import {
 } from './logic/settingsStore.js';
 import { DEMO_CSV } from './logic/demoData.js';
 import { buildCutListPrintCard } from './ui/cutListPrintView.js';
+import { publishStationJob, purgeExpiredStationJobs, isStationHash } from './logic/stationSync.js';
+import { mountStationView } from './ui/stationView.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -78,6 +80,7 @@ const state = {
   batchOrderExclusions: new Set(),
   expandedBatches: new Set(),
   colIndices: null,
+  currentFileName: '',
   appSettings: loadSettings(),
 };
 
@@ -117,6 +120,7 @@ function processFile(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const fileName = file.name || '';
+    state.currentFileName = fileName;
     state.appSettings = rememberFile(fileName, state.appSettings);
     persistSettings();
     parseAndLoad(e.target.result);
@@ -986,7 +990,85 @@ function handleRoundExportWidthToggle(checkbox) {
 }
 
 function loadDemoData() {
+  state.currentFileName = 'demo.csv';
   parseAndLoad(DEMO_CSV);
+}
+
+async function sendActiveBatchToStation() {
+  const batchKey = state.activeGroupKey;
+  const batch = state.splitGroups[batchKey];
+  if (!batchKey || !batch) {
+    showToast('Select a batch first.', 'warning');
+    return;
+  }
+
+  const btn = $('btn-send-station');
+  const allBtn = $('btn-send-all-station');
+  if (btn) btn.disabled = true;
+  if (allBtn) allBtn.disabled = true;
+  try {
+    await publishStationJob(buildStationJobPayload(batchKey, batch));
+    showToast(`Sent ${batchKey} to station queue.`, 'success');
+  } catch (err) {
+    console.error(err);
+    showToast(err?.message || 'Could not send to station.', 'danger', 6000);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (allBtn) allBtn.disabled = false;
+  }
+}
+
+function buildStationJobPayload(batchKey, batch) {
+  return {
+    batchKey,
+    fileName: state.currentFileName || state.appSettings?.recentFiles?.[0] || '',
+    materialName: batch.materialName || '',
+    totalBoxes: batch.totalBoxes || 0,
+    orders: batch.sortedOrders || [],
+    isSpecial: Boolean(batch.isSpecial),
+    html: buildCutListPrintCard(batchKey, batch, state.colIndices, null, {
+      allRows: state.parsedRows,
+    }),
+  };
+}
+
+async function sendAllBatchesToStation() {
+  const keys = Object.keys(state.splitGroups).sort();
+  if (!keys.length) {
+    showToast('No batches to send.', 'warning');
+    return;
+  }
+
+  const btn = $('btn-send-station');
+  const allBtn = $('btn-send-all-station');
+  if (btn) btn.disabled = true;
+  if (allBtn) allBtn.disabled = true;
+
+  let sent = 0;
+  let failed = 0;
+  try {
+    showToast(`Sending ${keys.length} batches to station…`, 'info', 2500);
+    for (const batchKey of keys) {
+      const batch = state.splitGroups[batchKey];
+      if (!batch) continue;
+      try {
+        await publishStationJob(buildStationJobPayload(batchKey, batch), { skipPurge: true });
+        sent += 1;
+      } catch (err) {
+        console.error(batchKey, err);
+        failed += 1;
+      }
+    }
+    void purgeExpiredStationJobs().catch((err) => console.warn('Station purge failed:', err));
+    if (failed === 0) {
+      showToast(`Sent all ${sent} batches to station.`, 'success', 4500);
+    } else {
+      showToast(`Sent ${sent} batches; ${failed} failed.`, 'warning', 6000);
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+    if (allBtn) allBtn.disabled = false;
+  }
 }
 
 function scrollSidebarDetailsIntoView(details) {
@@ -1040,6 +1122,12 @@ function wireEvents() {
   $('btn-export-current').addEventListener('click', downloadCurrentFile);
   $('btn-print-cutlist').addEventListener('click', triggerPrintCutList);
   $('btn-print-all-cutlists').addEventListener('click', printAllCutLists);
+  $('btn-send-station')?.addEventListener('click', () => {
+    void sendActiveBatchToStation();
+  });
+  $('btn-send-all-station')?.addEventListener('click', () => {
+    void sendAllBatchesToStation();
+  });
   $('tab-preview-print')?.addEventListener('click', () => setPreviewTab('print'));
   $('tab-preview-import')?.addEventListener('click', () => setPreviewTab('import'));
   $('btn-share').addEventListener('click', shareApplication);
@@ -1090,5 +1178,11 @@ function wireEvents() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (isStationHash()) {
+    const shell = document.querySelector('.app-shell');
+    if (shell) shell.hidden = true;
+    mountStationView($('station-root'));
+    return;
+  }
   wireEvents();
 });

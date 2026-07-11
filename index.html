@@ -33,6 +33,15 @@
         </div>
         <div class="header-actions">
           <a
+            href="./#station"
+            class="btn btn-ghost btn--compact"
+            title="Open live station cut-list screen"
+            target="_blank"
+            rel="noopener"
+          >
+            Station
+          </a>
+          <a
             href="./presentation.html"
             class="btn btn-ghost btn--compact"
             title="One-page operator guide"
@@ -335,6 +344,14 @@
                           Cut lists
                         </button>
                         <button
+                          id="btn-send-all-station"
+                          class="btn btn-secondary btn--compact"
+                          type="button"
+                          title="Add every batch to the live station queue"
+                        >
+                          Send all to station
+                        </button>
+                        <button
                           id="btn-download-all"
                           class="btn btn-primary btn--compact"
                           type="button"
@@ -354,6 +371,14 @@
                           title="Flat cut list sorted by order, width, length"
                         >
                           Cut list
+                        </button>
+                        <button
+                          id="btn-send-station"
+                          class="btn btn-secondary btn--compact"
+                          type="button"
+                          title="Add this batch to the live station queue (#station)"
+                        >
+                          Send to station
                         </button>
                         <button
                           id="btn-export-current"
@@ -450,6 +475,8 @@
     <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
     <div id="all-print-container" class="print-only" aria-hidden="true"></div>
+
+    <div id="station-root" class="station-root" hidden></div>
 
     <script type="module" src="/src/main.js"></script>
   </body>

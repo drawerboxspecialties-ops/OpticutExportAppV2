@@ -10,3 +10,5 @@ coverage
 !.vscode/extensions.json
 
 ._walkthrough.csv
+test-output.txt
+test-out.txt
