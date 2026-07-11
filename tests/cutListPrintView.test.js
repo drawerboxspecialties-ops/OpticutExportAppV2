@@ -288,7 +288,7 @@ describe('station checkbox mode', () => {
 });
 
 describe('buildBatchOrdersIndex', () => {
-  it('lists every batch with full orders and a reverse order lookup', () => {
+  it('lists every batch with full orders and barcodes', () => {
     const html = buildBatchOrdersIndex(
       {
         PLY_PVC_602480: {
@@ -312,8 +312,7 @@ describe('buildBatchOrdersIndex', () => {
     expect(html).toContain('PLY_PVC_602480');
     expect(html).toContain('602480');
     expect(html).toContain('602481');
-    expect(html).toContain('By batch name');
-    expect(html).toContain('By order number');
+    expect(html).not.toContain('By order number');
     expect(html).toContain('★ SPECIAL');
     expect(html).toContain('code128-barcode');
     expect(html).toContain('<rect');

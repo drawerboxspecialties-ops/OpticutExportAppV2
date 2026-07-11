@@ -417,13 +417,11 @@ export function buildBatchOrdersIndex(splitGroups, colIndices) {
     })
   );
 
-  const orderToBatch = [];
   const batchRows = keys
     .map((batchKey) => {
       const batch = splitGroups[batchKey];
       if (!batch) return '';
       const orders = (batch.sortedOrders || []).map((o) => String(o).trim()).filter(Boolean);
-      orders.forEach((order) => orderToBatch.push({ order, batchKey }));
       const material = batch.materialName
         ? escapeHTML(getExportMaterialName(batch.materialName))
         : '—';
@@ -458,24 +456,6 @@ export function buildBatchOrdersIndex(splitGroups, colIndices) {
     })
     .join('');
 
-  orderToBatch.sort((a, b) => {
-    const na = Number(a.order);
-    const nb = Number(b.order);
-    if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
-    return String(a.order).localeCompare(String(b.order), undefined, { numeric: true });
-  });
-
-  const reverseRows = orderToBatch
-    .map(
-      ({ order, batchKey }) => `
-      <div class="batch-index-reverse-item">
-        <span class="batch-index-order-cell">${escapeHTML(order)}</span>
-        <span class="batch-index-arrow">→</span>
-        <span class="batch-index-name-cell">${escapeHTML(batchKey)}</span>
-      </div>`
-    )
-    .join('');
-
   return `
     <div class="batch-orders-index">
       <header class="batch-index-header">
@@ -483,13 +463,12 @@ export function buildBatchOrdersIndex(splitGroups, colIndices) {
           <h1 class="batch-index-title">Batch / Order Lookup</h1>
           <p class="batch-index-subtitle">${keys.length} batch${
             keys.length === 1 ? '' : 'es'
-          } · scan a barcode at the station, or look up by batch / order</p>
+          } · scan a barcode at the station, or look up by batch name</p>
         </div>
         <div class="batch-index-printed">Printed: ${printedAt}</div>
       </header>
 
       <section class="batch-index-section">
-        <h2 class="batch-index-section-title">By batch name</h2>
         <table class="batch-index-table">
           <thead>
             <tr>
@@ -504,13 +483,6 @@ export function buildBatchOrdersIndex(splitGroups, colIndices) {
             ${batchRows || '<tr><td colspan="5">No batches</td></tr>'}
           </tbody>
         </table>
-      </section>
-
-      <section class="batch-index-section batch-index-section--reverse">
-        <h2 class="batch-index-section-title">By order number</h2>
-        <div class="batch-index-reverse-grid">
-          ${reverseRows || '<div class="batch-index-empty">No orders</div>'}
-        </div>
       </section>
     </div>`;
 }

@@ -2061,28 +2061,6 @@ tbody tr:hover td {
   font-weight: 700;
 }
 
-.batch-index-section--reverse {
-  margin-top: 0.2in;
-}
-
-.batch-index-reverse-grid {
-  column-count: 3;
-  column-gap: 0.25in;
-  font-size: 9pt;
-}
-
-.batch-index-reverse-item {
-  break-inside: avoid;
-  page-break-inside: avoid;
-  padding: 2px 0;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.batch-index-arrow {
-  margin: 0 0.25rem;
-  color: #888;
-}
-
 /* ── Print media ──────────────────────────────────────── */
 @media print {
   @page {
