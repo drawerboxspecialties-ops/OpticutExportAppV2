@@ -8,7 +8,7 @@ import {
   retainActiveStationJobs,
   stationJobExpiryCutoff,
   normalizeStationChecks,
-  clearStationJobChecks,
+  mergeStationChecks,
   isStationJobDeleted,
   STATION_JOB_RETENTION_MS,
 } from '../src/logic/stationSync.js';
