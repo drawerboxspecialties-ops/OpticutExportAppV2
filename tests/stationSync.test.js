@@ -11,6 +11,8 @@ import {
   mergeStationChecks,
   isStationJobDeleted,
   findStationJobByScan,
+  dedupeStationJobs,
+  duplicateStationJobIds,
   STATION_JOB_RETENTION_MS,
 } from '../src/logic/stationSync.js';
 
@@ -163,5 +165,26 @@ describe('findStationJobByScan', () => {
 
   it('requires a full batch key (no prefix match)', () => {
     expect(findStationJobByScan(jobs, 'PLY_PVC')).toBeNull();
+  });
+});
+
+describe('dedupeStationJobs', () => {
+  it('keeps one job per batch key (case-insensitive), preferring newest', () => {
+    const jobs = [
+      { id: 'a', batchKey: 'PLY_PVC_1', sentAt: 100 },
+      { id: 'b', batchKey: 'ply_pvc_1', sentAt: 200 },
+      { id: 'c', batchKey: 'PLY_CFB_2', sentAt: 150 },
+    ];
+    const deduped = dedupeStationJobs(jobs);
+    expect(deduped.map((j) => j.id).sort()).toEqual(['b', 'c']);
+    expect(duplicateStationJobIds(jobs)).toEqual(['a']);
+  });
+
+  it('prefers an active job over a soft-deleted duplicate', () => {
+    const jobs = [
+      { id: 'old', batchKey: 'PLY_PVC_1', sentAt: 300, deletedAt: 400 },
+      { id: 'live', batchKey: 'PLY_PVC_1', sentAt: 200, deletedAt: null },
+    ];
+    expect(dedupeStationJobs(jobs).map((j) => j.id)).toEqual(['live']);
   });
 });

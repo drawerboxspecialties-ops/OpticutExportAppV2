@@ -42,6 +42,67 @@ export function retainActiveStationJobs(jobs, now = Date.now()) {
   return (Array.isArray(jobs) ? jobs : []).filter((job) => isStationJobActive(job, now));
 }
 
+/** Normalize batch key for duplicate detection. */
+export function normalizeStationBatchKey(batchKey) {
+  return String(batchKey || '')
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Keep one job per batch key (case-insensitive).
+ * Prefers active over soft-deleted, then newest sentAt.
+ * @param {object[]} jobs
+ * @returns {object[]}
+ */
+export function dedupeStationJobs(jobs) {
+  const list = Array.isArray(jobs) ? jobs : [];
+  /** @type {Map<string, object>} */
+  const best = new Map();
+
+  list.forEach((job) => {
+    const key = normalizeStationBatchKey(job?.batchKey);
+    if (!key) return;
+    const prev = best.get(key);
+    if (!prev) {
+      best.set(key, job);
+      return;
+    }
+    const prevDeleted = isStationJobDeleted(prev);
+    const jobDeleted = isStationJobDeleted(job);
+    if (prevDeleted !== jobDeleted) {
+      if (!jobDeleted) best.set(key, job);
+      return;
+    }
+    const prevSent = Number(prev.sentAt) || 0;
+    const jobSent = Number(job.sentAt) || 0;
+    if (jobSent > prevSent) {
+      best.set(key, job);
+      return;
+    }
+    if (jobSent === prevSent && String(job.id || '') > String(prev.id || '')) {
+      best.set(key, job);
+    }
+  });
+
+  return [...best.values()].sort((a, b) => (Number(b.sentAt) || 0) - (Number(a.sentAt) || 0));
+}
+
+/**
+ * Document ids that lose dedupe (safe to delete from Firestore).
+ * @param {object[]} jobs
+ * @returns {string[]}
+ */
+export function duplicateStationJobIds(jobs) {
+  const list = Array.isArray(jobs) ? jobs : [];
+  const winners = new Set(
+    dedupeStationJobs(list)
+      .map((j) => j.id)
+      .filter(Boolean)
+  );
+  return [...new Set(list.map((j) => j?.id).filter((id) => id && !winners.has(id)))];
+}
+
 /**
  * Delete station jobs older than 14 days.
  * Safe to call often; concurrent calls share one in-flight purge.
@@ -82,6 +143,43 @@ export async function purgeExpiredStationJobs(now = Date.now()) {
 function scheduleStationPurge() {
   void purgeExpiredStationJobs().catch((err) => {
     console.warn('Station job purge failed:', err);
+  });
+}
+
+let dedupeCleanupInFlight = null;
+
+/**
+ * Delete Firestore docs that duplicate another job's batch key.
+ * @param {object[]} jobs
+ * @returns {Promise<number>}
+ */
+export async function cleanupDuplicateStationJobs(jobs) {
+  const loserIds = duplicateStationJobIds(jobs);
+  if (!loserIds.length) return 0;
+  if (dedupeCleanupInFlight) return dedupeCleanupInFlight;
+
+  dedupeCleanupInFlight = (async () => {
+    const { doc, writeBatch } = await import('firebase/firestore');
+    const db = await getDb();
+    let deleted = 0;
+    for (let i = 0; i < loserIds.length; i += 400) {
+      const chunk = loserIds.slice(i, i + 400);
+      const batch = writeBatch(db);
+      chunk.forEach((id) => batch.delete(doc(db, STATION_JOBS_COLLECTION, id)));
+      await batch.commit();
+      deleted += chunk.length;
+    }
+    return deleted;
+  })().finally(() => {
+    dedupeCleanupInFlight = null;
+  });
+
+  return dedupeCleanupInFlight;
+}
+
+function scheduleDuplicateCleanup(jobs) {
+  void cleanupDuplicateStationJobs(jobs).catch((err) => {
+    console.warn('Station duplicate cleanup failed:', err);
   });
 }
 
@@ -151,9 +249,10 @@ export async function publishStationJob(job, options = {}) {
     .map((o) => String(o).trim())
     .filter(Boolean);
 
+  const batchKey = String(job.batchKey).trim();
   const payload = {
     id,
-    batchKey: String(job.batchKey),
+    batchKey,
     fileName: String(job.fileName || ''),
     materialName: String(job.materialName || ''),
     totalBoxes: Number(job.totalBoxes) || 0,
@@ -355,10 +454,15 @@ export async function subscribeStationJobs(onJobs, onError) {
         return {
           id: d.id,
           ...data,
+          batchKey: String(data.batchKey || d.id || '').trim(),
           checks: normalizeStationChecks(data.checks),
         };
       });
-      onJobs(retainActiveStationJobs(jobs));
+      const active = retainActiveStationJobs(jobs);
+      if (duplicateStationJobIds(active).length) {
+        scheduleDuplicateCleanup(active);
+      }
+      onJobs(dedupeStationJobs(active));
     },
     (err) => {
       if (typeof onError === 'function') onError(err);
