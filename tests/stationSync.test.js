@@ -8,6 +8,7 @@ import {
   retainActiveStationJobs,
   stationJobExpiryCutoff,
   normalizeStationChecks,
+  mergeStationChecks,
   STATION_JOB_RETENTION_MS,
 } from '../src/logic/stationSync.js';
 
@@ -63,6 +64,17 @@ describe('normalizeStationChecks', () => {
     ).toEqual({
       '602614|1|12|15.875|20.626': true,
     });
+  });
+});
+
+describe('mergeStationChecks', () => {
+  it('keeps pending toggles over stale server state', () => {
+    expect(
+      mergeStationChecks(
+        { 'a|1|1|1|1': true },
+        { 'a|1|1|1|1': false, 'b|2|2|2.5|2': true }
+      )
+    ).toEqual({ 'b|2|2|2.5|2': true });
   });
 });
 

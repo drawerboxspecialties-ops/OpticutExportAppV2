@@ -5,7 +5,7 @@ import {
   subscribeStationJobs,
   stationHashBatchKey,
   updateStationJobCheck,
-  normalizeStationChecks,
+  mergeStationChecks,
 } from '../logic/stationSync.js';
 
 const ZOOM_STORAGE_KEY = 'opticut-station-zoom';
@@ -52,23 +52,6 @@ function setStationHash(batchKey) {
 function sheetRenderKey(job) {
   if (!job?.batchKey) return '';
   return `${job.batchKey}|${job.sentAt || ''}|${String(job.html || '').length}`;
-}
-
-function countChecks(job) {
-  const checks = normalizeStationChecks(job?.checks);
-  const checked = Object.keys(checks).length;
-  const total = job?.html ? (job.html.match(/class="station-check"/g) || []).length : 0;
-  return { checked, total };
-}
-
-function applyStationChecks(root, checks) {
-  const map = normalizeStationChecks(checks);
-  root.querySelectorAll('.station-check[data-row-id]').forEach((input) => {
-    const id = input.getAttribute('data-row-id') || '';
-    const on = Boolean(map[id]);
-    if (input.checked !== on) input.checked = on;
-    input.closest('tr')?.classList.toggle('cutlist-row-done', on);
-  });
 }
 
 function loadZoom() {
@@ -206,6 +189,8 @@ export function mountStationView(root) {
   let unsub = () => {};
   let cancelled = false;
   let zoom = loadZoom();
+  /** @type {Map<string, Record<string, boolean>>} batchKey → rowId → wanted checked */
+  const pendingByBatch = new Map();
 
   const clockTimer = setInterval(() => {
     clockEl.textContent = formatClock();
@@ -214,6 +199,83 @@ export function mountStationView(root) {
   function setStatus(state, text) {
     statusEl.dataset.state = state;
     statusTextEl.textContent = text;
+  }
+
+  function effectiveChecks(job) {
+    if (!job) return {};
+    return mergeStationChecks(job.checks, pendingByBatch.get(job.batchKey));
+  }
+
+  function setPending(batchKey, rowId, checked) {
+    let map = pendingByBatch.get(batchKey);
+    if (!map) {
+      map = {};
+      pendingByBatch.set(batchKey, map);
+    }
+    map[rowId] = checked;
+  }
+
+  function clearPendingRow(batchKey, rowId) {
+    const map = pendingByBatch.get(batchKey);
+    if (!map) return;
+    delete map[rowId];
+    if (!Object.keys(map).length) pendingByBatch.delete(batchKey);
+  }
+
+  /** Drop pending entries once the server matches what we wanted. */
+  function clearPendingIfSynced(batchKey, serverChecks) {
+    const pending = pendingByBatch.get(batchKey);
+    if (!pending) return;
+    const merged = mergeStationChecks(serverChecks, null);
+    Object.keys(pending).forEach((rowId) => {
+      const want = Boolean(pending[rowId]);
+      const has = Boolean(merged[rowId]);
+      if (want === has) delete pending[rowId];
+    });
+    if (!Object.keys(pending).length) pendingByBatch.delete(batchKey);
+  }
+
+  function countChecks(job) {
+    const checks = effectiveChecks(job);
+    const checked = Object.keys(checks).length;
+    const total = job?.html ? (job.html.match(/class="station-check"/g) || []).length : 0;
+    return { checked, total };
+  }
+
+  function applyStationChecks(rootEl, job) {
+    const map = effectiveChecks(job);
+    rootEl.querySelectorAll('.station-check[data-row-id]').forEach((input) => {
+      const id = input.getAttribute('data-row-id') || '';
+      const on = Boolean(map[id]);
+      if (input.checked !== on) input.checked = on;
+      input.closest('tr')?.classList.toggle('cutlist-row-done', on);
+    });
+  }
+
+  function updateQueueItemProgress(batchKey, job) {
+    const item = [...listEl.querySelectorAll('[data-batch-key]')].find(
+      (el) => el.getAttribute('data-batch-key') === batchKey
+    );
+    if (!item || !job) return;
+    const { checked: c, total } = countChecks(job);
+    const pct = total ? Math.round((c / total) * 100) : 0;
+    const done = total > 0 && c === total;
+    item.classList.toggle('is-done', done);
+    const bar = item.querySelector('.station-queue-progress');
+    const fill = item.querySelector('.station-queue-progress i');
+    if (bar && fill) {
+      bar.classList.toggle('is-complete', done);
+      fill.style.width = `${pct}%`;
+    }
+    const badge = item.querySelector('.station-queue-done-badge');
+    if (done && !badge) {
+      const top = item.querySelector('.station-queue-item-top');
+      if (top) {
+        top.insertAdjacentHTML('beforeend', '<span class="station-queue-done-badge">✓ Done</span>');
+      }
+    } else if (!done && badge) {
+      badge.remove();
+    }
   }
 
   function filters() {
@@ -303,13 +365,13 @@ export function mountStationView(root) {
 
     const nextKey = sheetRenderKey(job);
     if (nextKey === renderedKey && bodyEl.querySelector('.station-check')) {
-      applyStationChecks(bodyEl, job.checks);
+      applyStationChecks(bodyEl, job);
       return;
     }
 
     renderedKey = nextKey;
     bodyEl.innerHTML = `<div class="station-live-sheet cutlist-screen-preview">${job.html}</div>`;
-    applyStationChecks(bodyEl, job.checks);
+    applyStationChecks(bodyEl, job);
     applyZoom();
   }
 
@@ -370,8 +432,12 @@ export function mountStationView(root) {
 
   function onJobs(jobs) {
     if (cancelled) return;
+    jobs.forEach((j) => clearPendingIfSynced(j.batchKey, j.checks));
     allJobs = jobs;
-    setStatus('live', jobs.length ? `Live · ${jobs.length} batch${jobs.length === 1 ? '' : 'es'}` : 'Live · waiting');
+    setStatus(
+      'live',
+      jobs.length ? `Live · ${jobs.length} batch${jobs.length === 1 ? '' : 'es'}` : 'Live · waiting'
+    );
     renderMaterialOptions(jobs);
     renderQueue();
   }
@@ -394,63 +460,40 @@ export function mountStationView(root) {
 
     const checked = input.checked;
     input.closest('tr')?.classList.toggle('cutlist-row-done', checked);
+    setPending(batchKey, rowId, checked);
 
-    // Optimistic local update — do not rebuild the whole queue (keeps scroll/focus).
     const job = allJobs.find((j) => j.batchKey === batchKey);
     if (job) {
-      job.checks = normalizeStationChecks(job.checks);
-      if (checked) job.checks[rowId] = true;
-      else delete job.checks[rowId];
       renderBatchBar(job);
-      const item = [...listEl.querySelectorAll('[data-batch-key]')].find(
-        (el) => el.getAttribute('data-batch-key') === batchKey
-      );
-      if (item) {
-        const { checked: c, total } = countChecks(job);
-        const pct = total ? Math.round((c / total) * 100) : 0;
-        const done = total > 0 && c === total;
-        item.classList.toggle('is-done', done);
-        const bar = item.querySelector('.station-queue-progress');
-        const fill = item.querySelector('.station-queue-progress i');
-        if (bar && fill) {
-          bar.classList.toggle('is-complete', done);
-          fill.style.width = `${pct}%`;
-        }
-        const badge = item.querySelector('.station-queue-done-badge');
-        if (done && !badge) {
-          const top = item.querySelector('.station-queue-item-top');
-          if (top) {
-            top.insertAdjacentHTML(
-              'beforeend',
-              '<span class="station-queue-done-badge">✓ Done</span>'
-            );
-          }
-        } else if (!done && badge) {
-          badge.remove();
-        }
-      }
+      updateQueueItemProgress(batchKey, job);
     }
 
-    void updateStationJobCheck(batchKey, rowId, checked).catch((err) => {
-      console.error(err);
-      input.checked = !checked;
-      input.closest('tr')?.classList.toggle('cutlist-row-done', !checked);
-      if (job) {
-        job.checks = normalizeStationChecks(job.checks);
-        if (checked) delete job.checks[rowId];
-        else job.checks[rowId] = true;
-        renderBatchBar(job);
-      }
-      setStatus('error', 'Check save failed — try again');
-    });
+    void updateStationJobCheck(batchKey, rowId, checked)
+      .then(() => {
+        // Keep pending until a snapshot confirms; avoids flicker if another
+        // snapshot arrives mid-flight.
+      })
+      .catch((err) => {
+        console.error(err);
+        clearPendingRow(batchKey, rowId);
+        input.checked = !checked;
+        input.closest('tr')?.classList.toggle('cutlist-row-done', !checked);
+        if (job) {
+          renderBatchBar(job);
+          updateQueueItemProgress(batchKey, job);
+        }
+        setStatus('error', 'Check save failed — try again');
+      });
   });
 
-  // Larger tap target: clicking the check cell toggles the box.
+  // Larger tap target: clicking the check cell (not the input) toggles the box.
   bodyEl.addEventListener('click', (e) => {
+    if (e.target.closest('.station-check')) return;
     const cell = e.target.closest('td.cutlist-check');
-    if (!cell || e.target.closest('.station-check')) return;
+    if (!cell) return;
     const input = cell.querySelector('.station-check');
     if (!input) return;
+    e.preventDefault();
     input.checked = !input.checked;
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });

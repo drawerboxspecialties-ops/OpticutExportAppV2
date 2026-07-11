@@ -175,24 +175,6 @@ export async function publishStationJob(job, options = {}) {
 }
 
 /**
- * Toggle a station cut-list line checkbox (synced live via Firestore).
- * Row ids include decimals (e.g. 15.875); must use FieldPath so "." is not
- * treated as a nested-field separator.
- * @param {string} batchKey
- * @param {string} rowId
- * @param {boolean} checked
- */
-export async function updateStationJobCheck(batchKey, rowId, checked) {
-  const id = stationJobId(batchKey);
-  const key = String(rowId || '').trim();
-  if (!id || !key) throw new Error('Missing batch or row id.');
-
-  const { doc, updateDoc, deleteField, FieldPath } = await import('firebase/firestore');
-  const ref = doc(await getDb(), STATION_JOBS_COLLECTION, id);
-  await updateDoc(ref, new FieldPath('checks', key), checked ? true : deleteField());
-}
-
-/**
  * Keep only real checkbox keys (boolean true). Drops nested junk left by older
  * dotted-path writes that split decimal lengths like "15.875".
  * @param {unknown} checks
@@ -202,9 +184,64 @@ export function normalizeStationChecks(checks) {
   if (!checks || typeof checks !== 'object' || Array.isArray(checks)) return {};
   const out = {};
   Object.entries(checks).forEach(([key, value]) => {
-    if (value === true && key.includes('|')) out[key] = true;
+    if (value === true && String(key).includes('|')) out[String(key)] = true;
   });
   return out;
+}
+
+/**
+ * Merge server checks with in-flight local toggles so the UI does not snap back
+ * when a snapshot arrives before the write is visible.
+ * @param {unknown} serverChecks
+ * @param {Record<string, boolean>|null|undefined} pending rowId → wanted checked
+ */
+export function mergeStationChecks(serverChecks, pending) {
+  const out = normalizeStationChecks(serverChecks);
+  if (!pending || typeof pending !== 'object') return out;
+  Object.entries(pending).forEach(([rowId, want]) => {
+    if (!rowId) return;
+    if (want) out[rowId] = true;
+    else delete out[rowId];
+  });
+  return out;
+}
+
+/** @type {Map<string, Promise<unknown>>} */
+const checkWriteChains = new Map();
+
+/**
+ * Toggle a station cut-list line checkbox (synced live via Firestore).
+ * Serializes writes per batch and replaces the whole `checks` map so:
+ * - keys with "." (decimal lengths) stay literal
+ * - rapid toggles cannot overwrite each other
+ * - old nested dotted-path junk is cleaned on write
+ * @param {string} batchKey
+ * @param {string} rowId
+ * @param {boolean} checked
+ */
+export async function updateStationJobCheck(batchKey, rowId, checked) {
+  const id = stationJobId(batchKey);
+  const key = String(rowId || '').trim();
+  if (!id || !key) throw new Error('Missing batch or row id.');
+
+  const prev = checkWriteChains.get(id) || Promise.resolve();
+  const next = prev.catch(() => {}).then(async () => {
+    const { doc, getDoc, updateDoc } = await import('firebase/firestore');
+    const ref = doc(await getDb(), STATION_JOBS_COLLECTION, id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('Batch not found on station.');
+    const checks = normalizeStationChecks(snap.data()?.checks);
+    if (checked) checks[key] = true;
+    else delete checks[key];
+    await updateDoc(ref, { checks });
+  });
+
+  checkWriteChains.set(id, next);
+  try {
+    await next;
+  } finally {
+    if (checkWriteChains.get(id) === next) checkWriteChains.delete(id);
+  }
 }
 
 /**
