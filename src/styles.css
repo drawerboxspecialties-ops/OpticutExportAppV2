@@ -2240,26 +2240,26 @@ tbody tr:hover td {
 
 /* ── Live station screen (#station) ───────────────────── */
 .station-root {
-  --st-bg: #eef2f6;
-  --st-bg-soft: #f7f9fb;
-  --st-surface: rgba(255, 255, 255, 0.82);
+  --st-bg: #f3f8fc;
+  --st-bg-soft: #fafcfe;
+  --st-surface: rgba(255, 255, 255, 0.9);
   --st-surface-solid: #ffffff;
-  --st-ink: #1a2332;
-  --st-muted: #5b6b7c;
-  --st-faint: #8b9aab;
-  --st-line: rgba(26, 35, 50, 0.08);
-  --st-line-strong: rgba(26, 35, 50, 0.14);
-  --st-accent: #2a9d8f;
-  --st-accent-soft: rgba(42, 157, 143, 0.12);
-  --st-accent-ink: #1d6f66;
-  --st-ok: #3d9a6a;
-  --st-ok-soft: rgba(61, 154, 106, 0.14);
-  --st-warn: #c48a2a;
-  --st-danger: #c45c5c;
-  --st-danger-soft: rgba(196, 92, 92, 0.1);
+  --st-ink: #152033;
+  --st-muted: #4a6280;
+  --st-faint: #7a93ad;
+  --st-line: rgba(30, 80, 140, 0.08);
+  --st-line-strong: rgba(30, 80, 140, 0.14);
+  --st-accent: #1eb8a6;
+  --st-accent-soft: rgba(30, 184, 166, 0.14);
+  --st-accent-ink: #0f7f72;
+  --st-ok: #22a06b;
+  --st-ok-soft: rgba(34, 160, 107, 0.16);
+  --st-warn: #e09b20;
+  --st-danger: #e05555;
+  --st-danger-soft: rgba(224, 85, 85, 0.12);
   --st-radius: 14px;
-  --st-radius-sm: 10px;
-  --st-shadow: 0 1px 2px rgba(26, 35, 50, 0.04), 0 8px 24px rgba(26, 35, 50, 0.05);
+  --st-radius-sm: 9px;
+  --st-shadow: 0 1px 2px rgba(30, 80, 140, 0.04), 0 6px 18px rgba(30, 80, 140, 0.06);
   --st-font: 'Segoe UI', 'Avenir Next', 'Helvetica Neue', sans-serif;
 
   position: fixed;
@@ -2268,9 +2268,9 @@ tbody tr:hover td {
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(1200px 600px at 12% -10%, rgba(42, 157, 143, 0.1), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(90, 140, 180, 0.08), transparent 50%),
-    linear-gradient(180deg, #f4f7fa 0%, var(--st-bg) 45%, #e8eef4 100%);
+    radial-gradient(1100px 520px at 10% -8%, rgba(30, 184, 166, 0.16), transparent 55%),
+    radial-gradient(900px 480px at 100% 0%, rgba(64, 156, 255, 0.12), transparent 52%),
+    linear-gradient(180deg, #f8fbff 0%, var(--st-bg) 42%, #eaf3fb 100%);
   color: var(--st-ink);
   font-family: var(--st-font);
   -webkit-font-smoothing: antialiased;
@@ -2300,7 +2300,7 @@ body.station-live.print-active .station-root {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.75rem 1.35rem;
+  padding: 0.55rem 1.15rem;
   background: var(--st-surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -2408,8 +2408,8 @@ body.station-live.print-active .station-root {
 .station-queue-filters {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.9rem 0.9rem 0.55rem;
+  gap: 0.4rem;
+  padding: 0.65rem 0.7rem 0.4rem;
 }
 
 .station-search-wrap {
@@ -2420,9 +2420,9 @@ body.station-live.print-active .station-root {
 
 .station-scan-hint {
   margin: 0;
-  padding: 0 0.2rem;
-  font-size: 0.72rem;
-  line-height: 1.35;
+  padding: 0 0.15rem;
+  font-size: 0.68rem;
+  line-height: 1.3;
   color: var(--st-faint);
   transition: color 0.15s ease;
 }
@@ -2449,12 +2449,12 @@ body.station-live.print-active .station-root {
 .station-search,
 .station-material {
   width: 100%;
-  min-height: 2.55rem;
+  min-height: 2.2rem;
   background: var(--st-surface-solid);
   border: 1px solid var(--st-line-strong);
   border-radius: var(--st-radius-sm);
   color: var(--st-ink);
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
@@ -2503,8 +2503,8 @@ body.station-live.print-active .station-root {
 }
 
 .station-queue-count {
-  padding: 0.1rem 1rem 0.4rem;
-  font-size: 0.7rem;
+  padding: 0 0.75rem 0.25rem;
+  font-size: 0.66rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -2514,20 +2514,20 @@ body.station-live.print-active .station-root {
 .station-queue-list {
   flex: 1;
   overflow: auto;
-  padding: 0.2rem 0.65rem 0.85rem;
+  padding: 0.1rem 0.55rem 0.65rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.28rem;
   scrollbar-width: thin;
-  scrollbar-color: #c5d0db transparent;
+  scrollbar-color: #b8cce0 transparent;
 }
 
 .station-queue-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0 0.9rem 0.55rem;
+  gap: 0.28rem;
+  padding: 0 0.7rem 0.4rem;
 }
 
 .station-queue-actions[hidden] {
@@ -2556,9 +2556,9 @@ body.station-live.print-active .station-root {
   border: 1px solid var(--st-line-strong);
   background: var(--st-surface-solid);
   color: var(--st-ink);
-  border-radius: 8px;
-  padding: 0.3rem 0.55rem;
-  font-size: 0.72rem;
+  border-radius: 7px;
+  padding: 0.22rem 0.45rem;
+  font-size: 0.68rem;
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -2568,7 +2568,7 @@ body.station-live.print-active .station-root {
 }
 
 .station-queue-action-btn:hover:not(:disabled) {
-  border-color: rgba(42, 157, 143, 0.4);
+  border-color: rgba(30, 184, 166, 0.45);
   background: var(--st-accent-soft);
   color: var(--st-accent-ink);
 }
@@ -2587,32 +2587,32 @@ body.station-live.print-active .station-root {
 .station-queue-row {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0.35rem;
-  align-items: stretch;
+  gap: 0.28rem;
+  align-items: center;
 }
 
 .station-queue-check-wrap {
   display: flex;
-  align-items: flex-start;
-  padding-top: 0.9rem;
+  align-items: center;
+  padding-top: 0;
   cursor: pointer;
 }
 
 .station-queue-check {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 0.95rem;
+  height: 0.95rem;
   accent-color: var(--st-accent);
   cursor: pointer;
 }
 
 .station-queue-row.is-checked .station-queue-item {
-  border-color: rgba(42, 157, 143, 0.35);
-  background: rgba(42, 157, 143, 0.06);
+  border-color: rgba(30, 184, 166, 0.4);
+  background: rgba(30, 184, 166, 0.08);
 }
 
 .station-queue-row.is-active .station-queue-item {
   background: var(--st-surface-solid);
-  border-color: rgba(42, 157, 143, 0.45);
+  border-color: rgba(30, 184, 166, 0.5);
   box-shadow: var(--st-shadow);
 }
 
@@ -2620,18 +2620,18 @@ body.station-live.print-active .station-root {
   opacity: 0.72;
 }
 
-/* Queue cards */
+/* Queue cards — compact two-line rows */
 .station-queue-item {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.28rem;
+  gap: 0.18rem;
   width: 100%;
   text-align: left;
-  padding: 0.72rem 0.8rem 0.62rem;
+  padding: 0.42rem 0.55rem 0.4rem;
   border: 1px solid var(--st-line-strong);
-  border-radius: var(--st-radius-sm);
-  background: rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
   color: var(--st-ink);
   cursor: pointer;
   transition:
@@ -2642,7 +2642,7 @@ body.station-live.print-active .station-root {
 }
 
 .station-queue-item:hover {
-  border-color: rgba(42, 157, 143, 0.35);
+  border-color: rgba(30, 184, 166, 0.4);
   background: var(--st-surface-solid);
 }
 
@@ -2654,26 +2654,28 @@ body.station-live.print-active .station-root {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
 .station-queue-item-title {
-  font-weight: 600;
-  font-size: 0.88rem;
+  font-weight: 700;
+  font-size: 0.8rem;
   letter-spacing: -0.015em;
+  line-height: 1.2;
   word-break: break-all;
 }
 
 .station-queue-star {
-  color: #c9a227;
+  color: #e0b000;
 }
 
 .station-queue-done-badge {
   flex: none;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   font-weight: 700;
-  padding: 0.14rem 0.4rem;
-  border-radius: 6px;
+  padding: 0.08rem 0.32rem;
+  border-radius: 5px;
   background: var(--st-ok-soft);
   color: var(--st-ok);
 }
@@ -2681,8 +2683,20 @@ body.station-live.print-active .station-root {
 .station-queue-item-meta,
 .station-queue-item-orders,
 .station-queue-item-time {
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   color: var(--st-muted);
+  line-height: 1.2;
+}
+
+.station-queue-item-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.station-queue-item-orders {
+  display: none;
 }
 
 .station-queue-row.is-active .station-queue-item-meta,
@@ -2694,15 +2708,15 @@ body.station-live.print-active .station-root {
 .station-queue-item-bottom {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  margin-top: 0.12rem;
+  gap: 0.4rem;
+  margin-top: 0;
 }
 
 .station-queue-progress {
   flex: 1;
-  height: 4px;
-  border-radius: 4px;
-  background: rgba(26, 35, 50, 0.08);
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(30, 80, 140, 0.1);
   overflow: hidden;
 }
 
@@ -2721,6 +2735,7 @@ body.station-live.print-active .station-root {
 .station-queue-item-time {
   flex: none;
   font-variant-numeric: tabular-nums;
+  font-size: 0.64rem;
 }
 
 .station-queue-empty {

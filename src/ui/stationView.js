@@ -552,7 +552,8 @@ export function mountStationView(root) {
     if (done && !badge) {
       const top = item.querySelector('.station-queue-item-top');
       if (top) {
-        top.insertAdjacentHTML('beforeend', '<span class="station-queue-done-badge">✓ Done</span>');
+        top.querySelector('.station-queue-item-time')?.remove();
+        top.insertAdjacentHTML('beforeend', '<span class="station-queue-done-badge">✓</span>');
       }
     } else if (!done && badge) {
       badge.remove();
@@ -768,11 +769,10 @@ export function mountStationView(root) {
             const { checked, total } = countChecks(job);
             const pct = total ? Math.round((checked / total) * 100) : 0;
             const done = total > 0 && checked === total;
-            const orders =
-              Array.isArray(job.orders) && job.orders.length
-                ? escapeHTML(job.orders.slice(0, 4).join(', ')) +
-                  (job.orders.length > 4 ? ` +${job.orders.length - 4}` : '')
-                : '';
+            const orderCount = Array.isArray(job.orders) ? job.orders.length : 0;
+            const materialShort = String(job.materialName || '—')
+              .replace(/^PF:\s*/i, '')
+              .trim();
             return `
               <div class="station-queue-row${isActive ? ' is-active' : ''}${done ? ' is-done' : ''}${isChecked ? ' is-checked' : ''}" data-batch-key="${escapeAttr(job.batchKey)}">
                 <label class="station-queue-check-wrap" title="Select for remove">
@@ -793,13 +793,11 @@ export function mountStationView(root) {
                 >
                   <span class="station-queue-item-top">
                     <span class="station-queue-item-title">${escapeHTML(job.batchKey)}${job.isSpecial ? ' <span class="station-queue-star">★</span>' : ''}</span>
-                    ${done ? '<span class="station-queue-done-badge">✓ Done</span>' : ''}
+                    ${done ? '<span class="station-queue-done-badge">✓</span>' : `<span class="station-queue-item-time">${escapeHTML(formatRelativeTime(job.sentAt))}</span>`}
                   </span>
-                  <span class="station-queue-item-meta">${escapeHTML(job.materialName || '—')} · ${job.totalBoxes || 0} bx</span>
-                  ${orders ? `<span class="station-queue-item-orders">${orders}</span>` : ''}
                   <span class="station-queue-item-bottom">
+                    <span class="station-queue-item-meta">${escapeHTML(materialShort)} · ${job.totalBoxes || 0} bx${orderCount ? ` · ${orderCount} ord` : ''}</span>
                     <span class="station-queue-progress${done ? ' is-complete' : ''}"><i style="width:${pct}%"></i></span>
-                    <span class="station-queue-item-time">${escapeHTML(formatRelativeTime(job.sentAt))}</span>
                   </span>
                 </button>
               </div>`;
