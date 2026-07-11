@@ -7,8 +7,10 @@ import {
   updateStationJobCheck,
   mergeStationChecks,
   softDeleteStationJob,
+  softDeleteStationJobs,
   restoreStationJob,
   clearStationJobChecks,
+  clearStationJobsChecks,
   isStationJobDeleted,
   findStationJobByScan,
 } from '../logic/stationSync.js';
@@ -138,6 +140,26 @@ export function mountStationView(root) {
           </select>
         </div>
         <div class="station-queue-count" id="station-queue-count"></div>
+        <div class="station-queue-actions" id="station-queue-actions" hidden>
+          <label class="station-queue-select-all">
+            <input type="checkbox" id="station-select-all" />
+            <span>Select</span>
+          </label>
+          <button type="button" class="station-queue-action-btn" id="station-remove-selected" disabled>
+            Remove selected
+          </button>
+          <button type="button" class="station-queue-action-btn station-queue-action-btn--danger" id="station-remove-all">
+            Remove all
+          </button>
+          <button
+            type="button"
+            class="station-queue-action-btn"
+            id="station-clear-all-checks-btn"
+            title="Clear checkboxes for every batch"
+          >
+            Clear all checks
+          </button>
+        </div>
         <div class="station-queue-list" id="station-queue-list" role="listbox"></div>
       </aside>
       <main class="station-live-main">
@@ -168,7 +190,7 @@ export function mountStationView(root) {
               type="button"
               class="station-tool-btn"
               id="station-clear-checks-btn"
-              title="Clear all checkboxes for this batch"
+              title="Clear checkboxes for this batch"
             >
               Clear checks
             </button>
@@ -210,6 +232,11 @@ export function mountStationView(root) {
   const bodyEl = root.querySelector('#station-live-body');
   const listEl = root.querySelector('#station-queue-list');
   const countEl = root.querySelector('#station-queue-count');
+  const queueActionsEl = root.querySelector('#station-queue-actions');
+  const selectAllEl = root.querySelector('#station-select-all');
+  const removeSelectedBtnEl = root.querySelector('#station-remove-selected');
+  const removeAllBtnEl = root.querySelector('#station-remove-all');
+  const clearAllChecksBtnEl = root.querySelector('#station-clear-all-checks-btn');
   const searchEl = root.querySelector('#station-search');
   const searchClearEl = root.querySelector('#station-search-clear');
   const scanHintEl = root.querySelector('#station-scan-hint');
@@ -233,6 +260,8 @@ export function mountStationView(root) {
   /** @type {object[]} */
   let allJobs = [];
   let selectedKey = stationHashBatchKey();
+  /** @type {Set<string>} multi-select for remove */
+  const checkedKeys = new Set();
   let renderedKey = '';
   let unsub = () => {};
   let cancelled = false;
@@ -316,6 +345,36 @@ export function mountStationView(root) {
     }
   }
 
+  async function clearAllChecks() {
+    const keys = activeJobs()
+      .map((j) => j.batchKey)
+      .filter(Boolean);
+    if (!keys.length) return;
+    if (
+      !confirm(`Clear checkboxes for all ${keys.length} batch${keys.length === 1 ? '' : 'es'}?`)
+    ) {
+      return;
+    }
+    keys.forEach((key) => {
+      pendingByBatch.delete(key);
+      const job = allJobs.find((j) => j.batchKey === key);
+      if (job) job.checks = {};
+    });
+    const selected = activeJobs().find((j) => j.batchKey === selectedKey);
+    if (selected) {
+      applyStationChecks(bodyEl, selected);
+      renderBatchBar(selected);
+    }
+    try {
+      await clearStationJobsChecks(keys);
+      setStatus('live', 'All checks cleared');
+      renderQueue();
+    } catch (err) {
+      console.error(err);
+      setStatus('error', 'Could not clear all checks');
+    }
+  }
+
   async function removeSelectedBatch() {
     const batchKey = selectedKey;
     if (!batchKey) return;
@@ -323,6 +382,7 @@ export function mountStationView(root) {
     try {
       await softDeleteStationJob(batchKey);
       pendingByBatch.delete(batchKey);
+      checkedKeys.delete(batchKey);
       selectedKey = '';
       renderedKey = '';
       setStationHash('');
@@ -331,6 +391,77 @@ export function mountStationView(root) {
       console.error(err);
       setStatus('error', 'Could not remove batch');
     }
+  }
+
+  async function removeCheckedBatches() {
+    const keys = [...checkedKeys].filter((key) => activeJobs().some((j) => j.batchKey === key));
+    if (!keys.length) return;
+    if (
+      !confirm(
+        `Remove ${keys.length} selected batch${keys.length === 1 ? '' : 'es'} from station?\nYou can restore them from Removed.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await softDeleteStationJobs(keys);
+      keys.forEach((key) => {
+        pendingByBatch.delete(key);
+        checkedKeys.delete(key);
+      });
+      if (keys.includes(selectedKey)) {
+        selectedKey = '';
+        renderedKey = '';
+        setStationHash('');
+      }
+      setStatus('live', `${keys.length} batch${keys.length === 1 ? '' : 'es'} removed`);
+    } catch (err) {
+      console.error(err);
+      setStatus('error', 'Could not remove selected batches');
+    }
+  }
+
+  async function removeAllBatches() {
+    const keys = activeJobs()
+      .map((j) => j.batchKey)
+      .filter(Boolean);
+    if (!keys.length) return;
+    if (
+      !confirm(
+        `Remove all ${keys.length} batch${keys.length === 1 ? '' : 'es'} from station?\nYou can restore them from Removed.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await softDeleteStationJobs(keys);
+      keys.forEach((key) => {
+        pendingByBatch.delete(key);
+        checkedKeys.delete(key);
+      });
+      selectedKey = '';
+      renderedKey = '';
+      setStationHash('');
+      setStatus('live', 'All batches removed');
+    } catch (err) {
+      console.error(err);
+      setStatus('error', 'Could not remove all batches');
+    }
+  }
+
+  function updateQueueActionButtons(filteredKeys) {
+    const activeCount = activeJobs().length;
+    queueActionsEl.hidden = activeCount === 0;
+    const selectedCount = filteredKeys.filter((k) => checkedKeys.has(k)).length;
+    removeSelectedBtnEl.disabled = selectedCount === 0;
+    removeSelectedBtnEl.textContent =
+      selectedCount > 0 ? `Remove selected (${selectedCount})` : 'Remove selected';
+    removeAllBtnEl.disabled = activeCount === 0;
+    clearAllChecksBtnEl.disabled = activeCount === 0;
+    const allFilteredChecked =
+      filteredKeys.length > 0 && filteredKeys.every((k) => checkedKeys.has(k));
+    selectAllEl.checked = allFilteredChecked;
+    selectAllEl.indeterminate = selectedCount > 0 && selectedCount < filteredKeys.length;
   }
 
   async function restoreBatch(batchKey) {
@@ -398,7 +529,7 @@ export function mountStationView(root) {
   }
 
   function updateQueueItemProgress(batchKey, job) {
-    const item = [...listEl.querySelectorAll('[data-batch-key]')].find(
+    const item = [...listEl.querySelectorAll('.station-queue-row')].find(
       (el) => el.getAttribute('data-batch-key') === batchKey
     );
     if (!item || !job) return;
@@ -467,7 +598,7 @@ export function mountStationView(root) {
     }
     renderMaterialOptions(activeJobs());
     renderQueue();
-    const item = [...listEl.querySelectorAll('[data-batch-key]')].find(
+    const item = [...listEl.querySelectorAll('.station-queue-row')].find(
       (el) => el.getAttribute('data-batch-key') === job.batchKey
     );
     item?.scrollIntoView({ block: 'nearest' });
@@ -597,6 +728,11 @@ export function mountStationView(root) {
   function renderQueue() {
     const active = activeJobs();
     const filtered = filterStationJobs(active, filters());
+    const activeKeySet = new Set(active.map((j) => j.batchKey));
+    [...checkedKeys].forEach((key) => {
+      if (!activeKeySet.has(key)) checkedKeys.delete(key);
+    });
+
     countEl.textContent = filtered.length
       ? `${filtered.length} of ${active.length} batch${active.length === 1 ? '' : 'es'}`
       : active.length
@@ -617,10 +753,13 @@ export function mountStationView(root) {
       setStationHash(selectedKey);
     }
 
+    const filteredKeys = filtered.map((j) => j.batchKey);
+
     listEl.innerHTML = filtered.length
       ? filtered
           .map((job) => {
             const isActive = job.batchKey === selectedKey;
+            const isChecked = checkedKeys.has(job.batchKey);
             const { checked, total } = countChecks(job);
             const pct = total ? Math.round((checked / total) * 100) : 0;
             const done = total > 0 && checked === total;
@@ -630,28 +769,40 @@ export function mountStationView(root) {
                   (job.orders.length > 4 ? ` +${job.orders.length - 4}` : '')
                 : '';
             return `
-              <button
-                type="button"
-                class="station-queue-item${isActive ? ' is-active' : ''}${done ? ' is-done' : ''}"
-                role="option"
-                aria-selected="${isActive ? 'true' : 'false'}"
-                data-batch-key="${escapeAttr(job.batchKey)}"
-              >
-                <span class="station-queue-item-top">
-                  <span class="station-queue-item-title">${escapeHTML(job.batchKey)}${job.isSpecial ? ' <span class="station-queue-star">★</span>' : ''}</span>
-                  ${done ? '<span class="station-queue-done-badge">✓ Done</span>' : ''}
-                </span>
-                <span class="station-queue-item-meta">${escapeHTML(job.materialName || '—')} · ${job.totalBoxes || 0} bx</span>
-                ${orders ? `<span class="station-queue-item-orders">${orders}</span>` : ''}
-                <span class="station-queue-item-bottom">
-                  <span class="station-queue-progress${done ? ' is-complete' : ''}"><i style="width:${pct}%"></i></span>
-                  <span class="station-queue-item-time">${escapeHTML(formatRelativeTime(job.sentAt))}</span>
-                </span>
-              </button>`;
+              <div class="station-queue-row${isActive ? ' is-active' : ''}${done ? ' is-done' : ''}${isChecked ? ' is-checked' : ''}" data-batch-key="${escapeAttr(job.batchKey)}">
+                <label class="station-queue-check-wrap" title="Select for remove">
+                  <input
+                    type="checkbox"
+                    class="station-queue-check"
+                    data-batch-key="${escapeAttr(job.batchKey)}"
+                    ${isChecked ? 'checked' : ''}
+                    aria-label="Select ${escapeAttr(job.batchKey)}"
+                  />
+                </label>
+                <button
+                  type="button"
+                  class="station-queue-item"
+                  role="option"
+                  aria-selected="${isActive ? 'true' : 'false'}"
+                  data-batch-key="${escapeAttr(job.batchKey)}"
+                >
+                  <span class="station-queue-item-top">
+                    <span class="station-queue-item-title">${escapeHTML(job.batchKey)}${job.isSpecial ? ' <span class="station-queue-star">★</span>' : ''}</span>
+                    ${done ? '<span class="station-queue-done-badge">✓ Done</span>' : ''}
+                  </span>
+                  <span class="station-queue-item-meta">${escapeHTML(job.materialName || '—')} · ${job.totalBoxes || 0} bx</span>
+                  ${orders ? `<span class="station-queue-item-orders">${orders}</span>` : ''}
+                  <span class="station-queue-item-bottom">
+                    <span class="station-queue-progress${done ? ' is-complete' : ''}"><i style="width:${pct}%"></i></span>
+                    <span class="station-queue-item-time">${escapeHTML(formatRelativeTime(job.sentAt))}</span>
+                  </span>
+                </button>
+              </div>`;
           })
           .join('')
       : `<div class="station-queue-empty">No matching batches</div>`;
 
+    updateQueueActionButtons(filteredKeys);
     renderRemovedList();
     const selected = active.find((j) => j.batchKey === selectedKey) || null;
     renderSelected(selected);
@@ -673,11 +824,34 @@ export function mountStationView(root) {
   }
 
   listEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-batch-key]');
+    if (e.target.closest('.station-queue-check-wrap')) return;
+    const btn = e.target.closest('button.station-queue-item');
     if (!btn) return;
     selectedKey = btn.getAttribute('data-batch-key') || '';
     setStationHash(selectedKey);
     renderedKey = '';
+    renderQueue();
+  });
+
+  listEl.addEventListener('change', (e) => {
+    const input = e.target.closest('.station-queue-check');
+    if (!input || !(input instanceof HTMLInputElement)) return;
+    const key = input.getAttribute('data-batch-key') || '';
+    if (!key) return;
+    if (input.checked) checkedKeys.add(key);
+    else checkedKeys.delete(key);
+    const filteredKeys = filterStationJobs(activeJobs(), filters()).map((j) => j.batchKey);
+    updateQueueActionButtons(filteredKeys);
+    input.closest('.station-queue-row')?.classList.toggle('is-checked', input.checked);
+  });
+
+  selectAllEl.addEventListener('change', () => {
+    const filteredKeys = filterStationJobs(activeJobs(), filters()).map((j) => j.batchKey);
+    if (selectAllEl.checked) {
+      filteredKeys.forEach((key) => checkedKeys.add(key));
+    } else {
+      filteredKeys.forEach((key) => checkedKeys.delete(key));
+    }
     renderQueue();
   });
 
@@ -797,8 +971,17 @@ export function mountStationView(root) {
   clearChecksBtnEl.addEventListener('click', () => {
     void clearSelectedChecks();
   });
+  clearAllChecksBtnEl.addEventListener('click', () => {
+    void clearAllChecks();
+  });
   removeBtnEl.addEventListener('click', () => {
     void removeSelectedBatch();
+  });
+  removeSelectedBtnEl.addEventListener('click', () => {
+    void removeCheckedBatches();
+  });
+  removeAllBtnEl.addEventListener('click', () => {
+    void removeAllBatches();
   });
   removedToggleEl.addEventListener('click', () => {
     const open = removedListEl.hidden;

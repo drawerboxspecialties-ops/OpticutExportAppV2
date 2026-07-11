@@ -188,6 +188,20 @@ export async function softDeleteStationJob(batchKey) {
 }
 
 /**
+ * Soft-remove several station batches.
+ * @param {string[]} batchKeys
+ */
+export async function softDeleteStationJobs(batchKeys) {
+  const keys = [
+    ...new Set(
+      (Array.isArray(batchKeys) ? batchKeys : []).map((k) => String(k || '').trim()).filter(Boolean)
+    ),
+  ];
+  if (!keys.length) return;
+  await Promise.all(keys.map((key) => softDeleteStationJob(key)));
+}
+
+/**
  * Restore a soft-removed station batch.
  * @param {string} batchKey
  */
@@ -209,6 +223,20 @@ export async function clearStationJobChecks(batchKey) {
   if (!id) throw new Error('Invalid batch key.');
   const { doc, updateDoc } = await import('firebase/firestore');
   await updateDoc(doc(await getDb(), STATION_JOBS_COLLECTION, id), { checks: {} });
+}
+
+/**
+ * Clear checkboxes for several station batches.
+ * @param {string[]} batchKeys
+ */
+export async function clearStationJobsChecks(batchKeys) {
+  const keys = [
+    ...new Set(
+      (Array.isArray(batchKeys) ? batchKeys : []).map((k) => String(k || '').trim()).filter(Boolean)
+    ),
+  ];
+  if (!keys.length) return;
+  await Promise.all(keys.map((key) => clearStationJobChecks(key)));
 }
 
 /** True when a job is soft-removed from the active queue. */
