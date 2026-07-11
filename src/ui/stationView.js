@@ -146,21 +146,34 @@ export function mountStationView(root) {
         </div>
         <div class="station-queue-count" id="station-queue-count"></div>
         <div class="station-queue-actions" id="station-queue-actions" hidden>
-          <label class="station-queue-select-all">
-            <input type="checkbox" id="station-select-all" />
-            <span>Select</span>
-          </label>
-          <button type="button" class="station-queue-action-btn" id="station-remove-selected" disabled>
-            Remove selected
-          </button>
-          <button type="button" class="station-queue-action-btn station-queue-action-btn--danger" id="station-remove-all">
-            Remove all
-          </button>
+          <div class="station-queue-actions-main">
+            <label class="station-queue-select-all" title="Select active batches">
+              <input type="checkbox" id="station-select-all" />
+              <span>Select</span>
+            </label>
+            <button
+              type="button"
+              class="station-queue-action-btn"
+              id="station-remove-selected"
+              disabled
+              title="Remove checked batches"
+            >
+              Remove
+            </button>
+            <button
+              type="button"
+              class="station-queue-action-btn station-queue-action-btn--danger"
+              id="station-remove-all"
+              title="Remove every active batch"
+            >
+              Remove all
+            </button>
+          </div>
           <button
             type="button"
-            class="station-queue-action-btn"
+            class="station-queue-action-btn station-queue-action-btn--block"
             id="station-clear-all-checks-btn"
-            title="Clear checkboxes for every batch"
+            title="Clear checkboxes for every active batch"
           >
             Clear all checks
           </button>
@@ -220,17 +233,6 @@ export function mountStationView(root) {
     </div>
   `;
 
-  // Removed batches panel (appended after queue list area via layout — inject into aside)
-  const queueAside = root.querySelector('.station-queue');
-  const removedWrap = document.createElement('div');
-  removedWrap.className = 'station-removed';
-  removedWrap.innerHTML = `
-    <button type="button" class="station-removed-toggle" id="station-removed-toggle" aria-expanded="false">
-      Removed <span id="station-removed-count">(0)</span>
-    </button>
-    <div class="station-removed-list" id="station-removed-list" hidden></div>
-  `;
-  queueAside.appendChild(removedWrap);
   const statusEl = root.querySelector('#station-live-status');
   const statusTextEl = root.querySelector('#station-status-text');
   const clockEl = root.querySelector('#station-clock');
@@ -258,9 +260,6 @@ export function mountStationView(root) {
   const printBtnEl = root.querySelector('#station-print-btn');
   const clearChecksBtnEl = root.querySelector('#station-clear-checks-btn');
   const removeBtnEl = root.querySelector('#station-remove-btn');
-  const removedToggleEl = root.querySelector('#station-removed-toggle');
-  const removedCountEl = root.querySelector('#station-removed-count');
-  const removedListEl = root.querySelector('#station-removed-list');
 
   /** @type {object[]} */
   let allJobs = [];
@@ -383,7 +382,7 @@ export function mountStationView(root) {
   async function removeSelectedBatch() {
     const batchKey = selectedKey;
     if (!batchKey) return;
-    if (!confirm(`Remove ${batchKey} from station?\nYou can restore it from Removed.`)) return;
+    if (!confirm(`Remove ${batchKey} from station?\nIt stays in the list — tap Add back to restore.`)) return;
     try {
       await softDeleteStationJob(batchKey);
       pendingByBatch.delete(batchKey);
@@ -403,7 +402,7 @@ export function mountStationView(root) {
     if (!keys.length) return;
     if (
       !confirm(
-        `Remove ${keys.length} selected batch${keys.length === 1 ? '' : 'es'} from station?\nYou can restore them from Removed.`
+        `Remove ${keys.length} selected batch${keys.length === 1 ? '' : 'es'} from station?\nThey stay in the list — tap Add back to restore.`
       )
     ) {
       return;
@@ -433,7 +432,7 @@ export function mountStationView(root) {
     if (!keys.length) return;
     if (
       !confirm(
-        `Remove all ${keys.length} batch${keys.length === 1 ? '' : 'es'} from station?\nYou can restore them from Removed.`
+        `Remove all ${keys.length} batch${keys.length === 1 ? '' : 'es'} from station?\nThey stay in the list — tap Add back to restore.`
       )
     ) {
       return;
@@ -454,19 +453,20 @@ export function mountStationView(root) {
     }
   }
 
-  function updateQueueActionButtons(filteredKeys) {
+  function updateQueueActionButtons(filteredActiveKeys) {
     const activeCount = activeJobs().length;
-    queueActionsEl.hidden = activeCount === 0;
-    const selectedCount = filteredKeys.filter((k) => checkedKeys.has(k)).length;
+    const totalCount = allJobs.length;
+    queueActionsEl.hidden = totalCount === 0;
+    const selectedCount = filteredActiveKeys.filter((k) => checkedKeys.has(k)).length;
     removeSelectedBtnEl.disabled = selectedCount === 0;
-    removeSelectedBtnEl.textContent =
-      selectedCount > 0 ? `Remove selected (${selectedCount})` : 'Remove selected';
+    removeSelectedBtnEl.textContent = selectedCount > 0 ? `Remove (${selectedCount})` : 'Remove';
     removeAllBtnEl.disabled = activeCount === 0;
     clearAllChecksBtnEl.disabled = activeCount === 0;
+    selectAllEl.disabled = filteredActiveKeys.length === 0;
     const allFilteredChecked =
-      filteredKeys.length > 0 && filteredKeys.every((k) => checkedKeys.has(k));
+      filteredActiveKeys.length > 0 && filteredActiveKeys.every((k) => checkedKeys.has(k));
     selectAllEl.checked = allFilteredChecked;
-    selectAllEl.indeterminate = selectedCount > 0 && selectedCount < filteredKeys.length;
+    selectAllEl.indeterminate = selectedCount > 0 && selectedCount < filteredActiveKeys.length;
   }
 
   async function restoreBatch(batchKey) {
@@ -475,10 +475,10 @@ export function mountStationView(root) {
       selectedKey = batchKey;
       setStationHash(batchKey);
       renderedKey = '';
-      setStatus('live', 'Batch restored');
+      setStatus('live', 'Batch added back');
     } catch (err) {
       console.error(err);
-      setStatus('error', 'Could not restore batch');
+      setStatus('error', 'Could not add batch back');
     }
   }
 
@@ -708,42 +708,88 @@ export function mountStationView(root) {
     applyZoom();
   }
 
-  function renderRemovedList() {
-    const removed = removedJobs();
-    removedCountEl.textContent = `(${removed.length})`;
-    removedWrap.hidden = removed.length === 0;
-    if (!removed.length) {
-      removedListEl.hidden = true;
-      removedToggleEl.setAttribute('aria-expanded', 'false');
-      return;
+  function renderQueueItem(job, { removed = false } = {}) {
+    const isActive = !removed && job.batchKey === selectedKey;
+    const isChecked = !removed && checkedKeys.has(job.batchKey);
+    const { checked, total } = countChecks(job);
+    const pct = total ? Math.round((checked / total) * 100) : 0;
+    const done = !removed && total > 0 && checked === total;
+    const orderCount = Array.isArray(job.orders) ? job.orders.length : 0;
+    const materialShort = String(job.materialName || '—')
+      .replace(/^PF:\s*/i, '')
+      .trim();
+
+    if (removed) {
+      return `
+        <div class="station-queue-row is-removed" data-batch-key="${escapeAttr(job.batchKey)}">
+          <span class="station-queue-check-spacer" aria-hidden="true"></span>
+          <div class="station-queue-item station-queue-item--removed">
+            <span class="station-queue-item-top">
+              <span class="station-queue-item-title">${escapeHTML(job.batchKey)}${job.isSpecial ? ' <span class="station-queue-star">★</span>' : ''}</span>
+              <span class="station-queue-removed-badge">Removed</span>
+            </span>
+            <span class="station-queue-item-bottom">
+              <span class="station-queue-item-meta">${escapeHTML(materialShort)} · ${job.totalBoxes || 0} bx${orderCount ? ` · ${orderCount} ord` : ''}</span>
+              <button type="button" class="station-queue-restore-btn" data-restore-key="${escapeAttr(job.batchKey)}">Add back</button>
+            </span>
+          </div>
+        </div>`;
     }
-    removedListEl.innerHTML = removed
-      .map(
-        (job) => `
-      <div class="station-removed-item" data-restore-key="${escapeAttr(job.batchKey)}">
-        <div class="station-removed-item-text">
-          <span class="station-removed-item-title">${escapeHTML(job.batchKey)}</span>
-          <span class="station-removed-item-meta">${escapeHTML(job.materialName || '—')}</span>
-        </div>
-        <button type="button" class="station-restore-btn" data-restore-key="${escapeAttr(job.batchKey)}">Restore</button>
-      </div>`
-      )
-      .join('');
+
+    return `
+      <div class="station-queue-row${isActive ? ' is-active' : ''}${done ? ' is-done' : ''}${isChecked ? ' is-checked' : ''}" data-batch-key="${escapeAttr(job.batchKey)}">
+        <label class="station-queue-check-wrap" title="Select for remove">
+          <input
+            type="checkbox"
+            class="station-queue-check"
+            data-batch-key="${escapeAttr(job.batchKey)}"
+            ${isChecked ? 'checked' : ''}
+            aria-label="Select ${escapeAttr(job.batchKey)}"
+          />
+        </label>
+        <button
+          type="button"
+          class="station-queue-item"
+          role="option"
+          aria-selected="${isActive ? 'true' : 'false'}"
+          data-batch-key="${escapeAttr(job.batchKey)}"
+        >
+          <span class="station-queue-item-top">
+            <span class="station-queue-item-title">${escapeHTML(job.batchKey)}${job.isSpecial ? ' <span class="station-queue-star">★</span>' : ''}</span>
+            ${done ? '<span class="station-queue-done-badge">✓</span>' : `<span class="station-queue-item-time">${escapeHTML(formatRelativeTime(job.sentAt))}</span>`}
+          </span>
+          <span class="station-queue-item-bottom">
+            <span class="station-queue-item-meta">${escapeHTML(materialShort)} · ${job.totalBoxes || 0} bx${orderCount ? ` · ${orderCount} ord` : ''}</span>
+            <span class="station-queue-progress${done ? ' is-complete' : ''}"><i style="width:${pct}%"></i></span>
+          </span>
+        </button>
+      </div>`;
   }
 
   function renderQueue() {
     const active = activeJobs();
-    const filtered = filterStationJobs(active, filters());
+    const removed = removedJobs();
+    const filteredActive = filterStationJobs(active, filters());
+    const filteredRemoved = filterStationJobs(removed, filters());
     const activeKeySet = new Set(active.map((j) => j.batchKey));
     [...checkedKeys].forEach((key) => {
       if (!activeKeySet.has(key)) checkedKeys.delete(key);
     });
 
-    countEl.textContent = filtered.length
-      ? `${filtered.length} of ${active.length} batch${active.length === 1 ? '' : 'es'}`
-      : active.length
-        ? 'No batches match'
-        : 'No batches sent yet';
+    const parts = [];
+    if (filteredActive.length || filteredRemoved.length) {
+      if (filteredRemoved.length && filteredActive.length) {
+        countEl.textContent = `${filteredActive.length} active · ${filteredRemoved.length} removed`;
+      } else if (filteredRemoved.length) {
+        countEl.textContent = `${filteredRemoved.length} removed`;
+      } else {
+        countEl.textContent = `${filteredActive.length} of ${active.length} batch${active.length === 1 ? '' : 'es'}`;
+      }
+    } else if (active.length || removed.length) {
+      countEl.textContent = 'No batches match';
+    } else {
+      countEl.textContent = 'No batches sent yet';
+    }
 
     if (selectedKey && isStationJobDeleted(allJobs.find((j) => j.batchKey === selectedKey))) {
       selectedKey = '';
@@ -751,62 +797,31 @@ export function mountStationView(root) {
       setStationHash('');
     }
 
-    if (!selectedKey && filtered.length) {
-      selectedKey = filtered[0].batchKey;
+    if (!selectedKey && filteredActive.length) {
+      selectedKey = filteredActive[0].batchKey;
       setStationHash(selectedKey);
     } else if (selectedKey && !active.some((j) => j.batchKey === selectedKey)) {
-      selectedKey = filtered[0]?.batchKey || '';
+      selectedKey = filteredActive[0]?.batchKey || '';
       setStationHash(selectedKey);
     }
 
-    const filteredKeys = filtered.map((j) => j.batchKey);
+    const filteredActiveKeys = filteredActive.map((j) => j.batchKey);
 
-    listEl.innerHTML = filtered.length
-      ? filtered
-          .map((job) => {
-            const isActive = job.batchKey === selectedKey;
-            const isChecked = checkedKeys.has(job.batchKey);
-            const { checked, total } = countChecks(job);
-            const pct = total ? Math.round((checked / total) * 100) : 0;
-            const done = total > 0 && checked === total;
-            const orderCount = Array.isArray(job.orders) ? job.orders.length : 0;
-            const materialShort = String(job.materialName || '—')
-              .replace(/^PF:\s*/i, '')
-              .trim();
-            return `
-              <div class="station-queue-row${isActive ? ' is-active' : ''}${done ? ' is-done' : ''}${isChecked ? ' is-checked' : ''}" data-batch-key="${escapeAttr(job.batchKey)}">
-                <label class="station-queue-check-wrap" title="Select for remove">
-                  <input
-                    type="checkbox"
-                    class="station-queue-check"
-                    data-batch-key="${escapeAttr(job.batchKey)}"
-                    ${isChecked ? 'checked' : ''}
-                    aria-label="Select ${escapeAttr(job.batchKey)}"
-                  />
-                </label>
-                <button
-                  type="button"
-                  class="station-queue-item"
-                  role="option"
-                  aria-selected="${isActive ? 'true' : 'false'}"
-                  data-batch-key="${escapeAttr(job.batchKey)}"
-                >
-                  <span class="station-queue-item-top">
-                    <span class="station-queue-item-title">${escapeHTML(job.batchKey)}${job.isSpecial ? ' <span class="station-queue-star">★</span>' : ''}</span>
-                    ${done ? '<span class="station-queue-done-badge">✓</span>' : `<span class="station-queue-item-time">${escapeHTML(formatRelativeTime(job.sentAt))}</span>`}
-                  </span>
-                  <span class="station-queue-item-bottom">
-                    <span class="station-queue-item-meta">${escapeHTML(materialShort)} · ${job.totalBoxes || 0} bx${orderCount ? ` · ${orderCount} ord` : ''}</span>
-                    <span class="station-queue-progress${done ? ' is-complete' : ''}"><i style="width:${pct}%"></i></span>
-                  </span>
-                </button>
-              </div>`;
-          })
-          .join('')
+    if (filteredActive.length) {
+      parts.push(...filteredActive.map((job) => renderQueueItem(job)));
+    }
+    if (filteredRemoved.length) {
+      if (filteredActive.length) {
+        parts.push(`<div class="station-queue-divider">Removed · tap Add back</div>`);
+      }
+      parts.push(...filteredRemoved.map((job) => renderQueueItem(job, { removed: true })));
+    }
+
+    listEl.innerHTML = parts.length
+      ? parts.join('')
       : `<div class="station-queue-empty">No matching batches</div>`;
 
-    updateQueueActionButtons(filteredKeys);
-    renderRemovedList();
+    updateQueueActionButtons(filteredActiveKeys);
     const selected = active.find((j) => j.batchKey === selectedKey) || null;
     renderSelected(selected);
   }
@@ -827,7 +842,15 @@ export function mountStationView(root) {
   }
 
   listEl.addEventListener('click', (e) => {
+    const restoreBtn = e.target.closest('[data-restore-key]');
+    if (restoreBtn) {
+      e.preventDefault();
+      const key = restoreBtn.getAttribute('data-restore-key') || '';
+      if (key) void restoreBatch(key);
+      return;
+    }
     if (e.target.closest('.station-queue-check-wrap')) return;
+    if (e.target.closest('.station-queue-row.is-removed')) return;
     const btn = e.target.closest('button.station-queue-item');
     if (!btn) return;
     selectedKey = btn.getAttribute('data-batch-key') || '';
@@ -843,17 +866,17 @@ export function mountStationView(root) {
     if (!key) return;
     if (input.checked) checkedKeys.add(key);
     else checkedKeys.delete(key);
-    const filteredKeys = filterStationJobs(activeJobs(), filters()).map((j) => j.batchKey);
-    updateQueueActionButtons(filteredKeys);
+    const filteredActiveKeys = filterStationJobs(activeJobs(), filters()).map((j) => j.batchKey);
+    updateQueueActionButtons(filteredActiveKeys);
     input.closest('.station-queue-row')?.classList.toggle('is-checked', input.checked);
   });
 
   selectAllEl.addEventListener('change', () => {
-    const filteredKeys = filterStationJobs(activeJobs(), filters()).map((j) => j.batchKey);
+    const filteredActiveKeys = filterStationJobs(activeJobs(), filters()).map((j) => j.batchKey);
     if (selectAllEl.checked) {
-      filteredKeys.forEach((key) => checkedKeys.add(key));
+      filteredActiveKeys.forEach((key) => checkedKeys.add(key));
     } else {
-      filteredKeys.forEach((key) => checkedKeys.delete(key));
+      filteredActiveKeys.forEach((key) => checkedKeys.delete(key));
     }
     renderQueue();
   });
@@ -985,17 +1008,6 @@ export function mountStationView(root) {
   });
   removeAllBtnEl.addEventListener('click', () => {
     void removeAllBatches();
-  });
-  removedToggleEl.addEventListener('click', () => {
-    const open = removedListEl.hidden;
-    removedListEl.hidden = !open;
-    removedToggleEl.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-  removedListEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-restore-key]');
-    if (!btn || btn.tagName !== 'BUTTON') return;
-    const key = btn.getAttribute('data-restore-key') || '';
-    if (key) void restoreBatch(key);
   });
 
   void subscribeStationJobs(onJobs, (err) => {

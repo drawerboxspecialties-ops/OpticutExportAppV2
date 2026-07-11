@@ -2500,25 +2500,32 @@ body.station-live.print-active .station-root {
 
 .station-queue-actions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.28rem;
-  padding: 0 0.7rem 0.4rem;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0 0.7rem 0.45rem;
 }
 
 .station-queue-actions[hidden] {
   display: none !important;
 }
 
+.station-queue-actions-main {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .station-queue-select-all {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  margin-right: 0.1rem;
-  font-size: 0.72rem;
+  gap: 0.3rem;
+  margin-right: 0.05rem;
+  font-size: 0.7rem;
+  font-weight: 600;
   color: var(--st-muted);
   cursor: pointer;
   user-select: none;
+  white-space: nowrap;
 }
 
 .station-queue-select-all input {
@@ -2528,19 +2535,31 @@ body.station-live.print-active .station-root {
   cursor: pointer;
 }
 
+.station-queue-select-all input:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
 .station-queue-action-btn {
+  flex: 1;
   border: 1px solid var(--st-line-strong);
   background: var(--st-surface-solid);
   color: var(--st-ink);
   border-radius: 7px;
-  padding: 0.22rem 0.45rem;
+  padding: 0.28rem 0.4rem;
   font-size: 0.68rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   transition:
     border-color 0.15s ease,
     background 0.15s ease,
     color 0.15s ease;
+}
+
+.station-queue-action-btn--block {
+  width: 100%;
+  flex: none;
 }
 
 .station-queue-action-btn:hover:not(:disabled) {
@@ -2558,6 +2577,64 @@ body.station-live.print-active .station-root {
   border-color: rgba(196, 92, 92, 0.35);
   background: var(--st-danger-soft);
   color: var(--st-danger);
+}
+
+.station-queue-divider {
+  margin: 0.35rem 0 0.1rem;
+  padding: 0.15rem 0.2rem;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #b45309;
+}
+
+.station-queue-check-spacer {
+  width: 0.95rem;
+  flex: none;
+}
+
+.station-queue-row.is-removed .station-queue-item--removed {
+  background: #fff4e5;
+  border-color: #f0b45a;
+  color: #7a4a00;
+  cursor: default;
+}
+
+.station-queue-row.is-removed .station-queue-item-title {
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+
+.station-queue-row.is-removed .station-queue-item-meta {
+  color: #a16207;
+}
+
+.station-queue-removed-badge {
+  flex: none;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.08rem 0.32rem;
+  border-radius: 5px;
+  background: #ffe8bf;
+  color: #9a6700;
+}
+
+.station-queue-restore-btn {
+  flex: none;
+  border: 1px solid var(--st-accent);
+  background: var(--st-accent);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.18rem 0.45rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.station-queue-restore-btn:hover {
+  filter: brightness(1.06);
 }
 
 .station-queue-row {
@@ -2942,94 +3019,6 @@ body.station-live.print-active .station-root {
 
 .station-tool-btn--danger:hover:not(:disabled) {
   background: var(--st-danger-soft);
-}
-
-.station-removed {
-  border-top: 1px solid var(--st-line);
-  padding: 0.35rem 0.65rem 0.7rem;
-  flex: none;
-  background: rgba(255, 255, 255, 0.35);
-}
-
-.station-removed[hidden] {
-  display: none !important;
-}
-
-.station-removed-toggle {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.45rem 0.5rem;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--st-muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.station-removed-toggle:hover {
-  background: rgba(255, 255, 255, 0.65);
-  color: var(--st-ink);
-}
-
-.station-removed-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-top: 0.3rem;
-  max-height: 10rem;
-  overflow: auto;
-}
-
-.station-removed-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.5rem 0.55rem;
-  border: 1px solid var(--st-line-strong);
-  border-radius: var(--st-radius-sm);
-  background: var(--st-surface-solid);
-}
-
-.station-removed-item-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.station-removed-item-title {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--st-ink);
-  word-break: break-all;
-}
-
-.station-removed-item-meta {
-  font-size: 0.7rem;
-  color: var(--st-faint);
-}
-
-.station-restore-btn {
-  flex: none;
-  padding: 0.35rem 0.55rem;
-  border: 1px solid var(--st-accent);
-  border-radius: 8px;
-  background: var(--st-accent);
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.station-restore-btn:hover {
-  filter: brightness(1.06);
 }
 
 /* Sheet area */
