@@ -2533,6 +2533,24 @@ body.station-live #all-print-container {
   font-variant-numeric: tabular-nums;
 }
 
+.station-print-btn {
+  min-height: 2.4rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid #0f172a;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.station-print-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* Sheet area */
 .station-live-body {
   flex: 1;
@@ -2774,6 +2792,62 @@ body.station-live #all-print-container {
   .station-batch-tools {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+/* Station print / Save as PDF — only the cut list sheet */
+@media print {
+  body.station-print-active {
+    background: #fff !important;
+  }
+
+  body.station-print-active .station-live-header,
+  body.station-print-active .station-queue,
+  body.station-print-active .station-batch-bar,
+  body.station-print-active .station-live-empty {
+    display: none !important;
+  }
+
+  body.station-print-active .station-root {
+    position: static !important;
+    inset: auto !important;
+    background: #fff !important;
+    color: #000 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  body.station-print-active .station-live-layout {
+    display: block !important;
+  }
+
+  body.station-print-active .station-live-main,
+  body.station-print-active .station-live-body {
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #fff !important;
+    min-height: 0 !important;
+  }
+
+  body.station-print-active .station-live-sheet {
+    zoom: 1 !important;
+    width: 100% !important;
+  }
+
+  body.station-print-active .station-live-sheet .cutlist-print-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  body.station-print-active .station-live-sheet .station-check {
+    width: 12px !important;
+    height: 12px !important;
+    accent-color: #000;
   }
 }
 

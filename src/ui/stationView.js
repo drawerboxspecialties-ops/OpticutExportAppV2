@@ -150,6 +150,14 @@ export function mountStationView(root) {
               <span class="station-zoom-label" id="station-zoom-label">100%</span>
               <button type="button" class="station-zoom-btn" id="station-zoom-in" aria-label="Zoom in">+</button>
             </div>
+            <button
+              type="button"
+              class="station-print-btn"
+              id="station-print-btn"
+              title="Print or save as PDF"
+            >
+              Print / PDF
+            </button>
           </div>
         </div>
         <div class="station-live-body" id="station-live-body">
@@ -181,6 +189,7 @@ export function mountStationView(root) {
   const zoomOutEl = root.querySelector('#station-zoom-out');
   const zoomInEl = root.querySelector('#station-zoom-in');
   const zoomLabelEl = root.querySelector('#station-zoom-label');
+  const printBtnEl = root.querySelector('#station-print-btn');
 
   /** @type {object[]} */
   let allJobs = [];
@@ -199,6 +208,23 @@ export function mountStationView(root) {
   function setStatus(state, text) {
     statusEl.dataset.state = state;
     statusTextEl.textContent = text;
+  }
+
+  function printSelectedBatch() {
+    const job = allJobs.find((j) => j.batchKey === selectedKey);
+    if (!job?.html || !bodyEl.querySelector('.cutlist-print-sheet')) {
+      setStatus('error', 'Select a batch to print');
+      return;
+    }
+    document.body.classList.add('station-print-active');
+    const cleanup = () => {
+      document.body.classList.remove('station-print-active');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup, { once: true });
+    // Fallback if afterprint never fires (some browsers).
+    setTimeout(cleanup, 2000);
+    window.print();
   }
 
   function effectiveChecks(job) {
@@ -321,9 +347,11 @@ export function mountStationView(root) {
   function renderBatchBar(job) {
     if (!job?.html) {
       batchBarEl.hidden = true;
+      printBtnEl.disabled = true;
       return;
     }
     batchBarEl.hidden = false;
+    printBtnEl.disabled = false;
     batchTitleEl.textContent = job.batchKey || '';
 
     const orderCount = Array.isArray(job.orders) ? job.orders.length : 0;
@@ -518,6 +546,7 @@ export function mountStationView(root) {
   materialEl.addEventListener('change', () => renderQueue());
   zoomOutEl.addEventListener('click', () => stepZoom(-1));
   zoomInEl.addEventListener('click', () => stepZoom(1));
+  printBtnEl.addEventListener('click', () => printSelectedBatch());
 
   void subscribeStationJobs(onJobs, (err) => {
     if (cancelled) return;
