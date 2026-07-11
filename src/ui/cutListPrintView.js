@@ -389,10 +389,12 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
   const colCount = 6 + (hasGroup ? 1 : 0);
-  const rowsPerColumn = estimateRowsPerPrintColumn({
+  const printRows = estimateRowsPerPrintColumn({
     orderCount: Math.max(sections.length, (batch?.sortedOrders || []).length, 1),
     hasShipDate: Boolean(formatShipDateLabel(batch?.shipDate, colIndices)),
   });
+  // Station screen: pack denser so operators scroll less (print stays page-safe).
+  const rowsPerColumn = mode === 'station' ? Math.max(72, printRows * 3) : printRows;
 
   return `<div class="cutlist-print-sheet"${mode === 'station' ? ' data-station-sheet="1"' : ''}>${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, rowsPerColumn, mode)}</div></div>`;
 }
