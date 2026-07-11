@@ -169,9 +169,56 @@ export async function publishStationJob(job, options = {}) {
   };
 
   // merge: true keeps existing checkbox state when the same batch is re-sent.
-  await setDoc(doc(await getDb(), STATION_JOBS_COLLECTION, id), payload, { merge: true });
+  // Clear deletedAt so a re-send brings a removed batch back.
+  await setDoc(
+    doc(await getDb(), STATION_JOBS_COLLECTION, id),
+    { ...payload, deletedAt: null },
+    { merge: true }
+  );
   if (!options.skipPurge) scheduleStationPurge();
   return payload;
+}
+
+/**
+ * Soft-remove a batch from the active station queue (can restore later).
+ * @param {string} batchKey
+ */
+export async function softDeleteStationJob(batchKey) {
+  const id = stationJobId(batchKey);
+  if (!id) throw new Error('Invalid batch key.');
+  const { doc, updateDoc } = await import('firebase/firestore');
+  await updateDoc(doc(await getDb(), STATION_JOBS_COLLECTION, id), {
+    deletedAt: Date.now(),
+  });
+}
+
+/**
+ * Restore a soft-removed station batch.
+ * @param {string} batchKey
+ */
+export async function restoreStationJob(batchKey) {
+  const id = stationJobId(batchKey);
+  if (!id) throw new Error('Invalid batch key.');
+  const { doc, updateDoc, deleteField } = await import('firebase/firestore');
+  await updateDoc(doc(await getDb(), STATION_JOBS_COLLECTION, id), {
+    deletedAt: deleteField(),
+  });
+}
+
+/**
+ * Clear all saved checkboxes for a batch (persisted).
+ * @param {string} batchKey
+ */
+export async function clearStationJobChecks(batchKey) {
+  const id = stationJobId(batchKey);
+  if (!id) throw new Error('Invalid batch key.');
+  const { doc, updateDoc } = await import('firebase/firestore');
+  await updateDoc(doc(await getDb(), STATION_JOBS_COLLECTION, id), { checks: {} });
+}
+
+/** True when a job is soft-removed from the active queue. */
+export function isStationJobDeleted(job) {
+  return Boolean(job?.deletedAt);
 }
 
 /**

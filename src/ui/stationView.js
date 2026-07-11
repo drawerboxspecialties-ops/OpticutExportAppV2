@@ -6,6 +6,10 @@ import {
   stationHashBatchKey,
   updateStationJobCheck,
   mergeStationChecks,
+  softDeleteStationJob,
+  restoreStationJob,
+  clearStationJobChecks,
+  isStationJobDeleted,
 } from '../logic/stationSync.js';
 
 const ZOOM_STORAGE_KEY = 'opticut-station-zoom';
@@ -158,6 +162,22 @@ export function mountStationView(root) {
             >
               Print / PDF
             </button>
+            <button
+              type="button"
+              class="station-tool-btn"
+              id="station-clear-checks-btn"
+              title="Clear all checkboxes for this batch"
+            >
+              Clear checks
+            </button>
+            <button
+              type="button"
+              class="station-tool-btn station-tool-btn--danger"
+              id="station-remove-btn"
+              title="Remove this batch from the station queue"
+            >
+              Remove
+            </button>
           </div>
         </div>
         <div class="station-live-body" id="station-live-body">
@@ -171,6 +191,17 @@ export function mountStationView(root) {
     </div>
   `;
 
+  // Removed batches panel (appended after queue list area via layout — inject into aside)
+  const queueAside = root.querySelector('.station-queue');
+  const removedWrap = document.createElement('div');
+  removedWrap.className = 'station-removed';
+  removedWrap.innerHTML = `
+    <button type="button" class="station-removed-toggle" id="station-removed-toggle" aria-expanded="false">
+      Removed <span id="station-removed-count">(0)</span>
+    </button>
+    <div class="station-removed-list" id="station-removed-list" hidden></div>
+  `;
+  queueAside.appendChild(removedWrap);
   const statusEl = root.querySelector('#station-live-status');
   const statusTextEl = root.querySelector('#station-status-text');
   const clockEl = root.querySelector('#station-clock');
@@ -190,6 +221,11 @@ export function mountStationView(root) {
   const zoomInEl = root.querySelector('#station-zoom-in');
   const zoomLabelEl = root.querySelector('#station-zoom-label');
   const printBtnEl = root.querySelector('#station-print-btn');
+  const clearChecksBtnEl = root.querySelector('#station-clear-checks-btn');
+  const removeBtnEl = root.querySelector('#station-remove-btn');
+  const removedToggleEl = root.querySelector('#station-removed-toggle');
+  const removedCountEl = root.querySelector('#station-removed-count');
+  const removedListEl = root.querySelector('#station-removed-list');
 
   /** @type {object[]} */
   let allJobs = [];
@@ -210,21 +246,101 @@ export function mountStationView(root) {
     statusTextEl.textContent = text;
   }
 
+  function activeJobs() {
+    return allJobs.filter((j) => !isStationJobDeleted(j));
+  }
+
+  function removedJobs() {
+    return allJobs.filter((j) => isStationJobDeleted(j));
+  }
+
+  /** Print via the shared print container so @media print rules work (not a blank page). */
   function printSelectedBatch() {
-    const job = allJobs.find((j) => j.batchKey === selectedKey);
-    if (!job?.html || !bodyEl.querySelector('.cutlist-print-sheet')) {
+    const job = activeJobs().find((j) => j.batchKey === selectedKey);
+    if (!job?.html) {
       setStatus('error', 'Select a batch to print');
       return;
     }
-    document.body.classList.add('station-print-active');
+    const printContainer = document.getElementById('all-print-container');
+    if (!printContainer) {
+      setStatus('error', 'Print container missing');
+      return;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'print-batch-card';
+    card.innerHTML = job.html;
+    const checks = effectiveChecks(job);
+    card.querySelectorAll('.station-check[data-row-id]').forEach((input) => {
+      const id = input.getAttribute('data-row-id') || '';
+      input.checked = Boolean(checks[id]);
+    });
+
+    printContainer.innerHTML = '';
+    printContainer.appendChild(card);
+
+    const bodyClasses = ['print-active', 'print-cutlist-active', 'station-print-active'];
+    bodyClasses.forEach((cls) => document.body.classList.add(cls));
+
+    let cleaned = false;
     const cleanup = () => {
-      document.body.classList.remove('station-print-active');
-      window.removeEventListener('afterprint', cleanup);
+      if (cleaned) return;
+      cleaned = true;
+      bodyClasses.forEach((cls) => document.body.classList.remove(cls));
+      printContainer.innerHTML = '';
     };
     window.addEventListener('afterprint', cleanup, { once: true });
-    // Fallback if afterprint never fires (some browsers).
-    setTimeout(cleanup, 2000);
+    setTimeout(cleanup, 120_000);
     window.print();
+  }
+
+  async function clearSelectedChecks() {
+    const batchKey = selectedKey;
+    const job = activeJobs().find((j) => j.batchKey === batchKey);
+    if (!job) return;
+    if (!confirm(`Clear all checkboxes for ${batchKey}?`)) return;
+    pendingByBatch.delete(batchKey);
+    job.checks = {};
+    applyStationChecks(bodyEl, job);
+    renderBatchBar(job);
+    updateQueueItemProgress(batchKey, job);
+    try {
+      await clearStationJobChecks(batchKey);
+      setStatus('live', 'Checks cleared');
+    } catch (err) {
+      console.error(err);
+      setStatus('error', 'Could not clear checks');
+    }
+  }
+
+  async function removeSelectedBatch() {
+    const batchKey = selectedKey;
+    if (!batchKey) return;
+    if (!confirm(`Remove ${batchKey} from station?\nYou can restore it from Removed.`)) return;
+    try {
+      await softDeleteStationJob(batchKey);
+      pendingByBatch.delete(batchKey);
+      selectedKey = '';
+      renderedKey = '';
+      setStationHash('');
+      setStatus('live', 'Batch removed');
+    } catch (err) {
+      console.error(err);
+      setStatus('error', 'Could not remove batch');
+    }
+  }
+
+  async function restoreBatch(batchKey) {
+    try {
+      await restoreStationJob(batchKey);
+      selectedKey = batchKey;
+      setStationHash(batchKey);
+      renderedKey = '';
+      setStatus('live', 'Batch restored');
+    } catch (err) {
+      console.error(err);
+      setStatus('error', 'Could not restore batch');
+    }
   }
 
   function effectiveChecks(job) {
@@ -345,13 +461,17 @@ export function mountStationView(root) {
   }
 
   function renderBatchBar(job) {
-    if (!job?.html) {
+    if (!job?.html || isStationJobDeleted(job)) {
       batchBarEl.hidden = true;
       printBtnEl.disabled = true;
+      clearChecksBtnEl.disabled = true;
+      removeBtnEl.disabled = true;
       return;
     }
     batchBarEl.hidden = false;
     printBtnEl.disabled = false;
+    clearChecksBtnEl.disabled = false;
+    removeBtnEl.disabled = false;
     batchTitleEl.textContent = job.batchKey || '';
 
     const orderCount = Array.isArray(job.orders) ? job.orders.length : 0;
@@ -398,23 +518,53 @@ export function mountStationView(root) {
     }
 
     renderedKey = nextKey;
-    bodyEl.innerHTML = `<div class="station-live-sheet cutlist-screen-preview">${job.html}</div>`;
+    bodyEl.innerHTML = `<div class="station-live-sheet">${job.html}</div>`;
     applyStationChecks(bodyEl, job);
     applyZoom();
   }
 
+  function renderRemovedList() {
+    const removed = removedJobs();
+    removedCountEl.textContent = `(${removed.length})`;
+    removedWrap.hidden = removed.length === 0;
+    if (!removed.length) {
+      removedListEl.hidden = true;
+      removedToggleEl.setAttribute('aria-expanded', 'false');
+      return;
+    }
+    removedListEl.innerHTML = removed
+      .map(
+        (job) => `
+      <div class="station-removed-item" data-restore-key="${escapeAttr(job.batchKey)}">
+        <div class="station-removed-item-text">
+          <span class="station-removed-item-title">${escapeHTML(job.batchKey)}</span>
+          <span class="station-removed-item-meta">${escapeHTML(job.materialName || '—')}</span>
+        </div>
+        <button type="button" class="station-restore-btn" data-restore-key="${escapeAttr(job.batchKey)}">Restore</button>
+      </div>`
+      )
+      .join('');
+  }
+
   function renderQueue() {
-    const filtered = filterStationJobs(allJobs, filters());
+    const active = activeJobs();
+    const filtered = filterStationJobs(active, filters());
     countEl.textContent = filtered.length
-      ? `${filtered.length} of ${allJobs.length} batch${allJobs.length === 1 ? '' : 'es'}`
-      : allJobs.length
+      ? `${filtered.length} of ${active.length} batch${active.length === 1 ? '' : 'es'}`
+      : active.length
         ? 'No batches match'
         : 'No batches sent yet';
+
+    if (selectedKey && isStationJobDeleted(allJobs.find((j) => j.batchKey === selectedKey))) {
+      selectedKey = '';
+      renderedKey = '';
+      setStationHash('');
+    }
 
     if (!selectedKey && filtered.length) {
       selectedKey = filtered[0].batchKey;
       setStationHash(selectedKey);
-    } else if (selectedKey && !allJobs.some((j) => j.batchKey === selectedKey)) {
+    } else if (selectedKey && !active.some((j) => j.batchKey === selectedKey)) {
       selectedKey = filtered[0]?.batchKey || '';
       setStationHash(selectedKey);
     }
@@ -454,7 +604,8 @@ export function mountStationView(root) {
           .join('')
       : `<div class="station-queue-empty">No matching batches</div>`;
 
-    const selected = allJobs.find((j) => j.batchKey === selectedKey) || null;
+    renderRemovedList();
+    const selected = active.find((j) => j.batchKey === selectedKey) || null;
     renderSelected(selected);
   }
 
@@ -462,11 +613,14 @@ export function mountStationView(root) {
     if (cancelled) return;
     jobs.forEach((j) => clearPendingIfSynced(j.batchKey, j.checks));
     allJobs = jobs;
+    const active = activeJobs();
     setStatus(
       'live',
-      jobs.length ? `Live · ${jobs.length} batch${jobs.length === 1 ? '' : 'es'}` : 'Live · waiting'
+      active.length
+        ? `Live · ${active.length} batch${active.length === 1 ? '' : 'es'}`
+        : 'Live · waiting'
     );
-    renderMaterialOptions(jobs);
+    renderMaterialOptions(active);
     renderQueue();
   }
 
@@ -547,6 +701,23 @@ export function mountStationView(root) {
   zoomOutEl.addEventListener('click', () => stepZoom(-1));
   zoomInEl.addEventListener('click', () => stepZoom(1));
   printBtnEl.addEventListener('click', () => printSelectedBatch());
+  clearChecksBtnEl.addEventListener('click', () => {
+    void clearSelectedChecks();
+  });
+  removeBtnEl.addEventListener('click', () => {
+    void removeSelectedBatch();
+  });
+  removedToggleEl.addEventListener('click', () => {
+    const open = removedListEl.hidden;
+    removedListEl.hidden = !open;
+    removedToggleEl.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  removedListEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-restore-key]');
+    if (!btn || btn.tagName !== 'BUTTON') return;
+    const key = btn.getAttribute('data-restore-key') || '';
+    if (key) void restoreBatch(key);
+  });
 
   void subscribeStationJobs(onJobs, (err) => {
     if (cancelled) return;

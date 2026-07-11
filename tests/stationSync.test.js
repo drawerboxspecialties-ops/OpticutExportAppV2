@@ -8,7 +8,8 @@ import {
   retainActiveStationJobs,
   stationJobExpiryCutoff,
   normalizeStationChecks,
-  mergeStationChecks,
+  clearStationJobChecks,
+  isStationJobDeleted,
   STATION_JOB_RETENTION_MS,
 } from '../src/logic/stationSync.js';
 
@@ -75,6 +76,14 @@ describe('mergeStationChecks', () => {
         { 'a|1|1|1|1': false, 'b|2|2|2.5|2': true }
       )
     ).toEqual({ 'b|2|2|2.5|2': true });
+  });
+});
+
+describe('isStationJobDeleted', () => {
+  it('treats deletedAt as removed', () => {
+    expect(isStationJobDeleted({ deletedAt: 123 })).toBe(true);
+    expect(isStationJobDeleted({ deletedAt: null })).toBe(false);
+    expect(isStationJobDeleted({})).toBe(false);
   });
 });
 

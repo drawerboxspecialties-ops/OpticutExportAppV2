@@ -2060,6 +2060,14 @@ body.station-live #all-print-container {
   display: none !important;
 }
 
+body.station-live.print-active #all-print-container {
+  display: block !important;
+}
+
+body.station-live.print-active .station-root {
+  display: none !important;
+}
+
 /* Header */
 .station-live-header {
   display: flex;
@@ -2551,6 +2559,125 @@ body.station-live #all-print-container {
   cursor: default;
 }
 
+.station-tool-btn {
+  min-height: 2.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.station-tool-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.station-tool-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.station-tool-btn--danger {
+  border-color: #fecaca;
+  color: #b91c1c;
+  background: #fff5f5;
+}
+
+.station-tool-btn--danger:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.station-removed {
+  border-top: 1px solid #1e293b;
+  padding: 0.35rem 0.6rem 0.7rem;
+  flex: none;
+}
+
+.station-removed[hidden] {
+  display: none !important;
+}
+
+.station-removed-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.5rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.station-removed-toggle:hover {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+.station-removed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  max-height: 10rem;
+  overflow: auto;
+}
+
+.station-removed-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.55rem;
+  border: 1px solid #273449;
+  border-radius: 10px;
+  background: #111827;
+}
+
+.station-removed-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.station-removed-item-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  word-break: break-all;
+}
+
+.station-removed-item-meta {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.station-restore-btn {
+  flex: none;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  background: #0c4a6e;
+  color: #e0f2fe;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.station-restore-btn:hover {
+  background: #0369a1;
+}
+
 /* Sheet area */
 .station-live-body {
   flex: 1;
@@ -2795,59 +2922,10 @@ body.station-live #all-print-container {
   }
 }
 
-/* Station print / Save as PDF — only the cut list sheet */
+/* Station print uses #all-print-container (same as prep print). */
 @media print {
-  body.station-print-active {
-    background: #fff !important;
-  }
-
-  body.station-print-active .station-live-header,
-  body.station-print-active .station-queue,
-  body.station-print-active .station-batch-bar,
-  body.station-print-active .station-live-empty {
-    display: none !important;
-  }
-
   body.station-print-active .station-root {
-    position: static !important;
-    inset: auto !important;
-    background: #fff !important;
-    color: #000 !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  body.station-print-active .station-live-layout {
-    display: block !important;
-  }
-
-  body.station-print-active .station-live-main,
-  body.station-print-active .station-live-body {
-    display: block !important;
-    overflow: visible !important;
-    padding: 0 !important;
-    background: #fff !important;
-    min-height: 0 !important;
-  }
-
-  body.station-print-active .station-live-sheet {
-    zoom: 1 !important;
-    width: 100% !important;
-  }
-
-  body.station-print-active .station-live-sheet .cutlist-print-sheet {
-    box-shadow: none !important;
-    border: none !important;
-    border-radius: 0 !important;
-    min-width: 0 !important;
-    width: 100% !important;
-    padding: 0 !important;
-  }
-
-  body.station-print-active .station-live-sheet .station-check {
-    width: 12px !important;
-    height: 12px !important;
-    accent-color: #000;
+    display: none !important;
   }
 }
 
