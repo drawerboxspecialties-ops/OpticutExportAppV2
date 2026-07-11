@@ -3,6 +3,14 @@ import { firebaseConfig, STATION_JOBS_COLLECTION } from './firebaseConfig.js';
 /** Keep station jobs for 14 days, then delete automatically. */
 export const STATION_JOB_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 
+/** Password required to permanently wipe every station batch. */
+export const STATION_WIPE_PASSWORD = 'dbs';
+
+/** @param {string} password */
+export function verifyStationWipePassword(password) {
+  return String(password ?? '') === STATION_WIPE_PASSWORD;
+}
+
 let dbPromise = null;
 let purgeInFlight = null;
 
@@ -271,6 +279,29 @@ export async function publishStationJob(job, options = {}) {
   );
   if (!options.skipPurge) scheduleStationPurge();
   return payload;
+}
+
+/**
+ * Permanently delete every station job document (active and soft-removed).
+ * @returns {Promise<number>} number of docs deleted
+ */
+export async function wipeAllStationJobs() {
+  const { collection, getDocs, writeBatch, limit, query } = await import('firebase/firestore');
+  const db = await getDb();
+  let deleted = 0;
+
+  for (;;) {
+    const snap = await getDocs(query(collection(db, STATION_JOBS_COLLECTION), limit(400)));
+    if (snap.empty) break;
+
+    const batch = writeBatch(db);
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+    deleted += snap.size;
+    if (snap.size < 400) break;
+  }
+
+  return deleted;
 }
 
 /**

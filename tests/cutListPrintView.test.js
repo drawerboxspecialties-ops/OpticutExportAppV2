@@ -296,6 +296,14 @@ describe('buildBatchOrdersIndex', () => {
           topEdge: 'PVC',
           totalBoxes: 3,
           sortedOrders: ['602480', '602481'],
+          orderColTotals: { '602480': 3, '602481': 1 },
+          orderGroupBoxTotals: {
+            '602480': [
+              { groupId: '1', boxes: 2, parts: 8 },
+              { groupId: '2', boxes: 1, parts: 3 },
+            ],
+            '602481': [{ groupId: '1', boxes: 1, parts: 4 }],
+          },
         },
         PLY_CFB_602470: {
           materialName: 'PF: 12MM Baltic Birch Ply',
@@ -303,6 +311,7 @@ describe('buildBatchOrdersIndex', () => {
           totalBoxes: 2,
           sortedOrders: ['602470'],
           isSpecial: true,
+          orderColTotals: { '602470': 2 },
         },
       },
       cols
@@ -312,6 +321,9 @@ describe('buildBatchOrdersIndex', () => {
     expect(html).toContain('PLY_PVC_602480');
     expect(html).toContain('602480');
     expect(html).toContain('602481');
+    expect(html).toContain('(1-2, 2-1)');
+    expect(html).toContain('(1-1)');
+    expect(html).toContain('(2)');
     expect(html).not.toContain('By order number');
     expect(html).toContain('★ SPECIAL');
     expect(html).toContain('code128-barcode');

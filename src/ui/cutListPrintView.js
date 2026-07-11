@@ -1,7 +1,7 @@
 import { escapeHTML, escapeAttr } from '../logic/csv.js';
 import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
-import { formatOrderCutListBoxSummary } from '../logic/groupBoxes.js';
+import { formatOrderCutListBoxSummary, formatOrderGroupBoxLabel } from '../logic/groupBoxes.js';
 import { getCutListPrintSections, DFM_MARK } from '../logic/cutListPrint.js';
 import { buildCode128Svg } from '../logic/code128.js';
 
@@ -429,7 +429,16 @@ export function buildBatchOrdersIndex(splitGroups, colIndices) {
       const shipDateLabel = formatShipDateLabel(batch.shipDate, colIndices);
       const special = batch.isSpecial ? '<span class="batch-index-special">★ SPECIAL</span>' : '';
       const ordersHtml = orders.length
-        ? orders.map((o) => `<span class="batch-index-order">${escapeHTML(o)}</span>`).join(' ')
+        ? orders
+            .map((o) => {
+              const qtyLabel = formatOrderGroupBoxLabel(o, batch, colIndices);
+              const qtyHtml =
+                qtyLabel && qtyLabel !== '0'
+                  ? ` <span class="batch-index-order-qty">(${escapeHTML(qtyLabel)})</span>`
+                  : '';
+              return `<span class="batch-index-order">${escapeHTML(o)}${qtyHtml}</span>`;
+            })
+            .join(' ')
         : '<span class="batch-index-empty">No orders</span>';
       const barcodeSvg = buildCode128Svg(batchKey, {
         height: 40,

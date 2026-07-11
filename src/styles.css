@@ -2039,6 +2039,11 @@ tbody tr:hover td {
   font-variant-numeric: tabular-nums;
 }
 
+.batch-index-order-qty {
+  font-weight: 600;
+  color: #334155;
+}
+
 .batch-index-special {
   margin-left: 0.35rem;
   font-size: 8pt;

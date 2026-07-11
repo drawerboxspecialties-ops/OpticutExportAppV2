@@ -14,6 +14,8 @@ import {
   dedupeStationJobs,
   duplicateStationJobIds,
   STATION_JOB_RETENTION_MS,
+  verifyStationWipePassword,
+  STATION_WIPE_PASSWORD,
 } from '../src/logic/stationSync.js';
 
 describe('isStationHash', () => {
@@ -186,5 +188,15 @@ describe('dedupeStationJobs', () => {
       { id: 'live', batchKey: 'PLY_PVC_1', sentAt: 200, deletedAt: null },
     ];
     expect(dedupeStationJobs(jobs).map((j) => j.id)).toEqual(['live']);
+  });
+});
+
+describe('verifyStationWipePassword', () => {
+  it('accepts only the station wipe password', () => {
+    expect(STATION_WIPE_PASSWORD).toBe('dbs');
+    expect(verifyStationWipePassword('dbs')).toBe(true);
+    expect(verifyStationWipePassword('DBS')).toBe(false);
+    expect(verifyStationWipePassword('')).toBe(false);
+    expect(verifyStationWipePassword('wrong')).toBe(false);
   });
 });

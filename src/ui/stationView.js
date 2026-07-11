@@ -13,6 +13,8 @@ import {
   clearStationJobsChecks,
   isStationJobDeleted,
   findStationJobByScan,
+  wipeAllStationJobs,
+  verifyStationWipePassword,
 } from '../logic/stationSync.js';
 
 const ZOOM_STORAGE_KEY = 'opticut-station-zoom';
@@ -177,6 +179,14 @@ export function mountStationView(root) {
           >
             Clear all checks
           </button>
+          <button
+            type="button"
+            class="station-queue-action-btn station-queue-action-btn--block station-queue-action-btn--danger"
+            id="station-wipe-all"
+            title="Permanently delete every batch (password required)"
+          >
+            Wipe database
+          </button>
         </div>
         <div class="station-queue-list" id="station-queue-list" role="listbox"></div>
       </aside>
@@ -243,6 +253,7 @@ export function mountStationView(root) {
   const selectAllEl = root.querySelector('#station-select-all');
   const removeSelectedBtnEl = root.querySelector('#station-remove-selected');
   const removeAllBtnEl = root.querySelector('#station-remove-all');
+  const wipeAllBtnEl = root.querySelector('#station-wipe-all');
   const clearAllChecksBtnEl = root.querySelector('#station-clear-all-checks-btn');
   const searchEl = root.querySelector('#station-search');
   const searchClearEl = root.querySelector('#station-search-clear');
@@ -453,6 +464,52 @@ export function mountStationView(root) {
     }
   }
 
+  async function wipeAllBatchesFromDatabase() {
+    const total = allJobs.length;
+    if (!total) return;
+
+    const password = prompt(
+      `Permanently wipe ALL ${total} batch${total === 1 ? '' : 'es'} from the station database?\nThis cannot be undone. Enter password:`
+    );
+    if (password === null) return;
+    if (!verifyStationWipePassword(password)) {
+      alert('Incorrect password.');
+      return;
+    }
+    if (
+      !confirm(
+        `Delete all ${total} batch${total === 1 ? '' : 'es'} forever?\nActive and removed batches will disappear. Re-send from prep to bring them back.`
+      )
+    ) {
+      return;
+    }
+
+    wipeAllBtnEl.disabled = true;
+    try {
+      const deleted = await wipeAllStationJobs();
+      pendingByBatch.clear();
+      checkedKeys.clear();
+      allJobs = [];
+      selectedKey = '';
+      renderedKey = '';
+      setStationHash('');
+      renderQueue();
+      batchBarEl.hidden = true;
+      bodyEl.innerHTML = `
+        <div class="station-live-empty">
+          ${EMPTY_ICON}
+          <p class="station-empty-title">Database wiped</p>
+          <p class="station-empty-hint">Send batches from prep to start again</p>
+        </div>`;
+      setStatus('live', `Wiped ${deleted} batch${deleted === 1 ? '' : 'es'}`);
+    } catch (err) {
+      console.error(err);
+      setStatus('error', 'Could not wipe database');
+    } finally {
+      wipeAllBtnEl.disabled = allJobs.length === 0;
+    }
+  }
+
   function updateQueueActionButtons(filteredActiveKeys) {
     const activeCount = activeJobs().length;
     const totalCount = allJobs.length;
@@ -462,6 +519,7 @@ export function mountStationView(root) {
     removeSelectedBtnEl.textContent = selectedCount > 0 ? `Remove (${selectedCount})` : 'Remove';
     removeAllBtnEl.disabled = activeCount === 0;
     clearAllChecksBtnEl.disabled = activeCount === 0;
+    wipeAllBtnEl.disabled = totalCount === 0;
     selectAllEl.disabled = filteredActiveKeys.length === 0;
     const allFilteredChecked =
       filteredActiveKeys.length > 0 && filteredActiveKeys.every((k) => checkedKeys.has(k));
@@ -1008,6 +1066,9 @@ export function mountStationView(root) {
   });
   removeAllBtnEl.addEventListener('click', () => {
     void removeAllBatches();
+  });
+  wipeAllBtnEl.addEventListener('click', () => {
+    void wipeAllBatchesFromDatabase();
   });
 
   void subscribeStationJobs(onJobs, (err) => {
