@@ -20,7 +20,7 @@ import {
   clearStoredSettings,
 } from './logic/settingsStore.js';
 import { DEMO_CSV } from './logic/demoData.js';
-import { buildCutListPrintCard } from './ui/cutListPrintView.js';
+import { buildCutListPrintCard, buildBatchOrdersIndex } from './ui/cutListPrintView.js';
 import { publishStationJob, purgeExpiredStationJobs, isStationHash } from './logic/stationSync.js';
 import { mountStationView } from './ui/stationView.js';
 
@@ -488,9 +488,15 @@ function renderCurrentView() {
   $('current-view-title').innerText = `${state.activeGroupKey}.csv`;
 
   if (printPreview) {
-    printPreview.innerHTML = buildCutListPrintCard(state.activeGroupKey, batch, state.colIndices, null, {
-      allRows: state.parsedRows,
-    });
+    printPreview.innerHTML = buildCutListPrintCard(
+      state.activeGroupKey,
+      batch,
+      state.colIndices,
+      null,
+      {
+        allRows: state.parsedRows,
+      }
+    );
   }
 
   const previewRows = getBatchPreviewRows(batch);
@@ -955,6 +961,17 @@ function printAllCutLists() {
   }, ['print-active', 'print-cutlist-active', 'print-all-cutlists-active']);
 }
 
+function printBatchOrdersIndex() {
+  const keys = Object.keys(state.splitGroups);
+  if (!keys.length) return;
+  runPrintJob(() => {
+    const wrap = document.createElement('div');
+    wrap.className = 'print-batch-card print-batch-index-card';
+    wrap.innerHTML = buildBatchOrdersIndex(state.splitGroups, state.colIndices);
+    return wrap;
+  }, ['print-active', 'print-batch-index-active']);
+}
+
 function toggleErrorDetails() {
   const details = $('error-list');
   const icon = $('error-toggle-icon');
@@ -1123,6 +1140,7 @@ function wireEvents() {
   $('btn-export-current').addEventListener('click', downloadCurrentFile);
   $('btn-print-cutlist').addEventListener('click', triggerPrintCutList);
   $('btn-print-all-cutlists').addEventListener('click', printAllCutLists);
+  $('btn-print-batch-index')?.addEventListener('click', printBatchOrdersIndex);
   $('btn-send-station')?.addEventListener('click', () => {
     void sendActiveBatchToStation();
   });

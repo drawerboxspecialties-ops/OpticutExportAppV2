@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCutListPrintCard,
+  buildBatchOrdersIndex,
   cutListRowId,
   packCutListPrintFlow,
   estimateRowsPerPrintColumn,
@@ -283,5 +284,38 @@ describe('station checkbox mode', () => {
     expect(stationHtml).toContain('station-check');
     expect(stationHtml).toContain('data-row-id=');
     expect(stationHtml).not.toContain('print-check');
+  });
+});
+
+describe('buildBatchOrdersIndex', () => {
+  it('lists every batch with full orders and a reverse order lookup', () => {
+    const html = buildBatchOrdersIndex(
+      {
+        PLY_PVC_602480: {
+          materialName: 'PF: 12MM Baltic Birch Ply',
+          topEdge: 'PVC',
+          totalBoxes: 3,
+          sortedOrders: ['602480', '602481'],
+        },
+        PLY_CFB_602470: {
+          materialName: 'PF: 12MM Baltic Birch Ply',
+          topEdge: 'CFB',
+          totalBoxes: 2,
+          sortedOrders: ['602470'],
+          isSpecial: true,
+        },
+      },
+      cols
+    );
+    expect(html).toContain('Batch / Order Lookup');
+    expect(html).toContain('PLY_CFB_602470');
+    expect(html).toContain('PLY_PVC_602480');
+    expect(html).toContain('602480');
+    expect(html).toContain('602481');
+    expect(html).toContain('By batch name');
+    expect(html).toContain('By order number');
+    expect(html).toContain('★ SPECIAL');
+    expect(html).toContain('code128-barcode');
+    expect(html).toContain('<rect');
   });
 });

@@ -1558,6 +1558,24 @@ tbody tr:hover td {
   white-space: nowrap;
 }
 
+.print-batch-header-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.print-batch-barcode {
+  line-height: 0;
+}
+
+.print-batch-barcode svg {
+  display: block;
+  max-width: 220px;
+  height: auto;
+}
+
 .print-batch-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1892,6 +1910,179 @@ tbody tr:hover td {
   print-color-adjust: exact;
 }
 
+/* ── Batch / order lookup index ───────────────────────── */
+.batch-orders-index {
+  padding: 0.15in 0.2in;
+  color: #111;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.batch-index-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.18in;
+  padding-bottom: 0.1in;
+  border-bottom: 2px solid #111;
+}
+
+.batch-index-title {
+  margin: 0;
+  font-size: 18pt;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.batch-index-subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 9pt;
+  color: #444;
+}
+
+.batch-index-printed {
+  font-size: 9pt;
+  white-space: nowrap;
+  color: #333;
+}
+
+.batch-index-section {
+  margin-bottom: 0.22in;
+}
+
+.batch-index-section-title {
+  margin: 0 0 0.08in;
+  font-size: 11pt;
+  font-weight: 800;
+}
+
+.batch-index-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+}
+
+.batch-index-table th,
+.batch-index-table td {
+  border: 1px solid #bbb;
+  padding: 4px 6px;
+  vertical-align: top;
+  text-align: left;
+}
+
+.batch-index-table thead th {
+  background: #f0f0f0;
+  font-weight: 700;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.batch-index-name {
+  width: 24%;
+  min-width: 8rem;
+}
+
+.batch-index-barcode {
+  width: 1%;
+  white-space: nowrap;
+  vertical-align: middle !important;
+  line-height: 0;
+  padding-top: 6px !important;
+  padding-bottom: 4px !important;
+}
+
+.batch-index-barcode svg {
+  display: block;
+  max-width: 240px;
+  height: auto;
+}
+
+@media print {
+  .batch-index-barcode svg,
+  .print-batch-barcode svg {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+.batch-index-key {
+  font-weight: 800;
+  font-size: 10.5pt;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: -0.01em;
+}
+
+.batch-index-meta {
+  margin-top: 2px;
+  font-size: 8pt;
+  color: #555;
+}
+
+.batch-index-boxes,
+.batch-index-count {
+  width: 2.4rem;
+  text-align: center !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.batch-index-orders {
+  line-height: 1.45;
+}
+
+.batch-index-order {
+  display: inline-block;
+  margin: 1px 3px 1px 0;
+  padding: 0 3px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.batch-index-special {
+  margin-left: 0.35rem;
+  font-size: 8pt;
+  font-weight: 800;
+  color: #92400e;
+}
+
+.batch-index-empty {
+  color: #888;
+  font-style: italic;
+}
+
+.batch-index-order-cell,
+.batch-index-name-cell {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.batch-index-name-cell {
+  font-weight: 700;
+}
+
+.batch-index-section--reverse {
+  margin-top: 0.2in;
+}
+
+.batch-index-reverse-grid {
+  column-count: 3;
+  column-gap: 0.25in;
+  font-size: 9pt;
+}
+
+.batch-index-reverse-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  padding: 2px 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.batch-index-arrow {
+  margin: 0 0.25rem;
+  color: #888;
+}
+
 /* ── Print media ──────────────────────────────────────── */
 @media print {
   @page {
@@ -1970,6 +2161,15 @@ tbody tr:hover td {
   body.print-all-cutlists-active .print-batch-card:not(:last-child) {
     break-after: page;
     page-break-after: always;
+  }
+
+  body.print-batch-index-active .batch-orders-index {
+    padding: 0;
+  }
+
+  body.print-batch-index-active .batch-index-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .print-batch-header {
@@ -2182,6 +2382,25 @@ body.station-live.print-active .station-root {
   position: relative;
   display: flex;
   align-items: center;
+}
+
+.station-scan-hint {
+  margin: 0;
+  padding: 0 0.15rem;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: #94a3b8;
+  transition: color 0.15s ease;
+}
+
+.station-scan-hint.is-hit {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.station-scan-hint.is-miss {
+  color: #fbbf24;
+  font-weight: 600;
 }
 
 .station-search-icon {

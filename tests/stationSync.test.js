@@ -10,6 +10,7 @@ import {
   normalizeStationChecks,
   mergeStationChecks,
   isStationJobDeleted,
+  findStationJobByScan,
   STATION_JOB_RETENTION_MS,
 } from '../src/logic/stationSync.js';
 
@@ -59,7 +60,7 @@ describe('normalizeStationChecks', () => {
     expect(
       normalizeStationChecks({
         '602614|1|12|15.875|20.626': true,
-        '602614|1|12|15': { '875|20': { '626': true } },
+        '602614|1|12|15': { '875|20': { 626: true } },
         junk: false,
       })
     ).toEqual({
@@ -71,10 +72,7 @@ describe('normalizeStationChecks', () => {
 describe('mergeStationChecks', () => {
   it('keeps pending toggles over stale server state', () => {
     expect(
-      mergeStationChecks(
-        { 'a|1|1|1|1': true },
-        { 'a|1|1|1|1': false, 'b|2|2|2.5|2': true }
-      )
+      mergeStationChecks({ 'a|1|1|1|1': true }, { 'a|1|1|1|1': false, 'b|2|2|2.5|2': true })
     ).toEqual({ 'b|2|2|2.5|2': true });
   });
 });
@@ -145,5 +143,25 @@ describe('uniqueStationMaterials', () => {
         { materialName: '' },
       ])
     ).toEqual(['A', 'B']);
+  });
+});
+
+describe('findStationJobByScan', () => {
+  const jobs = [
+    { batchKey: 'PLY_PVC_602480', deletedAt: null },
+    { batchKey: 'PLY_CFB_602470', deletedAt: null },
+    { batchKey: 'OLD_BATCH', deletedAt: Date.now() },
+  ];
+
+  it('matches exact batch keys case-insensitively', () => {
+    expect(findStationJobByScan(jobs, 'ply_pvc_602480')?.batchKey).toBe('PLY_PVC_602480');
+  });
+
+  it('ignores removed batches', () => {
+    expect(findStationJobByScan(jobs, 'OLD_BATCH')).toBeNull();
+  });
+
+  it('requires a full batch key (no prefix match)', () => {
+    expect(findStationJobByScan(jobs, 'PLY_PVC')).toBeNull();
   });
 });

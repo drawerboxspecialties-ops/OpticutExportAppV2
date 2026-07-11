@@ -3,6 +3,7 @@ import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
 import { formatOrderCutListBoxSummary } from '../logic/groupBoxes.js';
 import { getCutListPrintSections, DFM_MARK } from '../logic/cutListPrint.js';
+import { buildCode128Svg } from '../logic/code128.js';
 
 /** Max order numbers shown in the print header before summarizing. */
 export const PRINT_HEADER_ORDER_LIMIT = 10;
@@ -67,6 +68,14 @@ function buildPrintHeaderBanner(batchKey, batch, colIndices, position = null) {
           <div><b>${escapeHTML(shipDateLabel)}</b></div>
         </div>`
     : '';
+  const barcodeSvg = buildCode128Svg(batchKey, {
+    height: 32,
+    moduleWidth: 1.25,
+    includeLabel: false,
+  });
+  const barcodeBlock = barcodeSvg
+    ? `<div class="print-batch-barcode" title="${escapeAttr(batchKey)}">${barcodeSvg}</div>`
+    : '';
 
   return `
     <div class="print-batch-header">
@@ -76,7 +85,10 @@ function buildPrintHeaderBanner(batchKey, batch, colIndices, position = null) {
           <span class="print-batch-boxes-total">${batch.totalBoxes} Boxes</span>
           <span class="print-batch-orders-list">${formatPrintBatchOrders(batch)}</span>
         </div>
-        <div class="print-batch-time">Printed: ${safePrintedAt}</div>
+        <div class="print-batch-header-aside">
+          ${barcodeBlock}
+          <div class="print-batch-time">Printed: ${safePrintedAt}</div>
+        </div>
       </div>
       <div class="print-batch-meta">
         <div class="print-meta-chip">
@@ -118,9 +130,7 @@ function renderCutListTableHead(hasGroup) {
 }
 
 function renderCutListDataRow(r, hasGroup, altClass, mode = 'print') {
-  const dfmMark = r.dfm
-    ? `<span class="cutlist-dfm-mark">${escapeHTML(DFM_MARK)}</span>`
-    : '';
+  const dfmMark = r.dfm ? `<span class="cutlist-dfm-mark">${escapeHTML(DFM_MARK)}</span>` : '';
   const groupCell = hasGroup
     ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}${r.dfm ? ' cutlist-group--dfm' : ''}"><span class="cutlist-group-id">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</span>${dfmMark}</td>`
     : '';
@@ -385,4 +395,120 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
   });
 
   return `<div class="cutlist-print-sheet"${mode === 'station' ? ' data-station-sheet="1"' : ''}>${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, rowsPerColumn, mode)}</div></div>`;
+}
+
+/**
+ * Printable batch → orders index for shop lookup (computer labeled by batch name).
+ * @param {Record<string, object>} splitGroups
+ * @param {object} colIndices
+ */
+export function buildBatchOrdersIndex(splitGroups, colIndices) {
+  const keys = Object.keys(splitGroups || {}).sort();
+  const printedAt = escapeHTML(
+    new Date().toLocaleString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    })
+  );
+
+  const orderToBatch = [];
+  const batchRows = keys
+    .map((batchKey) => {
+      const batch = splitGroups[batchKey];
+      if (!batch) return '';
+      const orders = (batch.sortedOrders || []).map((o) => String(o).trim()).filter(Boolean);
+      orders.forEach((order) => orderToBatch.push({ order, batchKey }));
+      const material = batch.materialName
+        ? escapeHTML(getExportMaterialName(batch.materialName))
+        : '—';
+      const topEdge = batch.topEdge ? escapeHTML(batch.topEdge) : '—';
+      const shipDateLabel = formatShipDateLabel(batch.shipDate, colIndices);
+      const special = batch.isSpecial ? '<span class="batch-index-special">★ SPECIAL</span>' : '';
+      const ordersHtml = orders.length
+        ? orders.map((o) => `<span class="batch-index-order">${escapeHTML(o)}</span>`).join(' ')
+        : '<span class="batch-index-empty">No orders</span>';
+      const barcodeSvg = buildCode128Svg(batchKey, {
+        height: 40,
+        moduleWidth: 1.35,
+        includeLabel: false,
+      });
+      const barcodeCell = barcodeSvg
+        ? `<td class="batch-index-barcode">${barcodeSvg}</td>`
+        : '<td class="batch-index-barcode batch-index-empty">—</td>';
+
+      return `
+      <tr>
+        ${barcodeCell}
+        <td class="batch-index-name">
+          <div class="batch-index-key">${escapeHTML(batchKey)}${special}</div>
+          <div class="batch-index-meta">${material} · ${topEdge}${
+            shipDateLabel ? ` · ${escapeHTML(shipDateLabel)}` : ''
+          }</div>
+        </td>
+        <td class="batch-index-boxes">${Number(batch.totalBoxes) || 0}</td>
+        <td class="batch-index-count">${orders.length}</td>
+        <td class="batch-index-orders">${ordersHtml}</td>
+      </tr>`;
+    })
+    .join('');
+
+  orderToBatch.sort((a, b) => {
+    const na = Number(a.order);
+    const nb = Number(b.order);
+    if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
+    return String(a.order).localeCompare(String(b.order), undefined, { numeric: true });
+  });
+
+  const reverseRows = orderToBatch
+    .map(
+      ({ order, batchKey }) => `
+      <div class="batch-index-reverse-item">
+        <span class="batch-index-order-cell">${escapeHTML(order)}</span>
+        <span class="batch-index-arrow">→</span>
+        <span class="batch-index-name-cell">${escapeHTML(batchKey)}</span>
+      </div>`
+    )
+    .join('');
+
+  return `
+    <div class="batch-orders-index">
+      <header class="batch-index-header">
+        <div>
+          <h1 class="batch-index-title">Batch / Order Lookup</h1>
+          <p class="batch-index-subtitle">${keys.length} batch${
+            keys.length === 1 ? '' : 'es'
+          } · scan a barcode at the station, or look up by batch / order</p>
+        </div>
+        <div class="batch-index-printed">Printed: ${printedAt}</div>
+      </header>
+
+      <section class="batch-index-section">
+        <h2 class="batch-index-section-title">By batch name</h2>
+        <table class="batch-index-table">
+          <thead>
+            <tr>
+              <th>Barcode</th>
+              <th>Batch</th>
+              <th>Boxes</th>
+              <th>#</th>
+              <th>Orders</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${batchRows || '<tr><td colspan="5">No batches</td></tr>'}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="batch-index-section batch-index-section--reverse">
+        <h2 class="batch-index-section-title">By order number</h2>
+        <div class="batch-index-reverse-grid">
+          ${reverseRows || '<div class="batch-index-empty">No orders</div>'}
+        </div>
+      </section>
+    </div>`;
 }

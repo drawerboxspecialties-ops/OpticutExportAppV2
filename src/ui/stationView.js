@@ -10,6 +10,7 @@ import {
   restoreStationJob,
   clearStationJobChecks,
   isStationJobDeleted,
+  findStationJobByScan,
 } from '../logic/stationSync.js';
 
 const ZOOM_STORAGE_KEY = 'opticut-station-zoom';
@@ -125,11 +126,12 @@ export function mountStationView(root) {
               id="station-search"
               class="input station-search"
               type="search"
-              placeholder="Batch or order #…"
+              placeholder="Search or scan barcode…"
               autocomplete="off"
             />
             <button type="button" class="station-search-clear" id="station-search-clear" aria-label="Clear search" hidden>×</button>
           </div>
+          <p class="station-scan-hint" id="station-scan-hint">Scan a batch barcode to open it</p>
           <label class="sr-only" for="station-material">Material</label>
           <select id="station-material" class="input station-material">
             <option value="">All materials</option>
@@ -210,6 +212,7 @@ export function mountStationView(root) {
   const countEl = root.querySelector('#station-queue-count');
   const searchEl = root.querySelector('#station-search');
   const searchClearEl = root.querySelector('#station-search-clear');
+  const scanHintEl = root.querySelector('#station-scan-hint');
   const materialEl = root.querySelector('#station-material');
   const batchBarEl = root.querySelector('#station-batch-bar');
   const batchTitleEl = root.querySelector('#station-batch-title');
@@ -427,6 +430,50 @@ export function mountStationView(root) {
     };
   }
 
+  /**
+   * Open a batch from a scanned / typed barcode (exact batch key).
+   * @param {string} code
+   * @returns {boolean}
+   */
+  function openBatchFromScan(code) {
+    const job = findStationJobByScan(allJobs, code);
+    if (!job?.batchKey) {
+      if (scanHintEl) {
+        scanHintEl.textContent = 'No batch matched that scan';
+        scanHintEl.classList.add('is-miss');
+        scanHintEl.classList.remove('is-hit');
+        setTimeout(() => {
+          if (cancelled) return;
+          scanHintEl.textContent = 'Scan a batch barcode to open it';
+          scanHintEl.classList.remove('is-miss');
+        }, 2200);
+      }
+      return false;
+    }
+    selectedKey = job.batchKey;
+    setStationHash(selectedKey);
+    searchEl.value = '';
+    searchClearEl.hidden = true;
+    materialEl.value = '';
+    if (scanHintEl) {
+      scanHintEl.textContent = `Opened ${job.batchKey}`;
+      scanHintEl.classList.add('is-hit');
+      scanHintEl.classList.remove('is-miss');
+      setTimeout(() => {
+        if (cancelled) return;
+        scanHintEl.textContent = 'Scan a batch barcode to open it';
+        scanHintEl.classList.remove('is-hit');
+      }, 2200);
+    }
+    renderMaterialOptions(activeJobs());
+    renderQueue();
+    const item = [...listEl.querySelectorAll('[data-batch-key]')].find(
+      (el) => el.getAttribute('data-batch-key') === job.batchKey
+    );
+    item?.scrollIntoView({ block: 'nearest' });
+    return true;
+  }
+
   function applyZoom() {
     zoomLabelEl.textContent = `${Math.round(zoom * 100)}%`;
     zoomOutEl.disabled = ZOOM_STEPS.indexOf(zoom) <= 0;
@@ -492,7 +539,8 @@ export function mountStationView(root) {
       const pct = Math.round((checked / total) * 100);
       progressFillEl.style.width = `${pct}%`;
       progressEl.classList.toggle('is-complete', checked === total);
-      progressLabelEl.textContent = checked === total ? `All ${total} done` : `${checked} / ${total}`;
+      progressLabelEl.textContent =
+        checked === total ? `All ${total} done` : `${checked} / ${total}`;
     } else {
       progressEl.hidden = true;
     }
@@ -696,7 +744,52 @@ export function mountStationView(root) {
       searchClearEl.hidden = true;
       renderQueue();
     }
+    if (e.key === 'Enter') {
+      const code = searchEl.value.trim();
+      if (code && openBatchFromScan(code)) {
+        e.preventDefault();
+      }
+    }
   });
+
+  // USB / Bluetooth wedge scanners type fast then send Enter.
+  let scanBuffer = '';
+  let scanLastAt = 0;
+  const onScanKeydown = (e) => {
+    if (cancelled) return;
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    // Never steal from real form fields (except station search, handled below).
+    if (target.closest('textarea, select')) return;
+    if (target instanceof HTMLInputElement && target !== searchEl) return;
+    if (target.isContentEditable) return;
+
+    const inSearch = target === searchEl;
+    const now = Date.now();
+    if (e.key === 'Enter') {
+      if (!inSearch && scanBuffer.length >= 3) {
+        e.preventDefault();
+        e.stopPropagation();
+        openBatchFromScan(scanBuffer);
+      }
+      scanBuffer = '';
+      return;
+    }
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (inSearch) {
+        scanBuffer = '';
+        return;
+      }
+      if (now - scanLastAt > 80) scanBuffer = '';
+      scanLastAt = now;
+      scanBuffer += e.key;
+      if (scanBuffer.length > 80) scanBuffer = scanBuffer.slice(-80);
+    } else if (e.key === 'Backspace' || e.key === 'Escape') {
+      scanBuffer = '';
+    }
+  };
+  document.addEventListener('keydown', onScanKeydown, true);
   materialEl.addEventListener('change', () => renderQueue());
   zoomOutEl.addEventListener('click', () => stepZoom(-1));
   zoomInEl.addEventListener('click', () => stepZoom(1));
@@ -740,6 +833,7 @@ export function mountStationView(root) {
   return () => {
     cancelled = true;
     clearInterval(clockTimer);
+    document.removeEventListener('keydown', onScanKeydown, true);
     unsub();
     document.body.classList.remove('station-live');
     root.hidden = true;

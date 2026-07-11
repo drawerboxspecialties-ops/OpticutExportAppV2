@@ -52,20 +52,15 @@ export async function purgeExpiredStationJobs(now = Date.now()) {
 
   purgeInFlight = (async () => {
     const cutoff = stationJobExpiryCutoff(now);
-    const { collection, query, where, getDocs, writeBatch, limit } = await import(
-      'firebase/firestore'
-    );
+    const { collection, query, where, getDocs, writeBatch, limit } =
+      await import('firebase/firestore');
     const db = await getDb();
     let deleted = 0;
 
     // Chunked deletes (Firestore batch max 500).
     for (;;) {
       const snap = await getDocs(
-        query(
-          collection(db, STATION_JOBS_COLLECTION),
-          where('sentAt', '<', cutoff),
-          limit(400)
-        )
+        query(collection(db, STATION_JOBS_COLLECTION), where('sentAt', '<', cutoff), limit(400))
       );
       if (snap.empty) break;
 
@@ -222,6 +217,26 @@ export function isStationJobDeleted(job) {
 }
 
 /**
+ * Resolve a scanned barcode / typed code to a station job.
+ * Exact batchKey match only (case-insensitive) among active jobs.
+ * @param {object[]} jobs
+ * @param {string} code
+ * @returns {object | null}
+ */
+export function findStationJobByScan(jobs, code) {
+  const needle = String(code || '')
+    .trim()
+    .replace(/[\r\n]+$/g, '');
+  if (!needle) return null;
+  const lower = needle.toLowerCase();
+  return (
+    (Array.isArray(jobs) ? jobs : []).find(
+      (j) => !isStationJobDeleted(j) && String(j.batchKey || '').toLowerCase() === lower
+    ) || null
+  );
+}
+
+/**
  * Keep only real checkbox keys (boolean true). Drops nested junk left by older
  * dotted-path writes that split decimal lengths like "15.875".
  * @param {unknown} checks
@@ -272,16 +287,18 @@ export async function updateStationJobCheck(batchKey, rowId, checked) {
   if (!id || !key) throw new Error('Missing batch or row id.');
 
   const prev = checkWriteChains.get(id) || Promise.resolve();
-  const next = prev.catch(() => {}).then(async () => {
-    const { doc, getDoc, updateDoc } = await import('firebase/firestore');
-    const ref = doc(await getDb(), STATION_JOBS_COLLECTION, id);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) throw new Error('Batch not found on station.');
-    const checks = normalizeStationChecks(snap.data()?.checks);
-    if (checked) checks[key] = true;
-    else delete checks[key];
-    await updateDoc(ref, { checks });
-  });
+  const next = prev
+    .catch(() => {})
+    .then(async () => {
+      const { doc, getDoc, updateDoc } = await import('firebase/firestore');
+      const ref = doc(await getDb(), STATION_JOBS_COLLECTION, id);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) throw new Error('Batch not found on station.');
+      const checks = normalizeStationChecks(snap.data()?.checks);
+      if (checked) checks[key] = true;
+      else delete checks[key];
+      await updateDoc(ref, { checks });
+    });
 
   checkWriteChains.set(id, next);
   try {
