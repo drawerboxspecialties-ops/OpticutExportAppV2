@@ -100,9 +100,14 @@ export function mountStationView(root) {
     <header class="station-live-header">
       <div class="station-live-brand">
         <span class="station-brand-mark" aria-hidden="true">
-          <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
-            <rect width="28" height="28" rx="8" fill="currentColor" opacity="0.18" />
-            <path d="M8 10h12M8 14h12M8 18h8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect width="28" height="28" rx="9" fill="currentColor" opacity="0.12" />
+            <path
+              d="M8 10.5h12M8 14h12M8 17.5h8"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+            />
           </svg>
         </span>
         <div class="station-brand-text">
