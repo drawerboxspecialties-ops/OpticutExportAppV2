@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCutListPrintCard,
+  cutListRowId,
   packCutListPrintFlow,
   estimateRowsPerPrintColumn,
   formatPrintBatchOrders,
@@ -250,5 +251,37 @@ describe('formatPrintBatchOrders', () => {
     expect(html).toContain('+5 more');
     expect(html).toContain('1, 2, 3');
     expect(html).not.toContain(', 15');
+  });
+});
+
+describe('station checkbox mode', () => {
+  it('builds stable row ids', () => {
+    expect(
+      cutListRowId({
+        order: '602648',
+        groupId: '3',
+        width: '4',
+        fbLength: '19.063',
+        lrLength: '',
+      })
+    ).toBe('602648|3|4|19.063|');
+  });
+
+  it('renders interactive checkboxes only in station mode', () => {
+    const batch = {
+      materialName: 'PF: 12MM Baltic Birch Ply',
+      topEdge: 'PVC',
+      totalBoxes: 1,
+      sortedOrders: ['602479'],
+      orderColTotals: { 602479: 1 },
+      sourceRows: drawerRows('602479', '1', '30.94', '9'),
+    };
+    const printHtml = buildCutListPrintCard('TEST', batch, cols);
+    const stationHtml = buildCutListPrintCard('TEST', batch, cols, null, { mode: 'station' });
+    expect(printHtml).toContain('print-check');
+    expect(printHtml).not.toContain('station-check');
+    expect(stationHtml).toContain('station-check');
+    expect(stationHtml).toContain('data-row-id=');
+    expect(stationHtml).not.toContain('print-check');
   });
 });

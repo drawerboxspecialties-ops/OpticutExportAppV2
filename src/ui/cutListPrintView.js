@@ -1,4 +1,4 @@
-import { escapeHTML } from '../logic/csv.js';
+import { escapeHTML, escapeAttr } from '../logic/csv.js';
 import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
 import { formatOrderCutListBoxSummary } from '../logic/groupBoxes.js';
@@ -6,6 +6,17 @@ import { getCutListPrintSections, DFM_MARK } from '../logic/cutListPrint.js';
 
 /** Max order numbers shown in the print header before summarizing. */
 export const PRINT_HEADER_ORDER_LIMIT = 10;
+
+/** Stable id for a cut-list line (station checkbox persistence). */
+export function cutListRowId(row) {
+  return [
+    String(row?.order ?? '').trim(),
+    String(row?.groupId ?? '').trim(),
+    String(row?.width ?? '').trim(),
+    String(row?.fbLength ?? '').trim(),
+    String(row?.lrLength ?? '').trim(),
+  ].join('|');
+}
 
 /**
  * Compact order list for the print banner so large batches do not steal
@@ -106,7 +117,7 @@ function renderCutListTableHead(hasGroup) {
       </thead>`;
 }
 
-function renderCutListDataRow(r, hasGroup, altClass) {
+function renderCutListDataRow(r, hasGroup, altClass, mode = 'print') {
   const dfmMark = r.dfm
     ? `<span class="cutlist-dfm-mark">${escapeHTML(DFM_MARK)}</span>`
     : '';
@@ -116,23 +127,27 @@ function renderCutListDataRow(r, hasGroup, altClass) {
   const widthCell = hasGroup
     ? `<td class="cutlist-dim">${escapeHTML(r.width)}"</td>`
     : `<td class="cutlist-dim">${escapeHTML(r.width)}"${dfmMark ? ` ${dfmMark}` : ''}</td>`;
+  const checkCell =
+    mode === 'station'
+      ? `<td class="cutlist-check"><input type="checkbox" class="station-check" data-row-id="${escapeAttr(cutListRowId(r))}" aria-label="Mark line complete"></td>`
+      : `<td class="cutlist-check"><span class="print-check" aria-hidden="true"></span></td>`;
   return `
-      <tr class="cutlist-data-row${altClass}${r.dfm ? ' cutlist-row-dfm' : ''}">
+      <tr class="cutlist-data-row${altClass}${r.dfm ? ' cutlist-row-dfm' : ''}"${mode === 'station' ? ` data-row-id="${escapeAttr(cutListRowId(r))}"` : ''}>
         ${groupCell}
         ${widthCell}
         <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
         <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
         <td class="cutlist-qty"><b>${r.boxes}</b></td>
         <td class="cutlist-qty"><b>${r.parts}</b></td>
-        <td class="cutlist-check"><span class="print-check" aria-hidden="true"></span></td>
+        ${checkCell}
       </tr>`;
 }
 
-function renderCutListTableBody(rows, hasGroup, rowStart = 0) {
+function renderCutListTableBody(rows, hasGroup, rowStart = 0, mode = 'print') {
   let html = '';
   rows.forEach((r, i) => {
     const altClass = (rowStart + i) % 2 === 1 ? ' cutlist-row-alt' : '';
-    html += renderCutListDataRow(r, hasGroup, altClass);
+    html += renderCutListDataRow(r, hasGroup, altClass, mode);
   });
   return html;
 }
@@ -247,37 +262,38 @@ export function packCutListPrintFlow(
   return pages;
 }
 
-function renderCutListColumnTable(rows, hasGroup, rowStart = 0) {
+function renderCutListColumnTable(rows, hasGroup, rowStart = 0, mode = 'print') {
   return `
       <table class="cutlist-table cutlist-table--flow" cellspacing="0">
         ${renderCutListTableHead(hasGroup)}
-        <tbody>${renderCutListTableBody(rows, hasGroup, rowStart)}</tbody>
+        <tbody>${renderCutListTableBody(rows, hasGroup, rowStart, mode)}</tbody>
       </table>`;
 }
 
-function renderFlowFragment(fragment, hasGroup) {
+function renderFlowFragment(fragment, hasGroup, mode = 'print') {
   const title = fragment.titleHtml
     ? `<div class="cutlist-order-title">${fragment.titleHtml}</div>`
     : '';
   return `<div class="cutlist-order-fragment">${title}${renderCutListColumnTable(
     fragment.rows,
     hasGroup,
-    fragment.rowStart || 0
+    fragment.rowStart || 0,
+    mode
   )}</div>`;
 }
 
-function renderFlowColumn(fragments, hasGroup) {
+function renderFlowColumn(fragments, hasGroup, mode = 'print') {
   if (!fragments.length) {
     return `<div class="cutlist-order-column cutlist-order-column--empty" aria-hidden="true"></div>`;
   }
   return `<div class="cutlist-order-column">${fragments
-    .map((fragment) => renderFlowFragment(fragment, hasGroup))
+    .map((fragment) => renderFlowFragment(fragment, hasGroup, mode))
     .join('')}</div>`;
 }
 
-function renderFlowPage(columns, hasGroup) {
+function renderFlowPage(columns, hasGroup, mode = 'print') {
   return `<div class="cutlist-print-columns">${columns
-    .map((fragments) => renderFlowColumn(fragments, hasGroup))
+    .map((fragments) => renderFlowColumn(fragments, hasGroup, mode))
     .join('')}</div>`;
 }
 
@@ -323,7 +339,8 @@ function renderCutListFlowBody(
   hasGroup,
   anySpecial,
   colCount,
-  rowsPerColumn = PRINT_ROWS_PER_COLUMN
+  rowsPerColumn = PRINT_ROWS_PER_COLUMN,
+  mode = 'print'
 ) {
   if (!sections.length) {
     return `<div class="cutlist-print-columns">
@@ -349,10 +366,11 @@ function renderCutListFlowBody(
   }));
   const pages = packCutListPrintFlow(titled, { rowsPerColumn });
 
-  return pages.map((columns) => renderFlowPage(columns, hasGroup)).join('');
+  return pages.map((columns) => renderFlowPage(columns, hasGroup, mode)).join('');
 }
 
 export function buildCutListPrintCard(batchKey, batch, colIndices, position = null, options = {}) {
+  const mode = options.mode === 'station' ? 'station' : 'print';
   const headerBanner = buildPrintHeaderBanner(batchKey, batch, colIndices, position);
   const sections = getCutListPrintSections(batch, colIndices, {
     allRows: options.allRows,
@@ -366,5 +384,5 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
     hasShipDate: Boolean(formatShipDateLabel(batch?.shipDate, colIndices)),
   });
 
-  return `<div class="cutlist-print-sheet">${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, rowsPerColumn)}</div></div>`;
+  return `<div class="cutlist-print-sheet"${mode === 'station' ? ' data-station-sheet="1"' : ''}>${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, rowsPerColumn, mode)}</div></div>`;
 }

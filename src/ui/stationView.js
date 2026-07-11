@@ -4,6 +4,7 @@ import {
   uniqueStationMaterials,
   subscribeStationJobs,
   stationHashBatchKey,
+  updateStationJobCheck,
 } from '../logic/stationSync.js';
 
 function formatSentAt(ms) {
@@ -27,6 +28,28 @@ function setStationHash(batchKey) {
   if (globalThis.location?.hash !== next) {
     globalThis.history?.replaceState(null, '', next);
   }
+}
+
+function sheetRenderKey(job) {
+  if (!job?.batchKey) return '';
+  return `${job.batchKey}|${job.sentAt || ''}|${String(job.html || '').length}`;
+}
+
+function countChecks(job) {
+  const checks = job?.checks && typeof job.checks === 'object' ? job.checks : {};
+  const checked = Object.keys(checks).filter((k) => checks[k]).length;
+  const total = job?.html ? (job.html.match(/class="station-check"/g) || []).length : 0;
+  return { checked, total };
+}
+
+function applyStationChecks(root, checks) {
+  const map = checks && typeof checks === 'object' ? checks : {};
+  root.querySelectorAll('.station-check[data-row-id]').forEach((input) => {
+    const id = input.getAttribute('data-row-id') || '';
+    const on = Boolean(map[id]);
+    if (input.checked !== on) input.checked = on;
+    input.closest('tr')?.classList.toggle('cutlist-row-done', on);
+  });
 }
 
 /**
@@ -85,8 +108,10 @@ export function mountStationView(root) {
   /** @type {object[]} */
   let allJobs = [];
   let selectedKey = stationHashBatchKey();
+  let renderedKey = '';
   let unsub = () => {};
   let cancelled = false;
+  let savingCheck = false;
 
   function filters() {
     return {
@@ -111,8 +136,31 @@ export function mountStationView(root) {
     }
   }
 
+  function updateMeta(job) {
+    if (!job?.html) {
+      metaEl.textContent = '';
+      return;
+    }
+    const boxes = job.totalBoxes ? `${job.totalBoxes} boxes` : '';
+    const sent = formatSentAt(job.sentAt);
+    const orders = Array.isArray(job.orders) && job.orders.length ? job.orders.join(', ') : '';
+    const { checked, total } = countChecks(job);
+    const progress = total ? `${checked}/${total} checked` : '';
+    metaEl.innerHTML = [
+      job.batchKey ? `<span>${escapeHTML(job.batchKey)}</span>` : '',
+      job.materialName ? `<span>${escapeHTML(job.materialName)}</span>` : '',
+      boxes ? `<span>${escapeHTML(boxes)}</span>` : '',
+      progress ? `<span class="station-live-progress">${escapeHTML(progress)}</span>` : '',
+      orders ? `<span>${escapeHTML(orders)}</span>` : '',
+      sent ? `<span>Sent ${escapeHTML(sent)}</span>` : '',
+    ]
+      .filter(Boolean)
+      .join('');
+  }
+
   function renderSelected(job) {
     if (!job?.html) {
+      renderedKey = '';
       metaEl.textContent = '';
       bodyEl.innerHTML = `
         <div class="station-live-empty">
@@ -121,20 +169,16 @@ export function mountStationView(root) {
       return;
     }
 
-    const boxes = job.totalBoxes ? `${job.totalBoxes} boxes` : '';
-    const sent = formatSentAt(job.sentAt);
-    const orders = Array.isArray(job.orders) && job.orders.length ? job.orders.join(', ') : '';
-    metaEl.innerHTML = [
-      job.batchKey ? `<span>${escapeHTML(job.batchKey)}</span>` : '',
-      job.materialName ? `<span>${escapeHTML(job.materialName)}</span>` : '',
-      boxes ? `<span>${escapeHTML(boxes)}</span>` : '',
-      orders ? `<span>${escapeHTML(orders)}</span>` : '',
-      sent ? `<span>Sent ${escapeHTML(sent)}</span>` : '',
-    ]
-      .filter(Boolean)
-      .join('');
+    updateMeta(job);
+    const nextKey = sheetRenderKey(job);
+    if (nextKey === renderedKey && bodyEl.querySelector('.station-check')) {
+      applyStationChecks(bodyEl, job.checks);
+      return;
+    }
 
+    renderedKey = nextKey;
     bodyEl.innerHTML = `<div class="station-live-sheet cutlist-screen-preview">${job.html}</div>`;
+    applyStationChecks(bodyEl, job.checks);
   }
 
   function renderQueue() {
@@ -158,6 +202,8 @@ export function mountStationView(root) {
           .map((job) => {
             const active = job.batchKey === selectedKey ? ' is-active' : '';
             const special = job.isSpecial ? ' ★' : '';
+            const { checked, total } = countChecks(job);
+            const progress = total ? ` · ${checked}/${total}` : '';
             const orders =
               Array.isArray(job.orders) && job.orders.length
                 ? escapeHTML(job.orders.slice(0, 6).join(', ')) +
@@ -172,7 +218,7 @@ export function mountStationView(root) {
                 data-batch-key="${escapeAttr(job.batchKey)}"
               >
                 <span class="station-queue-item-title">${escapeHTML(job.batchKey)}${special}</span>
-                <span class="station-queue-item-meta">${escapeHTML(job.materialName || '—')} · ${job.totalBoxes || 0} bx</span>
+                <span class="station-queue-item-meta">${escapeHTML(job.materialName || '—')} · ${job.totalBoxes || 0} bx${escapeHTML(progress)}</span>
                 ${orders ? `<span class="station-queue-item-orders">${orders}</span>` : ''}
                 <span class="station-queue-item-time">${escapeHTML(formatSentAt(job.sentAt))}</span>
               </button>`;
@@ -197,7 +243,46 @@ export function mountStationView(root) {
     if (!btn) return;
     selectedKey = btn.getAttribute('data-batch-key') || '';
     setStationHash(selectedKey);
+    renderedKey = '';
     renderQueue();
+  });
+
+  bodyEl.addEventListener('change', (e) => {
+    const input = e.target.closest('.station-check');
+    if (!input || !(input instanceof HTMLInputElement)) return;
+    const rowId = input.getAttribute('data-row-id') || '';
+    const batchKey = selectedKey;
+    if (!rowId || !batchKey || savingCheck) return;
+
+    const checked = input.checked;
+    input.closest('tr')?.classList.toggle('cutlist-row-done', checked);
+
+    // Optimistic local job update so progress counts refresh immediately.
+    const job = allJobs.find((j) => j.batchKey === batchKey);
+    if (job) {
+      job.checks = { ...(job.checks || {}) };
+      if (checked) job.checks[rowId] = true;
+      else delete job.checks[rowId];
+      updateMeta(job);
+      const itemMeta = listEl.querySelector(`[data-batch-key="${batchKey.replace(/"/g, '')}"] .station-queue-item-meta`);
+      if (itemMeta) {
+        const { checked: c, total } = countChecks(job);
+        const base = `${job.materialName || '—'} · ${job.totalBoxes || 0} bx`;
+        itemMeta.textContent = total ? `${base} · ${c}/${total}` : base;
+      }
+    }
+
+    savingCheck = true;
+    void updateStationJobCheck(batchKey, rowId, checked)
+      .catch((err) => {
+        console.error(err);
+        input.checked = !checked;
+        input.closest('tr')?.classList.toggle('cutlist-row-done', !checked);
+        statusEl.textContent = 'Check save failed';
+      })
+      .finally(() => {
+        savingCheck = false;
+      });
   });
 
   searchEl.addEventListener('input', () => renderQueue());

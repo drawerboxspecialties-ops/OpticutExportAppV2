@@ -2244,6 +2244,34 @@ body.station-live #all-print-container {
   color: #991b1b;
 }
 
+.station-live-progress {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.station-live-sheet .station-check {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: #0284c7;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.station-live-sheet .cutlist-check {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.station-live-sheet tr.cutlist-row-done {
+  opacity: 0.55;
+}
+
+.station-live-sheet tr.cutlist-row-done .cutlist-dim,
+.station-live-sheet tr.cutlist-row-done .cutlist-qty {
+  text-decoration: line-through;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

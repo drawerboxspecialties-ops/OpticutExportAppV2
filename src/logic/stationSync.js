@@ -168,9 +168,28 @@ export async function publishStationJob(job, options = {}) {
     sentAt: Date.now(),
   };
 
-  await setDoc(doc(await getDb(), STATION_JOBS_COLLECTION, id), payload);
+  // merge: true keeps existing checkbox state when the same batch is re-sent.
+  await setDoc(doc(await getDb(), STATION_JOBS_COLLECTION, id), payload, { merge: true });
   if (!options.skipPurge) scheduleStationPurge();
   return payload;
+}
+
+/**
+ * Toggle a station cut-list line checkbox (synced live via Firestore).
+ * @param {string} batchKey
+ * @param {string} rowId
+ * @param {boolean} checked
+ */
+export async function updateStationJobCheck(batchKey, rowId, checked) {
+  const id = stationJobId(batchKey);
+  const key = String(rowId || '').trim();
+  if (!id || !key) throw new Error('Missing batch or row id.');
+
+  const { doc, updateDoc, deleteField } = await import('firebase/firestore');
+  const ref = doc(await getDb(), STATION_JOBS_COLLECTION, id);
+  await updateDoc(ref, {
+    [`checks.${key}`]: checked ? true : deleteField(),
+  });
 }
 
 /**

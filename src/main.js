@@ -1028,6 +1028,7 @@ function buildStationJobPayload(batchKey, batch) {
     isSpecial: Boolean(batch.isSpecial),
     html: buildCutListPrintCard(batchKey, batch, state.colIndices, null, {
       allRows: state.parsedRows,
+      mode: 'station',
     }),
   };
 }
