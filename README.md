@@ -10,12 +10,14 @@ high-risk business rule.
 ## What It Does
 
 - Parses Allmoxy CSV files in the browser.
-- Normalizes material names and top edge names.
-- Groups rows into material/top-edge/**ship-date** batches.
+- Normalizes material names and top edge names (including **B-edge priority**).
+- Groups rows into material/top-edge/**ship-date** batches (optional combine ship dates).
 - Separates **special orders** (Scoop, Slope, Dividers, DrillFront, FileSlots) into `SPECIAL_` batches when enabled (default ON). Laser and GroupID are not special triggers.
 - Strips batching-only columns (`GroupID`, `Laser`, Ship Date, and all secondary-operation columns) from exported CSVs.
 - Exports cut-list CSV files for OptiCut.
-- Prints landscape cut-list sheets per batch (or all batches) with a 3-column fluid flow (fill down, wrap across, next order continues under the previous table), rounded widths, GroupID box counts, and checkboxes.
+- Prints landscape cut-list sheets per batch (or all batches) with a 3-column fluid flow, rounded widths, GroupID box counts, Code 128 barcodes, and checkboxes.
+- Prints a **Batch index** (batch name, boxes, orders with group qty in brackets, barcodes) for station scanning.
+- **Station** live queue (`#station`): send from prep, scan barcode, soft-remove / Add back, wipe database (password `dbs`).
 - Cut-list preview shows full imported rows (Scoop, GroupID, etc.); export strips batching columns.
 - Export rounding is checked by default; it rounds `Width` up to whole numbers,
   merges matching rows, and records original width quantities in `Label`.
@@ -30,7 +32,8 @@ src/
   main.js               App controller: wires DOM events to logic, holds state
   styles.css            Modern design system (DBS brand) + print styles
   ui/
-    cutListPrintView.js HTML render helpers for cut-list print sheets
+    cutListPrintView.js Cut-list + batch-index print HTML
+    stationView.js      Live station queue UI
   logic/                Pure, tested business rules (no DOM, no side effects)
     csv.js              parseCSV, csvEscape, convertToCSV, escapeHTML, escapeAttr
     headers.js          mapHeaders (column detection + positional fallback)
@@ -47,10 +50,13 @@ src/
     batchOrders.js      Per-batch order exclusions (sidebar panel)
     cutListPrint.js     Flat cut-list print rows (pair FB/LR, merge, sort)
     exportRows.js       Cut-list export rows, rounded-width merge + Label
+    code128.js          Code 128 SVG barcodes
+    stationSync.js      Firestore station jobs (send, soft-delete, wipe)
+    firebaseConfig.js   Firebase project config
     settingsStore.js    Persistent settings (localStorage)
     demoData.js         Demo CSV
 tests/                  Vitest tests for every module above
-.github/workflows/      CI: install, test, build
+.github/workflows/      CI: install, test, build, deploy docs/
 ```
 
 ## Run Locally

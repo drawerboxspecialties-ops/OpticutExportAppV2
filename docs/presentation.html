@@ -193,7 +193,7 @@
       <h2>What it does</h2>
       <p>
         Runs in your browser — drop an Allmoxy CSV, get material/edge/ship-date batches, printable
-        cut lists, and OptiCut-ready export files.
+        cut lists, OptiCut-ready exports, and a live <b>Station</b> queue for the floor.
       </p>
 
       <div class="cols" style="margin-top: 0.28rem">
@@ -211,7 +211,11 @@
         <div class="box">
           <strong>Batch rules</strong>
           <ul>
-            <li>Split by material category + top edge + <b>ship date</b></li>
+            <li>Split by material category + top edge + <b>ship date</b> (optional combine dates)</li>
+            <li>
+              <b>B-edge priority:</b> front inherits matching back’s top edge so foil/raw don’t
+              split
+            </li>
             <li>
               <b>Special</b> batches: <span class="mono">SPECIAL_</span> + material + top edge +
               ship date (never mixed with normal)
@@ -221,10 +225,7 @@
               <b>whole sales order</b> is special
             </li>
             <li><b>Not SPECIAL triggers:</b> GroupID, Laser</li>
-            <li>
-              Cut-list table shows <b>full import</b> (Scoop, GroupID, etc.); export strips batching
-              columns
-            </li>
+            <li>Name: <span class="mono">CAT_EDGE_firstOrder</span> (e.g. PLY_PVC_602480)</li>
             <li>Each order in exactly one batch; max-orders split available</li>
           </ul>
         </div>
@@ -232,34 +233,43 @@
 
       <div class="cols-3" style="margin-top: 0.28rem">
         <div class="box">
-          <strong>Batch sidebar ▸ panel</strong>
-          <p>
-            Click <b>▸</b> on any batch to expand orders. Each row shows
-            <span class="mono">#order · bx</span>. Use <b>−</b> to remove from batch; click
-            <b>+#order</b> chips to add back.
-          </p>
-        </div>
-        <div class="box">
-          <strong>Cut-list print</strong>
+          <strong>Print &amp; index</strong>
           <ul>
             <li>
-              Landscape letter; 3-column fluid flow (fill down, then wrap; next order continues
-              under previous table)
+              Cut list: landscape, 3-col flow; order header
+              <span class="mono">3 boxes (1-2, 2-1)</span>; Grp, W, F/B, L/R, Bx, Pcs
             </li>
+            <li>Code 128 barcode on cut-list header</li>
             <li>
-              Order header once per block with box summary (e.g.
-              <span class="mono">3 boxes (1-2, 2-1)</span>)
+              <b>Batch index:</b> all batches + barcodes; orders show group qty
+              <span class="mono">602480 (1-2, 2-1)</span>
             </li>
-            <li>Columns: Grp, W, F/B, L/R, Bx, Pcs, checkbox</li>
-            <li>Identical lines merge; sorted order → width ↓ → length ↓</li>
-            <li>★ on special groups; batch header lists total boxes + order numbers</li>
+            <li>★ special; *DFM when front material differs</li>
           </ul>
         </div>
         <div class="box">
-          <strong>Export</strong>
+          <strong>Station (#station)</strong>
+          <ul>
+            <li>Header <b>Station</b> link, or open <span class="mono">#station</span></li>
+            <li>Prep: <b>Send to station</b> / <b>Send all</b></li>
+            <li>Scan barcode or tap batch; checkboxes sync live</li>
+            <li><b>Remove</b> = soft hide + <b>Add back</b> (amber row)</li>
+            <li>
+              <b>Wipe database</b> = permanent delete all — password
+              <span class="mono">dbs</span>
+            </li>
+          </ul>
+        </div>
+        <div class="box">
+          <strong>Export &amp; math</strong>
           <p>
-            Strips all batching columns. Round widths ON: merges rows, blanks W, notes original
-            widths in Label when changed.
+            Boxes = <span class="mono">ceil(parts÷4)</span> per GroupID, then sum for order/batch.
+          </p>
+          <p style="margin-top: 0.12rem">
+            Export strips batching columns. Round widths ON: merges rows, notes originals in Label.
+          </p>
+          <p style="margin-top: 0.12rem">
+            Sidebar ▸: <span class="mono">#order · bx</span>; − remove / + add back.
           </p>
         </div>
       </div>
@@ -297,11 +307,16 @@
       <ol style="padding-left: 1.05rem; font-size: 0.74rem">
         <li>Export CSV from Allmoxy (include Ship Date + extra columns if used).</li>
         <li>
-          Open app → drag &amp; drop file → review batches (SPECIAL badge, ship date in meta).
+          Open app → drag &amp; drop → review batches (SPECIAL badge, ship date in meta).
         </li>
         <li>Expand batch ▸ to verify/remove/add orders.</li>
         <li>
-          Print <b>Cut list</b> or <b>Cut lists</b> → export CSV or ZIP → import into OptiCut.
+          Print <b>Cut list(s)</b> + <b>Batch index</b> → <b>Send to station</b> → export CSV/ZIP →
+          OptiCut.
+        </li>
+        <li>
+          Floor: open <b>Station</b>, scan barcode, check lines. Wipe all only with password
+          <span class="mono">dbs</span>.
         </li>
       </ol>
 
