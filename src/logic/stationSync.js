@@ -241,6 +241,7 @@ export function uniqueStationMaterials(jobs) {
  *   orders?: string[],
  *   isSpecial?: boolean,
  *   html: string,
+ *   trimHtml?: string,
  * }} job
  * @param {{ skipPurge?: boolean }} [options]
  */
@@ -267,6 +268,7 @@ export async function publishStationJob(job, options = {}) {
     orders,
     isSpecial: Boolean(job.isSpecial),
     html: String(job.html),
+    trimHtml: String(job.trimHtml || ''),
     sentAt: Date.now(),
   };
 
@@ -345,28 +347,39 @@ export async function restoreStationJob(batchKey) {
 }
 
 /**
- * Clear all saved checkboxes for a batch (persisted).
+ * Clear saved checkboxes for a batch (persisted).
  * @param {string} batchKey
+ * @param {{ field?: 'checks'|'trimChecks'|'both' }} [options]
  */
-export async function clearStationJobChecks(batchKey) {
+export async function clearStationJobChecks(batchKey, options = {}) {
   const id = stationJobId(batchKey);
   if (!id) throw new Error('Invalid batch key.');
+  const field = options.field || 'checks';
   const { doc, updateDoc } = await import('firebase/firestore');
-  await updateDoc(doc(await getDb(), STATION_JOBS_COLLECTION, id), { checks: {} });
+  if (field === 'both') {
+    await updateDoc(doc(await getDb(), STATION_JOBS_COLLECTION, id), {
+      checks: {},
+      trimChecks: {},
+    });
+    return;
+  }
+  const key = field === 'trimChecks' ? 'trimChecks' : 'checks';
+  await updateDoc(doc(await getDb(), STATION_JOBS_COLLECTION, id), { [key]: {} });
 }
 
 /**
- * Clear checkboxes for several station batches.
+ * Clear checkboxes for several batches.
  * @param {string[]} batchKeys
+ * @param {{ field?: 'checks'|'trimChecks'|'both' }} [options]
  */
-export async function clearStationJobsChecks(batchKeys) {
+export async function clearStationJobsChecks(batchKeys, options = {}) {
   const keys = [
     ...new Set(
       (Array.isArray(batchKeys) ? batchKeys : []).map((k) => String(k || '').trim()).filter(Boolean)
     ),
   ];
   if (!keys.length) return;
-  await Promise.all(keys.map((key) => clearStationJobChecks(key)));
+  await Promise.all(keys.map((key) => clearStationJobChecks(key, options)));
 }
 
 /** True when a job is soft-removed from the active queue. */
@@ -431,18 +444,20 @@ const checkWriteChains = new Map();
 
 /**
  * Toggle a station cut-list line checkbox (synced live via Firestore).
- * Serializes writes per batch and replaces the whole `checks` map so:
+ * Serializes writes per batch and replaces the whole checks map so:
  * - keys with "." (decimal lengths) stay literal
  * - rapid toggles cannot overwrite each other
  * - old nested dotted-path junk is cleaned on write
  * @param {string} batchKey
  * @param {string} rowId
  * @param {boolean} checked
+ * @param {{ field?: 'checks'|'trimChecks' }} [options]
  */
-export async function updateStationJobCheck(batchKey, rowId, checked) {
+export async function updateStationJobCheck(batchKey, rowId, checked, options = {}) {
   const id = stationJobId(batchKey);
   const key = String(rowId || '').trim();
   if (!id || !key) throw new Error('Missing batch or row id.');
+  const field = options.field === 'trimChecks' ? 'trimChecks' : 'checks';
 
   const prev = checkWriteChains.get(id) || Promise.resolve();
   const next = prev
@@ -452,10 +467,10 @@ export async function updateStationJobCheck(batchKey, rowId, checked) {
       const ref = doc(await getDb(), STATION_JOBS_COLLECTION, id);
       const snap = await getDoc(ref);
       if (!snap.exists()) throw new Error('Batch not found on station.');
-      const checks = normalizeStationChecks(snap.data()?.checks);
+      const checks = normalizeStationChecks(snap.data()?.[field]);
       if (checked) checks[key] = true;
       else delete checks[key];
-      await updateDoc(ref, { checks });
+      await updateDoc(ref, { [field]: checks });
     });
 
   checkWriteChains.set(id, next);
@@ -487,6 +502,8 @@ export async function subscribeStationJobs(onJobs, onError) {
           ...data,
           batchKey: String(data.batchKey || d.id || '').trim(),
           checks: normalizeStationChecks(data.checks),
+          trimChecks: normalizeStationChecks(data.trimChecks),
+          trimHtml: String(data.trimHtml || ''),
         };
       });
       const active = retainActiveStationJobs(jobs);

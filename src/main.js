@@ -21,6 +21,7 @@ import {
 } from './logic/settingsStore.js';
 import { DEMO_CSV } from './logic/demoData.js';
 import { buildCutListPrintCard, buildBatchOrdersIndex } from './ui/cutListPrintView.js';
+import { buildTrimListPrintCard } from './ui/trimListPrintView.js';
 import { publishStationJob, purgeExpiredStationJobs, isStationHash } from './logic/stationSync.js';
 import { mountStationView } from './ui/stationView.js';
 
@@ -1044,6 +1045,10 @@ function buildStationJobPayload(batchKey, batch) {
     orders: batch.sortedOrders || [],
     isSpecial: Boolean(batch.isSpecial),
     html: buildCutListPrintCard(batchKey, batch, state.colIndices, null, {
+      allRows: state.parsedRows,
+      mode: 'station',
+    }),
+    trimHtml: buildTrimListPrintCard(batchKey, batch, state.colIndices, {
       allRows: state.parsedRows,
       mode: 'station',
     }),

@@ -2857,6 +2857,67 @@ body.station-live.print-active .station-root {
   word-break: break-all;
 }
 
+.station-sheet-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem;
+  border-radius: 999px;
+  background: var(--st-sky-soft);
+  border: 1px solid rgba(59, 158, 255, 0.28);
+  width: fit-content;
+}
+
+.station-sheet-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--st-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.station-sheet-tab:hover {
+  color: var(--st-ink);
+}
+
+.station-sheet-tab.is-active {
+  background: #ffffff;
+  color: var(--st-accent-ink);
+  box-shadow: 0 1px 3px rgba(15, 27, 45, 0.12);
+}
+
+.station-sheet-tab:focus-visible {
+  outline: 2px solid var(--st-sky);
+  outline-offset: 2px;
+}
+
+.trim-list-sheet .trim-finish-w {
+  color: var(--st-accent-ink);
+}
+
+.trim-list-sheet .trim-row-needs .trim-cut-w {
+  color: #9a6700;
+}
+
+.trim-list-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.trim-list-empty {
+  margin: 1rem;
+  color: var(--st-muted);
+}
+
 .station-batch-chips {
   display: flex;
   flex-wrap: wrap;

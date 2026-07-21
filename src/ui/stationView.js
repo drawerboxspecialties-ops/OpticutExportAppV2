@@ -18,7 +18,26 @@ import {
 } from '../logic/stationSync.js';
 
 const ZOOM_STORAGE_KEY = 'opticut-station-zoom';
+const SHEET_TAB_STORAGE_KEY = 'opticut-station-sheet-tab';
 const ZOOM_STEPS = [0.7, 0.85, 1, 1.15, 1.3, 1.5];
+
+function loadSheetTab() {
+  try {
+    const saved = globalThis.localStorage?.getItem(SHEET_TAB_STORAGE_KEY);
+    if (saved === 'trim' || saved === 'opticut') return saved;
+  } catch {
+    /* private mode */
+  }
+  return 'opticut';
+}
+
+function saveSheetTab(tab) {
+  try {
+    globalThis.localStorage?.setItem(SHEET_TAB_STORAGE_KEY, tab);
+  } catch {
+    /* private mode */
+  }
+}
 
 function formatSentAt(ms) {
   if (!ms) return '';
@@ -58,9 +77,10 @@ function setStationHash(batchKey) {
   }
 }
 
-function sheetRenderKey(job) {
+function sheetRenderKey(job, tab = 'opticut') {
   if (!job?.batchKey) return '';
-  return `${job.batchKey}|${job.sentAt || ''}|${String(job.html || '').length}`;
+  const html = tab === 'trim' ? job.trimHtml || '' : job.html || '';
+  return `${job.batchKey}|${tab}|${job.sentAt || ''}|${String(html).length}`;
 }
 
 function loadZoom() {
@@ -194,6 +214,10 @@ export function mountStationView(root) {
         <div class="station-batch-bar" id="station-batch-bar" hidden>
           <div class="station-batch-info">
             <h2 class="station-batch-title" id="station-batch-title"></h2>
+            <div class="station-sheet-tabs" role="tablist" aria-label="Cut list type">
+              <button type="button" class="station-sheet-tab is-active" role="tab" id="station-tab-opticut" data-sheet-tab="opticut" aria-selected="true">OptiCut</button>
+              <button type="button" class="station-sheet-tab" role="tab" id="station-tab-trim" data-sheet-tab="trim" aria-selected="false">Trim</button>
+            </div>
             <div class="station-batch-chips" id="station-batch-chips"></div>
           </div>
           <div class="station-batch-tools">
@@ -262,6 +286,8 @@ export function mountStationView(root) {
   const batchBarEl = root.querySelector('#station-batch-bar');
   const batchTitleEl = root.querySelector('#station-batch-title');
   const batchChipsEl = root.querySelector('#station-batch-chips');
+  const tabOpticutEl = root.querySelector('#station-tab-opticut');
+  const tabTrimEl = root.querySelector('#station-tab-trim');
   const progressEl = root.querySelector('#station-progress');
   const progressFillEl = root.querySelector('#station-progress-fill');
   const progressLabelEl = root.querySelector('#station-progress-label');
@@ -281,8 +307,12 @@ export function mountStationView(root) {
   let unsub = () => {};
   let cancelled = false;
   let zoom = loadZoom();
-  /** @type {Map<string, Record<string, boolean>>} batchKey → rowId → wanted checked */
+  /** @type {'opticut'|'trim'} */
+  let sheetTab = loadSheetTab();
+  /** @type {Map<string, Record<string, boolean>>} batchKey → rowId → wanted checked (OptiCut) */
   const pendingByBatch = new Map();
+  /** @type {Map<string, Record<string, boolean>>} batchKey → rowId → wanted checked (Trim) */
+  const pendingTrimByBatch = new Map();
 
   const clockTimer = setInterval(() => {
     clockEl.textContent = formatClock();
@@ -301,11 +331,43 @@ export function mountStationView(root) {
     return allJobs.filter((j) => isStationJobDeleted(j));
   }
 
+  function isTrimTab() {
+    return sheetTab === 'trim';
+  }
+
+  function checkField() {
+    return isTrimTab() ? 'trimChecks' : 'checks';
+  }
+
+  function pendingMap() {
+    return isTrimTab() ? pendingTrimByBatch : pendingByBatch;
+  }
+
+  function syncSheetTabs() {
+    const trim = isTrimTab();
+    tabOpticutEl.classList.toggle('is-active', !trim);
+    tabTrimEl.classList.toggle('is-active', trim);
+    tabOpticutEl.setAttribute('aria-selected', trim ? 'false' : 'true');
+    tabTrimEl.setAttribute('aria-selected', trim ? 'true' : 'false');
+  }
+
+  function setSheetTab(tab) {
+    const next = tab === 'trim' ? 'trim' : 'opticut';
+    if (sheetTab === next) return;
+    sheetTab = next;
+    saveSheetTab(sheetTab);
+    syncSheetTabs();
+    renderedKey = '';
+    const job = activeJobs().find((j) => j.batchKey === selectedKey);
+    if (job) renderSelected(job);
+  }
+
   /** Print via the shared print container so @media print rules work (not a blank page). */
   function printSelectedBatch() {
     const job = activeJobs().find((j) => j.batchKey === selectedKey);
-    if (!job?.html) {
-      setStatus('error', 'Select a batch to print');
+    const html = isTrimTab() ? job?.trimHtml : job?.html;
+    if (!job || !html) {
+      setStatus('error', isTrimTab() ? 'No trim list — re-send batch from prep' : 'Select a batch to print');
       return;
     }
     const printContainer = document.getElementById('all-print-container');
@@ -316,7 +378,7 @@ export function mountStationView(root) {
 
     const card = document.createElement('div');
     card.className = 'print-batch-card';
-    card.innerHTML = job.html;
+    card.innerHTML = html;
     const checks = effectiveChecks(job);
     card.querySelectorAll('.station-check[data-row-id]').forEach((input) => {
       const id = input.getAttribute('data-row-id') || '';
@@ -345,14 +407,16 @@ export function mountStationView(root) {
     const batchKey = selectedKey;
     const job = activeJobs().find((j) => j.batchKey === batchKey);
     if (!job) return;
-    if (!confirm(`Clear all checkboxes for ${batchKey}?`)) return;
-    pendingByBatch.delete(batchKey);
-    job.checks = {};
+    const label = isTrimTab() ? 'trim' : 'OptiCut';
+    if (!confirm(`Clear all ${label} checkboxes for ${batchKey}?`)) return;
+    pendingMap().delete(batchKey);
+    if (isTrimTab()) job.trimChecks = {};
+    else job.checks = {};
     applyStationChecks(bodyEl, job);
     renderBatchBar(job);
     updateQueueItemProgress(batchKey, job);
     try {
-      await clearStationJobChecks(batchKey);
+      await clearStationJobChecks(batchKey, { field: checkField() });
       setStatus('live', 'Checks cleared');
     } catch (err) {
       console.error(err);
@@ -372,8 +436,12 @@ export function mountStationView(root) {
     }
     keys.forEach((key) => {
       pendingByBatch.delete(key);
+      pendingTrimByBatch.delete(key);
       const job = allJobs.find((j) => j.batchKey === key);
-      if (job) job.checks = {};
+      if (job) {
+        job.checks = {};
+        job.trimChecks = {};
+      }
     });
     const selected = activeJobs().find((j) => j.batchKey === selectedKey);
     if (selected) {
@@ -381,7 +449,7 @@ export function mountStationView(root) {
       renderBatchBar(selected);
     }
     try {
-      await clearStationJobsChecks(keys);
+      await clearStationJobsChecks(keys, { field: 'both' });
       setStatus('live', 'All checks cleared');
       renderQueue();
     } catch (err) {
@@ -488,6 +556,7 @@ export function mountStationView(root) {
     try {
       const deleted = await wipeAllStationJobs();
       pendingByBatch.clear();
+      pendingTrimByBatch.clear();
       checkedKeys.clear();
       allJobs = [];
       selectedKey = '';
@@ -542,28 +611,39 @@ export function mountStationView(root) {
 
   function effectiveChecks(job) {
     if (!job) return {};
+    if (isTrimTab()) {
+      return mergeStationChecks(job.trimChecks, pendingTrimByBatch.get(job.batchKey));
+    }
+    return mergeStationChecks(job.checks, pendingByBatch.get(job.batchKey));
+  }
+
+  /** Queue progress always tracks OptiCut checks (unchanged). */
+  function effectiveOpticutChecks(job) {
+    if (!job) return {};
     return mergeStationChecks(job.checks, pendingByBatch.get(job.batchKey));
   }
 
   function setPending(batchKey, rowId, checked) {
-    let map = pendingByBatch.get(batchKey);
+    const mapStore = isTrimTab() ? pendingTrimByBatch : pendingByBatch;
+    let map = mapStore.get(batchKey);
     if (!map) {
       map = {};
-      pendingByBatch.set(batchKey, map);
+      mapStore.set(batchKey, map);
     }
     map[rowId] = checked;
   }
 
   function clearPendingRow(batchKey, rowId) {
-    const map = pendingByBatch.get(batchKey);
+    const mapStore = isTrimTab() ? pendingTrimByBatch : pendingByBatch;
+    const map = mapStore.get(batchKey);
     if (!map) return;
     delete map[rowId];
-    if (!Object.keys(map).length) pendingByBatch.delete(batchKey);
+    if (!Object.keys(map).length) mapStore.delete(batchKey);
   }
 
   /** Drop pending entries once the server matches what we wanted. */
-  function clearPendingIfSynced(batchKey, serverChecks) {
-    const pending = pendingByBatch.get(batchKey);
+  function clearPendingIfSynced(batchKey, serverChecks, mapStore) {
+    const pending = mapStore.get(batchKey);
     if (!pending) return;
     const merged = mergeStationChecks(serverChecks, null);
     Object.keys(pending).forEach((rowId) => {
@@ -571,13 +651,21 @@ export function mountStationView(root) {
       const has = Boolean(merged[rowId]);
       if (want === has) delete pending[rowId];
     });
-    if (!Object.keys(pending).length) pendingByBatch.delete(batchKey);
+    if (!Object.keys(pending).length) mapStore.delete(batchKey);
   }
 
   function countChecks(job) {
-    const checks = effectiveChecks(job);
+    const checks = effectiveOpticutChecks(job);
     const checked = Object.keys(checks).length;
     const total = job?.html ? (job.html.match(/class="station-check"/g) || []).length : 0;
+    return { checked, total };
+  }
+
+  function countVisibleChecks(job) {
+    const checks = effectiveChecks(job);
+    const checked = Object.keys(checks).length;
+    const html = isTrimTab() ? job?.trimHtml : job?.html;
+    const total = html ? (html.match(/class="station-check"/g) || []).length : 0;
     return { checked, total };
   }
 
@@ -711,8 +799,14 @@ export function mountStationView(root) {
       return;
     }
     batchBarEl.hidden = false;
-    printBtnEl.disabled = false;
-    clearChecksBtnEl.disabled = false;
+    syncSheetTabs();
+    const hasTrim = Boolean(job.trimHtml);
+    tabTrimEl.disabled = false;
+    tabTrimEl.title = hasTrim
+      ? 'Trim saw list (Cut W → Finish W)'
+      : 'Re-send this batch from prep to load the trim list';
+    printBtnEl.disabled = isTrimTab() && !hasTrim;
+    clearChecksBtnEl.disabled = isTrimTab() && !hasTrim;
     removeBtnEl.disabled = false;
     batchTitleEl.textContent = job.batchKey || '';
 
@@ -728,7 +822,7 @@ export function mountStationView(root) {
       .map((c) => `<span class="station-chip${c.cls}">${escapeHTML(c.text)}</span>`)
       .join('');
 
-    const { checked, total } = countChecks(job);
+    const { checked, total } = countVisibleChecks(job);
     if (total > 0) {
       progressEl.hidden = false;
       const pct = Math.round((checked / total) * 100);
@@ -754,14 +848,26 @@ export function mountStationView(root) {
       return;
     }
 
-    const nextKey = sheetRenderKey(job);
+    if (isTrimTab() && !job.trimHtml) {
+      renderedKey = sheetRenderKey(job, 'trim');
+      bodyEl.innerHTML = `
+        <div class="station-live-empty">
+          ${EMPTY_ICON}
+          <p class="station-empty-title">Trim list not on this batch yet</p>
+          <p class="station-empty-hint">Re-send the batch from prep (<b>Send to station</b>) to load the trim sheet.</p>
+        </div>`;
+      return;
+    }
+
+    const nextKey = sheetRenderKey(job, sheetTab);
     if (nextKey === renderedKey && bodyEl.querySelector('.station-check')) {
       applyStationChecks(bodyEl, job);
       return;
     }
 
     renderedKey = nextKey;
-    bodyEl.innerHTML = `<div class="station-live-sheet">${job.html}</div>`;
+    const html = isTrimTab() ? job.trimHtml : job.html;
+    bodyEl.innerHTML = `<div class="station-live-sheet">${html}</div>`;
     applyStationChecks(bodyEl, job);
     applyZoom();
   }
@@ -886,7 +992,10 @@ export function mountStationView(root) {
 
   function onJobs(jobs) {
     if (cancelled) return;
-    jobs.forEach((j) => clearPendingIfSynced(j.batchKey, j.checks));
+    jobs.forEach((j) => {
+      clearPendingIfSynced(j.batchKey, j.checks, pendingByBatch);
+      clearPendingIfSynced(j.batchKey, j.trimChecks, pendingTrimByBatch);
+    });
     allJobs = jobs;
     const active = activeJobs();
     setStatus(
@@ -956,7 +1065,7 @@ export function mountStationView(root) {
       updateQueueItemProgress(batchKey, job);
     }
 
-    void updateStationJobCheck(batchKey, rowId, checked)
+    void updateStationJobCheck(batchKey, rowId, checked, { field: checkField() })
       .then(() => {
         // Keep pending until a snapshot confirms; avoids flicker if another
         // snapshot arrives mid-flight.
@@ -1064,6 +1173,10 @@ export function mountStationView(root) {
   removeSelectedBtnEl.addEventListener('click', () => {
     void removeCheckedBatches();
   });
+  tabOpticutEl.addEventListener('click', () => setSheetTab('opticut'));
+  tabTrimEl.addEventListener('click', () => setSheetTab('trim'));
+  syncSheetTabs();
+
   removeAllBtnEl.addEventListener('click', () => {
     void removeAllBatches();
   });
