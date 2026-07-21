@@ -16,7 +16,7 @@ import {
   wipeAllStationJobs,
   verifyStationWipePassword,
 } from '../logic/stationSync.js';
-import { balanceStationFlowColumns, stationFlowNeedsOrderMerge } from './stationFlowLayout.js';
+import { balanceStationFlowColumns, stationFlowNeedsOrderMerge, buildStationPrintSheetHtml } from './stationFlowLayout.js';
 
 const ZOOM_STORAGE_KEY = 'opticut-station-zoom';
 const SHEET_TAB_STORAGE_KEY = 'opticut-station-sheet-tab';
@@ -363,7 +363,7 @@ export function mountStationView(root) {
     if (job) renderSelected(job);
   }
 
-  /** Print the live station sheet (same order layout as on screen), fitted to the page. */
+  /** Print with page packing: fill columns, continue long orders (not whole-order page jumps). */
   function printSelectedBatch() {
     const job = activeJobs().find((j) => j.batchKey === selectedKey);
     const bakedHtml = isTrimTab() ? job?.trimHtml : job?.html;
@@ -378,26 +378,24 @@ export function mountStationView(root) {
       return;
     }
 
+    const checks = effectiveChecks(job);
     const card = document.createElement('div');
     card.className = 'print-batch-card print-batch-card--station';
-    // Prefer the live DOM so Print matches what the operator sees (whole orders, no forced balance).
+
     if (liveSheet) {
-      card.appendChild(liveSheet.cloneNode(true));
+      card.innerHTML = buildStationPrintSheetHtml(liveSheet, { checks });
     } else {
       card.innerHTML = bakedHtml;
+      card.querySelectorAll('.station-check[data-row-id]').forEach((input) => {
+        const id = input.getAttribute('data-row-id') || '';
+        const checked = Boolean(checks[id]);
+        const span = document.createElement('span');
+        span.className = checked ? 'print-check print-check--done' : 'print-check';
+        span.setAttribute('aria-hidden', 'true');
+        input.replaceWith(span);
+      });
     }
 
-    const checks = effectiveChecks(job);
-    // Convert station checkboxes to print-check boxes (form controls often omit in print).
-    card.querySelectorAll('.station-check[data-row-id]').forEach((input) => {
-      const id = input.getAttribute('data-row-id') || '';
-      const checked = Boolean(checks[id]);
-      const span = document.createElement('span');
-      span.className = checked ? 'print-check print-check--done' : 'print-check';
-      span.setAttribute('aria-hidden', 'true');
-      if (checked) span.setAttribute('data-checked', '1');
-      input.replaceWith(span);
-    });
     const timeEl = card.querySelector('.print-batch-time');
     if (timeEl) {
       timeEl.textContent = `Printed: ${new Date().toLocaleString('en-US', {

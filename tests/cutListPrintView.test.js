@@ -116,6 +116,43 @@ describe('packCutListPrintFlow', () => {
     expect(pages[0][0]).toHaveLength(1);
     expect(pages[0][0][0].order).toBe('B');
   });
+
+  it('continues a long order after shorter ones instead of wasting page space', () => {
+    const pages = packCutListPrintFlow(
+      [
+        {
+          order: 'A',
+          titleHtml: 'Order A',
+          contTitleHtml: 'Order A (cont.)',
+          rows: Array.from({ length: 4 }, () => ({})),
+        },
+        {
+          order: 'B',
+          titleHtml: 'Order B',
+          contTitleHtml: 'Order B (cont.)',
+          rows: Array.from({ length: 4 }, () => ({})),
+        },
+        {
+          order: 'C',
+          titleHtml: 'Order C',
+          contTitleHtml: 'Order C (cont.)',
+          rows: Array.from({ length: 4 }, () => ({})),
+        },
+        {
+          order: 'LONG',
+          titleHtml: 'Order LONG',
+          contTitleHtml: 'Order LONG (cont.)',
+          rows: Array.from({ length: 40 }, () => ({})),
+        },
+      ],
+      { columnCount: 3, rowsPerColumn: 20, titleCost: 2 }
+    );
+    const page1Orders = pages[0].flat().map((f) => f.order);
+    expect(page1Orders).toContain('LONG');
+    expect(pages[0].flat().some((f) => f.order === 'LONG' && /cont/i.test(f.titleHtml || ''))).toBe(
+      true
+    );
+  });
 });
 
 describe('buildCutListPrintCard', () => {

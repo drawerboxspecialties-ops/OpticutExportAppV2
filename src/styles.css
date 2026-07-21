@@ -3544,12 +3544,12 @@ body.station-live.print-active .station-root {
     display: none !important;
   }
 
-  /* Match the on-screen column count (not a forced 3-up balance). Fill the page. */
+  /* Match prep print packing: full 3-column page bands; long orders continue. */
   body.station-print-active .print-batch-card--station .cutlist-print-columns {
-    grid-template-columns: repeat(var(--station-flow-cols, 3), minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     width: 100% !important;
     max-width: none !important;
-    gap: 0.1in;
+    gap: 0.08in;
   }
 
   body.station-print-active .print-batch-card--station .cutlist-print-sheet {
@@ -3557,11 +3557,6 @@ body.station-live.print-active .station-root {
     border: none;
     box-shadow: none;
     border-radius: 0;
-  }
-
-  body.station-print-active .print-batch-card--station .cutlist-order-fragment {
-    break-inside: avoid;
-    page-break-inside: avoid;
   }
 
   body.station-print-active .print-batch-card--station .cutlist-table {
