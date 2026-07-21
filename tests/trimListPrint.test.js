@@ -204,5 +204,112 @@ describe('buildTrimListPrintCard', () => {
     expect(html).toContain('cutlist-col-trim-w');
     expect(html).toContain('data-trim-sheet');
     expect(html).toContain('station-check');
+    // Sparse: one order → one column, not stretched full width.
+    expect(html).toContain('--station-flow-cols:1');
+    expect(html).not.toContain('cutlist-order-column--empty');
+  });
+
+  it('balances multi-order station Trim across three columns like OptiCut', () => {
+    const orders = ['1', '2', '3', '4', '5', '6'];
+    const sourceRows = orders.flatMap((order, idx) => {
+      const rows = [];
+      for (let g = 1; g <= 4; g++) {
+        const w = String(3 + (idx % 3));
+        const lrW = `${w}.938`;
+        rows.push(
+          row({
+            order,
+            part: 'F',
+            w,
+            length: String(20 + g),
+            qty: 2,
+            drawerWidth: w,
+            groupId: String(g),
+          }),
+          row({
+            order,
+            part: 'B',
+            w,
+            length: String(20 + g),
+            qty: 2,
+            drawerWidth: w,
+            groupId: String(g),
+          }),
+          row({
+            order,
+            part: 'L',
+            w: lrW,
+            length: String(14 + g),
+            qty: 2,
+            drawerWidth: w,
+            groupId: String(g),
+          }),
+          row({
+            order,
+            part: 'R',
+            w: lrW,
+            length: String(14 + g),
+            qty: 2,
+            drawerWidth: w,
+            groupId: String(g),
+          })
+        );
+      }
+      return rows;
+    });
+    const batch = {
+      materialName: 'PF: 12MM Baltic Birch Ply',
+      topEdge: 'Clear Foil Bullnose',
+      totalBoxes: 48,
+      sortedOrders: orders,
+      orderColTotals: Object.fromEntries(orders.map((o) => [o, 8])),
+      sourceRows,
+    };
+    const html = buildTrimListPrintCard('PLY_CFB_multi', batch, cols, { mode: 'station' });
+    expect(html).toContain('data-trim-sheet');
+    expect(html).toContain('--station-flow-cols:3');
+    expect(html).not.toContain('cutlist-order-column--empty');
+    const filledCols = html.match(/cutlist-order-column(?!--empty)/g) || [];
+    expect(filledCols.length).toBeGreaterThanOrEqual(3);
+    // Trailing decimals must remain visible (no 3.... truncation).
+    expect(html).toContain('.938');
+    expect(html).not.toMatch(/\d\.\.\.\./);
+  });
+
+  it('keeps print Trim packing unchanged (may include empty columns)', () => {
+    const batch = {
+      materialName: 'PF: 12MM Baltic Birch Ply',
+      topEdge: 'PVC',
+      totalBoxes: 2,
+      sortedOrders: ['9'],
+      orderColTotals: { 9: 2 },
+      sourceRows: [
+        row({ order: '9', part: 'F', w: '4', length: '22', qty: 2, drawerWidth: '4', groupId: '1' }),
+        row({ order: '9', part: 'B', w: '4', length: '22', qty: 2, drawerWidth: '4', groupId: '1' }),
+        row({
+          order: '9',
+          part: 'L',
+          w: '3.938',
+          length: '16',
+          qty: 2,
+          drawerWidth: '4',
+          groupId: '1',
+        }),
+        row({
+          order: '9',
+          part: 'R',
+          w: '3.938',
+          length: '16',
+          qty: 2,
+          drawerWidth: '4',
+          groupId: '1',
+        }),
+      ],
+    };
+    const html = buildTrimListPrintCard('PRINT_TRIM', batch, cols, { mode: 'print' });
+    expect(html).toContain('TRIM');
+    expect(html).not.toContain('station-check');
+    expect(html).toContain('print-check');
+    expect(html).not.toContain('--station-flow-cols');
   });
 });

@@ -27,9 +27,10 @@ function fragmentCost(el) {
 }
 
 /**
- * Rebuild every cut-list flow into up to three balanced columns.
+ * Rebuild every cut-list / trim flow into up to three balanced columns.
  * Full monitor width only when all three columns have content; a single
  * column stays ~1/3 width so tables are not stretched edge-to-edge.
+ * Applies to OptiCut and Trim (same fragment markup).
  * @param {ParentNode} root
  * @param {number} [columnCount]
  */

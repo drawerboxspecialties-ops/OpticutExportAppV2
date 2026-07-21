@@ -2930,6 +2930,22 @@ body.station-live.print-active .station-root {
   font-weight: 700;
 }
 
+/* Station Trim uses the same 3-column width rules as OptiCut. */
+.station-live-sheet .trim-list-sheet .cutlist-print-columns {
+  --station-flow-cols: 3;
+}
+
+.station-live-sheet .trim-list-sheet .cutlist-table {
+  table-layout: auto;
+}
+
+.station-live-sheet .trim-list-sheet .cutlist-dim,
+.station-live-sheet .trim-list-sheet .cutlist-qty {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+
 .trim-list-empty {
   margin: 1rem;
   color: var(--st-muted);

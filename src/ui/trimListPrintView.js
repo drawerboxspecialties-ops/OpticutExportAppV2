@@ -244,8 +244,7 @@ function renderTrimFlowBody(
   mode = 'print'
 ) {
   if (!sections.length) {
-    return `<div class="cutlist-print-columns">
-      <div class="cutlist-order-column">
+    const emptyTable = `<div class="cutlist-order-column">
         <div class="cutlist-order-fragment">
           <table class="cutlist-table cutlist-table--flow" cellspacing="0">
             ${renderTrimTableHead(hasGroup)}
@@ -254,7 +253,12 @@ function renderTrimFlowBody(
             </tbody>
           </table>
         </div>
-      </div>
+      </div>`;
+    if (mode === 'station') {
+      return `<div class="cutlist-print-columns" style="--station-flow-cols:1">${emptyTable}</div>`;
+    }
+    return `<div class="cutlist-print-columns">
+      ${emptyTable}
       <div class="cutlist-order-column cutlist-order-column--empty" aria-hidden="true"></div>
       <div class="cutlist-order-column cutlist-order-column--empty" aria-hidden="true"></div>
     </div>`;
