@@ -2387,7 +2387,7 @@ body.station-live.print-active .station-root {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(15rem, 17.5rem) 1fr;
+  grid-template-columns: minmax(16.5rem, 20rem) 1fr;
 }
 
 /* Queue sidebar */
@@ -2722,19 +2722,21 @@ body.station-live.print-active .station-root {
 }
 
 .station-queue-item-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.4rem;
+  display: block;
   min-width: 0;
 }
 
 .station-queue-item-title {
-  font-weight: 700;
-  font-size: 0.8rem;
-  letter-spacing: -0.015em;
-  line-height: 1.2;
-  word-break: break-all;
+  display: block;
+  font-weight: 400;
+  font-size: 0.72rem;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  font-variant-numeric: tabular-nums;
 }
 
 .station-queue-star {
@@ -2780,7 +2782,7 @@ body.station-live.print-active .station-root {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  margin-top: 0;
+  margin-top: 0.15rem;
 }
 
 .station-queue-progress {
@@ -2805,8 +2807,10 @@ body.station-live.print-active .station-root {
 
 .station-queue-item-time {
   flex: none;
+  margin-left: auto;
   font-variant-numeric: tabular-nums;
   font-size: 0.64rem;
+  white-space: nowrap;
 }
 
 .station-queue-empty {
@@ -3372,7 +3376,7 @@ body.station-live.print-active .station-root {
 
 @media (min-width: 1600px) {
   .station-live-layout {
-    grid-template-columns: minmax(15rem, 16.5rem) 1fr;
+    grid-template-columns: minmax(17rem, 20rem) 1fr;
   }
 
   .station-live-sheet .cutlist-print-columns .cutlist-dim,

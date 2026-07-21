@@ -696,11 +696,12 @@ export function mountStationView(root) {
       fill.style.width = `${pct}%`;
     }
     const badge = item.querySelector('.station-queue-done-badge');
+    const timeEl = item.querySelector('.station-queue-item-time');
     if (done && !badge) {
-      const top = item.querySelector('.station-queue-item-top');
-      if (top) {
-        top.querySelector('.station-queue-item-time')?.remove();
-        top.insertAdjacentHTML('beforeend', '<span class="station-queue-done-badge">✓</span>');
+      const bottom = item.querySelector('.station-queue-item-bottom');
+      timeEl?.remove();
+      if (bottom) {
+        bottom.insertAdjacentHTML('beforeend', '<span class="station-queue-done-badge">✓</span>');
       }
     } else if (!done && badge) {
       badge.remove();
@@ -922,11 +923,11 @@ export function mountStationView(root) {
         >
           <span class="station-queue-item-top">
             <span class="station-queue-item-title">${escapeHTML(job.batchKey)}${job.isSpecial ? ' <span class="station-queue-star">★</span>' : ''}</span>
-            ${done ? '<span class="station-queue-done-badge">✓</span>' : `<span class="station-queue-item-time">${escapeHTML(formatRelativeTime(job.sentAt))}</span>`}
           </span>
           <span class="station-queue-item-bottom">
             <span class="station-queue-item-meta">${escapeHTML(materialShort)} · ${job.totalBoxes || 0} bx${orderCount ? ` · ${orderCount} ord` : ''}</span>
             <span class="station-queue-progress${done ? ' is-complete' : ''}"><i style="width:${pct}%"></i></span>
+            ${done ? '<span class="station-queue-done-badge">✓</span>' : `<span class="station-queue-item-time">${escapeHTML(formatRelativeTime(job.sentAt))}</span>`}
           </span>
         </button>
       </div>`;
