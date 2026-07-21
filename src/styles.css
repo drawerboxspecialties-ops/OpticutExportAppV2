@@ -2292,13 +2292,13 @@ body.station-live.print-active .station-root {
   display: none !important;
 }
 
-/* Header */
+/* Header — compact chrome so the list owns the viewport */
 .station-live-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.55rem 1.15rem;
+  gap: 0.75rem;
+  padding: 0.35rem 0.85rem;
   background: #ffffff;
   border-bottom: 3px solid var(--st-accent);
 }
@@ -2375,19 +2375,19 @@ body.station-live.print-active .station-root {
 }
 
 .station-live-clock {
-  font-size: 1.28rem;
+  font-size: 1.1rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   color: var(--st-ink);
 }
 
-/* Layout */
+/* Layout — give the sheet most of the monitor */
 .station-live-layout {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(17rem, 21rem) 1fr;
+  grid-template-columns: minmax(15rem, 17.5rem) 1fr;
 }
 
 /* Queue sidebar */
@@ -2831,8 +2831,8 @@ body.station-live.print-active .station-root {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.45rem 0.9rem;
-  padding: 0.5rem 0.85rem;
+  gap: 0.3rem 0.7rem;
+  padding: 0.3rem 0.65rem;
   background: #ffffff;
   border-bottom: 2px solid var(--st-sky);
 }
@@ -2850,7 +2850,7 @@ body.station-live.print-active .station-root {
 
 .station-batch-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--st-ink);
@@ -3117,12 +3117,12 @@ body.station-live.print-active .station-root {
   background: var(--st-danger-soft);
 }
 
-/* Sheet area */
+/* Sheet area — edge-to-edge on the monitor */
 .station-live-body {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 0.55rem 0.7rem 0.75rem;
+  padding: 0.25rem 0.35rem 0.4rem;
 }
 
 .station-live-sheet {
@@ -3136,77 +3136,74 @@ body.station-live.print-active .station-root {
 .station-live-sheet .cutlist-print-sheet {
   background: var(--st-surface-solid);
   border: 1px solid var(--st-line-strong);
-  border-radius: 10px;
+  border-radius: 8px;
   box-shadow: var(--st-shadow);
-  padding: 0.45rem 0.55rem 0.55rem;
+  padding: 0.28rem 0.35rem 0.35rem;
   min-width: 0;
   width: 100%;
   color: #000;
 }
 
 .station-live-sheet .print-batch-header {
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.22rem;
 }
 
 .station-live-sheet .print-batch-header-row {
-  padding: 0.28rem 0.4rem;
+  padding: 0.16rem 0.3rem;
   background: #f0f6fb;
   border-bottom: 1px solid #9eb4c8;
-  gap: 0.5rem;
+  gap: 0.4rem;
   align-items: center;
 }
 
 .station-live-sheet .print-batch-title {
-  font-size: 0.98rem;
+  font-size: 0.88rem;
   font-weight: 800;
   color: #000 !important;
-  gap: 0.28rem;
-  line-height: 1.25;
+  gap: 0.22rem;
+  line-height: 1.2;
   flex-wrap: wrap;
 }
 
 .station-live-sheet .print-batch-boxes-total,
 .station-live-sheet .print-batch-orders-list {
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: #000 !important;
 }
 
 .station-live-sheet .print-batch-header-aside {
-  gap: 0.2rem;
+  gap: 0.1rem;
 }
 
 .station-live-sheet .print-batch-barcode {
-  transform: scale(0.72);
-  transform-origin: top right;
-  max-height: 1.6rem;
-  overflow: hidden;
+  display: none; /* scan from the sidebar; reclaim vertical space */
 }
 
 .station-live-sheet .print-batch-time {
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #334155 !important;
 }
 
 .station-live-sheet .print-batch-meta {
-  padding: 0.28rem 0.4rem;
-  gap: 0.3rem;
+  padding: 0.16rem 0.3rem;
+  gap: 0.22rem;
 }
 
 .station-live-sheet .print-meta-chip {
   display: inline-flex;
   align-items: baseline;
-  gap: 0.35rem;
+  gap: 0.3rem;
   min-width: 0;
-  padding: 0.18rem 0.4rem;
+  padding: 0.1rem 0.32rem;
   background: #fff;
   border: 1px solid #b0c2d4;
-  border-radius: 6px;
+  border-radius: 5px;
 }
 
 .station-live-sheet .print-meta-label {
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 700;
   color: #5a6f84 !important;
   letter-spacing: 0.04em;
@@ -3216,28 +3213,28 @@ body.station-live.print-active .station-root {
 
 .station-live-sheet .print-meta-chip b,
 .station-live-sheet .print-meta-chip div:not(.print-meta-label) {
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: #000 !important;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .station-live-sheet .print-batch-special {
-  font-size: 0.72rem;
-  padding: 0.08rem 0.35rem;
+  font-size: 0.68rem;
+  padding: 0.06rem 0.28rem;
 }
 
 .station-live-sheet .cutlist-print-flow {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.3rem;
 }
 
 .station-live-sheet .cutlist-print-columns {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--station-flow-cols, 3), minmax(0, 1fr));
   align-items: start;
-  gap: 0.4rem 0.55rem;
+  gap: 0.3rem 0.4rem;
 }
 
 .station-live-sheet .cutlist-print-columns + .cutlist-print-columns {
@@ -3245,47 +3242,47 @@ body.station-live.print-active .station-root {
 }
 
 .station-live-sheet .cutlist-order-title {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 800;
   color: #000 !important;
-  padding: 0.22rem 0.35rem;
+  padding: 0.14rem 0.28rem;
   background: #e4edf5;
   border: 1px solid #7f97ad;
   border-bottom: none;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .station-live-sheet .cutlist-order-special {
-  font-size: 0.72rem;
+  font-size: 0.66rem;
 }
 
 .station-live-sheet .cutlist-print-columns .cutlist-table,
 .station-live-sheet .cutlist-table {
   width: 100%;
   table-layout: auto;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   color: #000 !important;
   border-collapse: collapse;
 }
 
 .station-live-sheet .cutlist-print-columns .cutlist-table th,
 .station-live-sheet .cutlist-table th {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 800;
   color: #000 !important;
-  padding: 0.16rem 0.28rem;
+  padding: 0.1rem 0.22rem;
   background: #d5e3ef;
   border-bottom: 1px solid #7f97ad;
   white-space: nowrap;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .station-live-sheet .cutlist-print-columns .cutlist-table td,
 .station-live-sheet .cutlist-table td {
-  padding: 0.14rem 0.28rem;
+  padding: 0.08rem 0.22rem;
   color: #000 !important;
   border-bottom: 1px solid #d0dbe6;
-  line-height: 1.25;
+  line-height: 1.2;
   vertical-align: middle;
 }
 
@@ -3293,7 +3290,7 @@ body.station-live.print-active .station-root {
 .station-live-sheet .cutlist-print-columns .cutlist-qty,
 .station-live-sheet .cutlist-dim,
 .station-live-sheet .cutlist-qty {
-  font-size: 0.9rem;
+  font-size: 0.84rem;
   font-weight: 800;
   color: #000 !important;
   white-space: nowrap;
@@ -3301,14 +3298,14 @@ body.station-live.print-active .station-root {
 }
 
 .station-live-sheet .cutlist-group-id {
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   font-weight: 800;
   color: #000 !important;
   white-space: nowrap;
 }
 
 .station-live-sheet .cutlist-dfm-mark {
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   font-weight: 800;
 }
 
@@ -3317,8 +3314,8 @@ body.station-live.print-active .station-root {
 }
 
 .station-live-sheet .station-check {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 1rem;
+  height: 1rem;
   margin: 0;
   accent-color: var(--st-accent);
   cursor: pointer;
@@ -3328,9 +3325,9 @@ body.station-live.print-active .station-root {
 .station-live-sheet .cutlist-check {
   text-align: center;
   vertical-align: middle;
-  width: 1.6rem;
-  padding-left: 0.15rem !important;
-  padding-right: 0.15rem !important;
+  width: 1.45rem;
+  padding-left: 0.1rem !important;
+  padding-right: 0.1rem !important;
 }
 
 .station-live-sheet tr.cutlist-data-row {
@@ -3347,9 +3344,27 @@ body.station-live.print-active .station-root {
   text-decoration: line-through;
 }
 
+@media (min-width: 1600px) {
+  .station-live-layout {
+    grid-template-columns: minmax(15rem, 16.5rem) 1fr;
+  }
+
+  .station-live-sheet .cutlist-print-columns .cutlist-dim,
+  .station-live-sheet .cutlist-print-columns .cutlist-qty,
+  .station-live-sheet .cutlist-dim,
+  .station-live-sheet .cutlist-qty {
+    font-size: 0.9rem;
+  }
+
+  .station-live-sheet .cutlist-print-columns .cutlist-table,
+  .station-live-sheet .cutlist-table {
+    font-size: 0.84rem;
+  }
+}
+
 @media (max-width: 900px) {
   .station-live-sheet .cutlist-print-columns {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(min(2, var(--station-flow-cols, 2)), minmax(0, 1fr));
   }
 }
 

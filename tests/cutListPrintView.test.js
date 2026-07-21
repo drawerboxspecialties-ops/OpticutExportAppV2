@@ -290,6 +290,27 @@ describe('station checkbox mode', () => {
 });
 
 describe('packStationBalancedFlow', () => {
+  it('fills all three columns for two medium orders (no empty third)', () => {
+    const sections = [
+      {
+        order: 'A',
+        titleHtml: 'Order A',
+        contTitleHtml: 'Order A (cont.)',
+        rows: Array.from({ length: 8 }, () => ({})),
+      },
+      {
+        order: 'B',
+        titleHtml: 'Order B',
+        contTitleHtml: 'Order B (cont.)',
+        rows: Array.from({ length: 7 }, () => ({})),
+      },
+    ];
+    const pages = packStationBalancedFlow(sections);
+    expect(pages).toHaveLength(1);
+    const filled = pages[0].filter((col) => col.length > 0);
+    expect(filled).toHaveLength(3);
+  });
+
   it('fills all three columns for a large OptiCut-sized list', () => {
     const sections = [
       {

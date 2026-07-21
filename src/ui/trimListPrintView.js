@@ -208,7 +208,15 @@ function renderTrimFlowColumn(fragments, hasGroup, mode = 'print') {
 }
 
 function renderTrimFlowPage(columns, hasGroup, mode = 'print') {
-  return `<div class="cutlist-print-columns">${columns
+  // Station: drop empty columns so remaining tables stretch full monitor width.
+  const cols =
+    mode === 'station' ? columns.filter((fragments) => fragments.length) : columns;
+  const used = cols.length ? cols : columns;
+  const colStyle =
+    mode === 'station' && used.length
+      ? ` style="--station-flow-cols:${used.length}"`
+      : '';
+  return `<div class="cutlist-print-columns"${colStyle}>${used
     .map((fragments) => renderTrimFlowColumn(fragments, hasGroup, mode))
     .join('')}</div>`;
 }

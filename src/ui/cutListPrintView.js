@@ -224,6 +224,8 @@ export function estimateStationRowsPerColumn(
 /**
  * Station-only packer: place each chunk into the shortest column so all
  * three columns fill evenly (unlike print, which fills col1 then col2…).
+ * Chunks stay small enough that two medium orders still span the full width
+ * instead of leaving an empty third column and a tall scroll.
  *
  * @returns {Array<Array<Array<{order: string, titleHtml: string, rows: object[], rowStart: number}>>>}
  */
@@ -238,8 +240,8 @@ export function packStationBalancedFlow(
   (sections || []).forEach((section) => {
     totalRows += section?.rows?.length || 0;
   });
-  // Prefer spreading tall orders across columns instead of one long stack.
-  const chunkSize = Math.max(6, Math.ceil(totalRows / Math.max(1, columnCount)) || 6);
+  // Spread across every column: min 3 rows/chunk so short batches still fill width.
+  const chunkSize = Math.max(3, Math.ceil(totalRows / Math.max(1, columnCount)) || 3);
 
   const place = (fragment, cost) => {
     let best = 0;
@@ -384,7 +386,15 @@ function renderFlowColumn(fragments, hasGroup, mode = 'print') {
 }
 
 function renderFlowPage(columns, hasGroup, mode = 'print') {
-  return `<div class="cutlist-print-columns">${columns
+  // Station: drop empty columns so remaining tables stretch full monitor width.
+  const cols =
+    mode === 'station' ? columns.filter((fragments) => fragments.length) : columns;
+  const used = cols.length ? cols : columns;
+  const colStyle =
+    mode === 'station' && used.length
+      ? ` style="--station-flow-cols:${used.length}"`
+      : '';
+  return `<div class="cutlist-print-columns"${colStyle}>${used
     .map((fragments) => renderFlowColumn(fragments, hasGroup, mode))
     .join('')}</div>`;
 }

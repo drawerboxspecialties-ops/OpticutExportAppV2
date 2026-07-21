@@ -765,6 +765,17 @@ export function mountStationView(root) {
     if (sheet) sheet.style.zoom = String(zoom);
   }
 
+  /** Drop empty flow columns so tables stretch across the monitor (old + new HTML). */
+  function tightenStationFlowColumns(root) {
+    root.querySelectorAll('.cutlist-print-columns').forEach((band) => {
+      band.querySelectorAll('.cutlist-order-column--empty').forEach((el) => el.remove());
+      const cols = band.querySelectorAll('.cutlist-order-column');
+      if (cols.length) {
+        band.style.setProperty('--station-flow-cols', String(cols.length));
+      }
+    });
+  }
+
   function stepZoom(direction) {
     const idx = ZOOM_STEPS.indexOf(zoom);
     const next = ZOOM_STEPS[idx + direction];
@@ -868,6 +879,7 @@ export function mountStationView(root) {
     renderedKey = nextKey;
     const html = isTrimTab() ? job.trimHtml : job.html;
     bodyEl.innerHTML = `<div class="station-live-sheet">${html}</div>`;
+    tightenStationFlowColumns(bodyEl);
     applyStationChecks(bodyEl, job);
     applyZoom();
   }
