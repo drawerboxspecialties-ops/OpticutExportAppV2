@@ -198,9 +198,10 @@ describe('buildTrimListPrintCard', () => {
     expect(html).toContain('TRIM');
     expect(html).toContain('cutlist-print-columns');
     expect(html).toContain('print-meta-chip');
-    expect(html).toContain('F/B W');
-    expect(html).toContain('L/R W');
+    expect(html).toContain('FB W');
+    expect(html).toContain('LR W');
     expect(html).toContain('3.938');
+    expect(html).toContain('cutlist-col-trim-w');
     expect(html).toContain('data-trim-sheet');
     expect(html).toContain('station-check');
   });

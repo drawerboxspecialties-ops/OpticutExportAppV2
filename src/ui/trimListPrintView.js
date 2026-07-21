@@ -116,10 +116,10 @@ function renderTrimTableHead(hasGroup) {
   return `
       <colgroup>
         ${hasGroup ? '<col class="cutlist-col-grp">' : ''}
-        <col class="cutlist-col-width">
-        <col class="cutlist-col-length">
-        <col class="cutlist-col-width">
-        <col class="cutlist-col-length">
+        <col class="cutlist-col-trim-w">
+        <col class="cutlist-col-trim-len">
+        <col class="cutlist-col-trim-w">
+        <col class="cutlist-col-trim-len">
         <col class="cutlist-col-count">
         <col class="cutlist-col-count">
         <col class="cutlist-col-check">
@@ -127,9 +127,9 @@ function renderTrimTableHead(hasGroup) {
       <thead>
         <tr class="cutlist-columns-row">
           ${hasGroup ? '<th>Grp</th>' : ''}
-          <th>F/B W</th>
+          <th>FB W</th>
           <th>F / B</th>
-          <th>L/R W</th>
+          <th>LR W</th>
           <th>L / R</th>
           <th>Bx</th>
           <th>Pcs</th>

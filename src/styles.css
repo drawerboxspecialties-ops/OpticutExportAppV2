@@ -2899,6 +2899,28 @@ body.station-live.print-active .station-root {
   outline-offset: 2px;
 }
 
+.trim-list-sheet .cutlist-col-trim-w {
+  width: 11%;
+}
+
+.trim-list-sheet .cutlist-col-trim-len {
+  width: 18%;
+}
+
+/* Never clip trim widths/lengths (print was showing 3....). */
+.trim-list-sheet .cutlist-table th,
+.trim-list-sheet .cutlist-table td {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.trim-list-sheet .cutlist-dim,
+.trim-list-sheet .cutlist-qty {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+
 .trim-list-sheet .trim-lr-w {
   color: inherit;
 }
