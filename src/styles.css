@@ -3178,7 +3178,7 @@ body.station-live.print-active .station-root {
 
 .station-live-sheet .print-batch-title {
   font-size: 0.88rem;
-  font-weight: 800;
+  font-weight: 600;
   color: #000 !important;
   gap: 0.22rem;
   line-height: 1.2;
@@ -3188,7 +3188,7 @@ body.station-live.print-active .station-root {
 .station-live-sheet .print-batch-boxes-total,
 .station-live-sheet .print-batch-orders-list {
   font-size: 0.74rem;
-  font-weight: 700;
+  font-weight: 500;
   color: #000 !important;
 }
 
@@ -3224,7 +3224,7 @@ body.station-live.print-active .station-root {
 
 .station-live-sheet .print-meta-label {
   font-size: 0.58rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #5a6f84 !important;
   letter-spacing: 0.04em;
   margin-bottom: 0;
@@ -3234,7 +3234,7 @@ body.station-live.print-active .station-root {
 .station-live-sheet .print-meta-chip b,
 .station-live-sheet .print-meta-chip div:not(.print-meta-label) {
   font-size: 0.76rem;
-  font-weight: 700;
+  font-weight: 500;
   color: #000 !important;
   line-height: 1.15;
 }
@@ -3273,7 +3273,7 @@ body.station-live.print-active .station-root {
 
 .station-live-sheet .cutlist-order-title {
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 600;
   color: #000 !important;
   padding: 0.14rem 0.28rem;
   background: #e4edf5;
@@ -3284,6 +3284,7 @@ body.station-live.print-active .station-root {
 
 .station-live-sheet .cutlist-order-special {
   font-size: 0.66rem;
+  font-weight: 600;
 }
 
 .station-live-sheet .cutlist-print-columns .cutlist-table,
@@ -3291,6 +3292,7 @@ body.station-live.print-active .station-root {
   width: 100%;
   table-layout: auto;
   font-size: 0.8rem;
+  font-weight: 400;
   color: #000 !important;
   border-collapse: collapse;
 }
@@ -3298,7 +3300,7 @@ body.station-live.print-active .station-root {
 .station-live-sheet .cutlist-print-columns .cutlist-table th,
 .station-live-sheet .cutlist-table th {
   font-size: 0.62rem;
-  font-weight: 800;
+  font-weight: 600;
   color: #000 !important;
   padding: 0.1rem 0.22rem;
   background: #d5e3ef;
@@ -3310,6 +3312,7 @@ body.station-live.print-active .station-root {
 .station-live-sheet .cutlist-print-columns .cutlist-table td,
 .station-live-sheet .cutlist-table td {
   padding: 0.08rem 0.22rem;
+  font-weight: 400;
   color: #000 !important;
   border-bottom: 1px solid #d0dbe6;
   line-height: 1.2;
@@ -3319,9 +3322,11 @@ body.station-live.print-active .station-root {
 .station-live-sheet .cutlist-print-columns .cutlist-dim,
 .station-live-sheet .cutlist-print-columns .cutlist-qty,
 .station-live-sheet .cutlist-dim,
-.station-live-sheet .cutlist-qty {
+.station-live-sheet .cutlist-qty,
+.station-live-sheet .cutlist-dim b,
+.station-live-sheet .cutlist-qty b {
   font-size: 0.84rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #000 !important;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -3329,14 +3334,19 @@ body.station-live.print-active .station-root {
 
 .station-live-sheet .cutlist-group-id {
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 400;
   color: #000 !important;
   white-space: nowrap;
 }
 
 .station-live-sheet .cutlist-dfm-mark {
   font-size: 0.66rem;
-  font-weight: 800;
+  font-weight: 600;
+}
+
+.station-live-sheet .trim-list-sheet .trim-row-needs .trim-lr-w,
+.station-live-sheet .trim-list-sheet .trim-row-needs .trim-lr-w b {
+  font-weight: 600;
 }
 
 .station-live-sheet .cutlist-row-alt {
