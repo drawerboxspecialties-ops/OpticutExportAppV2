@@ -88,7 +88,7 @@ function buildTrimHeaderBanner(batchKey, batch, colIndices) {
     <div class="print-batch-header">
       <div class="print-batch-header-row">
         <div class="print-batch-title">
-          ${safeBatchKey}.csv <span class="print-batch-special">TRIM</span>${specialTag}
+          ${safeBatchKey}.csv <span class="print-batch-trim">TRIM</span>${specialTag}
           <span class="print-batch-boxes-total">${batch.totalBoxes || 0} Boxes</span>
           <span class="print-batch-orders-list">${formatPrintBatchOrders(batch)}</span>
         </div>
@@ -156,7 +156,7 @@ function renderTrimDataRow(r, order, hasGroup, altClass, mode = 'print') {
         ${groupCell}
         <td class="cutlist-dim trim-fb-w">${r.fbW ? `${escapeHTML(r.fbW)}"` : ''}</td>
         <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
-        <td class="cutlist-dim trim-lr-w">${r.lrW ? `<b>${escapeHTML(r.lrW)}"</b>` : ''}</td>
+        <td class="cutlist-dim trim-lr-w">${r.lrW ? `${escapeHTML(r.lrW)}"` : ''}</td>
         <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
         <td class="cutlist-qty"><b>${r.boxes}</b></td>
         <td class="cutlist-qty"><b>${r.parts}</b></td>

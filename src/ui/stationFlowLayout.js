@@ -82,7 +82,18 @@ export function mergeStationOrderFragments(fragments) {
     });
   });
 
-  return orderKeys.map((key) => primaryByKey.get(key)).filter(Boolean);
+  const merged = orderKeys.map((key) => primaryByKey.get(key)).filter(Boolean);
+  merged.forEach((frag) => restripeFragmentRows(frag));
+  return merged;
+}
+
+/** Re-apply zebra striping after merging continuation chunks. */
+function restripeFragmentRows(frag) {
+  const rows = frag?.querySelectorAll?.('tbody tr.cutlist-data-row');
+  if (!rows?.length) return;
+  rows.forEach((row, i) => {
+    row.classList.toggle('cutlist-row-alt', i % 2 === 1);
+  });
 }
 
 /** True when any order is still split with a "(cont.)" title. */

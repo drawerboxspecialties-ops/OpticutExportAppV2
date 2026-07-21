@@ -195,6 +195,7 @@ describe('buildTrimListPrintCard', () => {
       ],
     };
     const html = buildTrimListPrintCard('SLD_CFB_602913', batch, cols, { mode: 'station' });
+    expect(html).toContain('print-batch-trim');
     expect(html).toContain('TRIM');
     expect(html).toContain('cutlist-print-columns');
     expect(html).toContain('print-meta-chip');
@@ -307,6 +308,7 @@ describe('buildTrimListPrintCard', () => {
       ],
     };
     const html = buildTrimListPrintCard('PRINT_TRIM', batch, cols, { mode: 'print' });
+    expect(html).toContain('print-batch-trim');
     expect(html).toContain('TRIM');
     expect(html).not.toContain('station-check');
     expect(html).toContain('print-check');

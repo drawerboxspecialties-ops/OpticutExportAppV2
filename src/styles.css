@@ -1549,11 +1549,12 @@ tbody tr:hover td {
   font-size: 16px;
   font-weight: 900;
   letter-spacing: 0.01em;
-  white-space: nowrap;
+  white-space: normal;
   display: flex;
   align-items: center;
   gap: 0.12in;
   flex-wrap: wrap;
+  word-break: break-word;
 }
 
 .print-batch-boxes-total {
@@ -1604,7 +1605,7 @@ tbody tr:hover td {
 
 .print-batch-barcode svg {
   display: block;
-  max-width: 220px;
+  max-width: 280px;
   height: auto;
 }
 
@@ -1655,6 +1656,11 @@ tbody tr:hover td {
   border: 1.4px solid #000;
   border-radius: 2px;
   vertical-align: middle;
+}
+
+.print-check--done {
+  background: #000;
+  box-shadow: inset 0 0 0 2px #fff;
 }
 
 /* Zebra striping for faster row scanning on the shop floor. */
@@ -1803,23 +1809,23 @@ tbody tr:hover td {
 }
 
 .cutlist-col-grp {
-  width: 12%;
+  width: 10%;
 }
 
 .cutlist-col-check {
-  width: 6%;
+  width: 8%;
 }
 
 .cutlist-col-width {
-  width: 8%;
+  width: 12%;
 }
 
 .cutlist-col-length {
-  width: 24%;
+  width: 26%;
 }
 
 .cutlist-col-count {
-  width: 8%;
+  width: 9%;
 }
 
 .cutlist-table th,
@@ -1829,6 +1835,14 @@ tbody tr:hover td {
   padding: 3px 4px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Never clip dimension/qty values (same fix as trim 3....). */
+.cutlist-table .cutlist-dim,
+.cutlist-table .cutlist-qty {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
 .cutlist-table td.cutlist-group,
@@ -1938,6 +1952,22 @@ tbody tr:hover td {
   font-size: 10px;
   font-weight: 800;
   vertical-align: middle;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Trim badge — teal, distinct from ★ SPECIAL amber. */
+.print-batch-trim {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #0f766e;
+  color: #fff !important;
+  font-size: 10px;
+  font-weight: 800;
+  vertical-align: middle;
+  letter-spacing: 0.04em;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
@@ -2904,11 +2934,23 @@ body.station-live.print-active .station-root {
 }
 
 .trim-list-sheet .cutlist-col-trim-w {
-  width: 11%;
+  width: 12%;
 }
 
 .trim-list-sheet .cutlist-col-trim-len {
-  width: 18%;
+  width: 20%;
+}
+
+.trim-list-sheet .cutlist-col-grp {
+  width: 10%;
+}
+
+.trim-list-sheet .cutlist-col-count {
+  width: 8%;
+}
+
+.trim-list-sheet .cutlist-col-check {
+  width: 6%;
 }
 
 /* Never clip trim widths/lengths (print was showing 3....). */
@@ -2927,16 +2969,12 @@ body.station-live.print-active .station-root {
 
 .trim-list-sheet .trim-lr-w {
   color: inherit;
+  font-weight: inherit;
 }
 
 .trim-list-sheet .trim-row-needs .trim-lr-w {
   color: #9a6700;
   font-weight: 700;
-}
-
-/* Station Trim uses the same 3-column width rules as OptiCut. */
-.station-live-sheet .trim-list-sheet .cutlist-print-columns {
-  --station-flow-cols: 3;
 }
 
 .station-live-sheet .trim-list-sheet .cutlist-table {
@@ -3201,9 +3239,7 @@ body.station-live.print-active .station-root {
 }
 
 .station-live-sheet .print-batch-time {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #334155 !important;
+  display: none; /* baked send-time label is misleading on live station */
 }
 
 .station-live-sheet .print-batch-meta {
@@ -3242,6 +3278,12 @@ body.station-live.print-active .station-root {
 .station-live-sheet .print-batch-special {
   font-size: 0.68rem;
   padding: 0.06rem 0.28rem;
+}
+
+.station-live-sheet .print-batch-trim {
+  font-size: 0.68rem;
+  padding: 0.06rem 0.28rem;
+  background: #0f766e;
 }
 
 .station-live-sheet .cutlist-print-flow {
@@ -3329,7 +3371,14 @@ body.station-live.print-active .station-root {
   font-weight: 400;
   color: #000 !important;
   white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
   font-variant-numeric: tabular-nums;
+}
+
+.station-live-sheet .cutlist-qty,
+.station-live-sheet .cutlist-qty b {
+  font-weight: 600;
 }
 
 .station-live-sheet .cutlist-group-id {
@@ -3404,13 +3453,17 @@ body.station-live.print-active .station-root {
 
 @media (max-width: 900px) {
   .station-live-sheet .cutlist-print-columns {
+    --station-flow-cols: 2;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
   }
 }
 
 @media (max-width: 640px) {
   .station-live-sheet .cutlist-print-columns {
+    --station-flow-cols: 1;
     grid-template-columns: 1fr;
+    width: 100%;
   }
 }
 
