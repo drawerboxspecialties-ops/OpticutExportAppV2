@@ -4,6 +4,7 @@ import {
   buildBatchOrdersIndex,
   cutListRowId,
   packCutListPrintFlow,
+  packStationBalancedFlow,
   estimateRowsPerPrintColumn,
   estimateStationRowsPerColumn,
   formatPrintBatchOrders,
@@ -288,6 +289,66 @@ describe('station checkbox mode', () => {
   });
 });
 
+describe('packStationBalancedFlow', () => {
+  it('fills all three columns for a large OptiCut-sized list', () => {
+    const sections = [
+      {
+        order: 'A',
+        titleHtml: 'Order A',
+        contTitleHtml: 'Order A (cont.)',
+        rows: Array.from({ length: 39 }, () => ({})),
+      },
+      {
+        order: 'B',
+        titleHtml: 'Order B',
+        contTitleHtml: 'Order B (cont.)',
+        rows: Array.from({ length: 20 }, () => ({})),
+      },
+      {
+        order: 'C',
+        titleHtml: 'Order C',
+        contTitleHtml: 'Order C (cont.)',
+        rows: Array.from({ length: 19 }, () => ({})),
+      },
+    ];
+    const pages = packStationBalancedFlow(sections);
+    expect(pages).toHaveLength(1);
+    const filled = pages[0].filter((col) => col.length > 0);
+    expect(filled).toHaveLength(3);
+    const heights = pages[0].map((col) =>
+      col.reduce((sum, frag) => sum + 2 + (frag.rows?.length || 0), 0)
+    );
+    // Columns should be roughly even (not one tall + two empty).
+    expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(20);
+  });
+
+  it('is used by station OptiCut HTML (not a single left column)', () => {
+    const orders = ['1', '2', '3', '4', '5', '6'];
+    const sourceRows = orders.flatMap((order, idx) => {
+      const rows = [];
+      for (let i = 0; i < 8; i++) {
+        rows.push(...drawerRows(order, String(i + 1), String(20 + i), String(4 + (idx % 3))));
+      }
+      return rows;
+    });
+    const batch = {
+      materialName: 'PF: 12MM Baltic Birch Ply',
+      topEdge: 'PVC',
+      totalBoxes: 48,
+      sortedOrders: orders,
+      orderColTotals: Object.fromEntries(orders.map((o) => [o, 8])),
+      sourceRows,
+    };
+    const html = buildCutListPrintCard('TEST', batch, cols, null, { mode: 'station' });
+    const colBlocks = html.match(/cutlist-order-column(?!--empty)/g) || [];
+    expect(colBlocks.length).toBeGreaterThanOrEqual(3);
+    // Should not leave two trailing empty columns on the only band.
+    expect(html).not.toMatch(
+      /cutlist-order-column">[\s\S]*cutlist-order-column--empty[\s\S]*cutlist-order-column--empty[\s\S]*<\/div>\s*<\/div>\s*<\/div>$/
+    );
+  });
+});
+
 describe('estimateStationRowsPerColumn', () => {
   it('balances large lists across three columns', () => {
     const sections = [
@@ -295,22 +356,9 @@ describe('estimateStationRowsPerColumn', () => {
       { rows: Array.from({ length: 20 }, () => ({})) },
       { rows: Array.from({ length: 19 }, () => ({})) },
     ];
-    // 78 rows + 3 titles ≈ 84 units → ~28 per column (not the old 72+)
     const perCol = estimateStationRowsPerColumn(sections);
     expect(perCol).toBeGreaterThanOrEqual(10);
     expect(perCol).toBeLessThanOrEqual(40);
-    const pages = packCutListPrintFlow(
-      sections.map((s, i) => ({
-        order: String(i),
-        titleHtml: `Order ${i}`,
-        contTitleHtml: `Order ${i}`,
-        rows: s.rows,
-      })),
-      { columnCount: 3, rowsPerColumn: perCol, titleCost: 2 }
-    );
-    const filledCols = pages.flatMap((page) => page).filter((col) => col.length > 0);
-    expect(filledCols.length).toBeGreaterThanOrEqual(3);
-    expect(pages[0].filter((col) => col.length > 0).length).toBe(3);
   });
 
   it('keeps tiny lists in one column', () => {

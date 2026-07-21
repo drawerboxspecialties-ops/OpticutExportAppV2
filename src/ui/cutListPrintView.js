@@ -222,6 +222,61 @@ export function estimateStationRowsPerColumn(
 }
 
 /**
+ * Station-only packer: place each chunk into the shortest column so all
+ * three columns fill evenly (unlike print, which fills col1 then col2…).
+ *
+ * @returns {Array<Array<Array<{order: string, titleHtml: string, rows: object[], rowStart: number}>>>}
+ */
+export function packStationBalancedFlow(
+  sections,
+  { columnCount = PRINT_FLOW_COLUMNS, titleCost = ORDER_TITLE_ROW_COST } = {}
+) {
+  const columns = Array.from({ length: columnCount }, () => []);
+  const used = Array.from({ length: columnCount }, () => 0);
+
+  let totalRows = 0;
+  (sections || []).forEach((section) => {
+    totalRows += section?.rows?.length || 0;
+  });
+  // Prefer spreading tall orders across columns instead of one long stack.
+  const chunkSize = Math.max(6, Math.ceil(totalRows / Math.max(1, columnCount)) || 6);
+
+  const place = (fragment, cost) => {
+    let best = 0;
+    for (let i = 1; i < columnCount; i++) {
+      if (used[i] < used[best]) best = i;
+    }
+    columns[best].push(fragment);
+    used[best] += cost;
+  };
+
+  for (const section of sections || []) {
+    const rows = section.rows || [];
+    if (!rows.length) continue;
+    let offset = 0;
+    let firstFragment = true;
+    while (offset < rows.length) {
+      const chunk = rows.slice(offset, offset + chunkSize);
+      const overhead = Math.max(1, titleCost);
+      place(
+        {
+          order: section.order,
+          titleHtml: firstFragment ? section.titleHtml || '' : section.contTitleHtml || '',
+          rows: chunk,
+          rowStart: offset,
+        },
+        overhead + chunk.length
+      );
+      offset += chunk.length;
+      firstFragment = false;
+    }
+  }
+
+  if (!columns.some((col) => col.length)) return [];
+  return [columns];
+}
+
+/**
  * Pack order sections into page bands of columns.
  * Fill column 1 top-to-bottom, then column 2, then column 3.
  * The next order continues in the same column under the previous table
@@ -401,7 +456,10 @@ function renderCutListFlowBody(
     titleHtml: buildSectionTitleHtml(section, batch, colIndices, anySpecial),
     contTitleHtml: buildSectionContTitleHtml(section),
   }));
-  const pages = packCutListPrintFlow(titled, { rowsPerColumn });
+  const pages =
+    mode === 'station'
+      ? packStationBalancedFlow(titled)
+      : packCutListPrintFlow(titled, { rowsPerColumn });
 
   return pages.map((columns) => renderFlowPage(columns, hasGroup, mode)).join('');
 }
@@ -420,9 +478,8 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
     orderCount: Math.max(sections.length, (batch?.sortedOrders || []).length, 1),
     hasShipDate: Boolean(formatShipDateLabel(batch?.shipDate, colIndices)),
   });
-  // Station: spread across 3 columns to use width / reduce scroll. Print stays page-safe.
-  const rowsPerColumn =
-    mode === 'station' ? estimateStationRowsPerColumn(sections) : printRows;
+  // Print: page-safe packing. Station: balanced 3-column packer (see renderCutListFlowBody).
+  const rowsPerColumn = printRows;
 
   return `<div class="cutlist-print-sheet"${mode === 'station' ? ' data-station-sheet="1"' : ''}>${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, rowsPerColumn, mode)}</div></div>`;
 }

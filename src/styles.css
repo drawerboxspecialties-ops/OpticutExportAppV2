@@ -3325,13 +3325,13 @@ body.station-live.print-active .station-root {
   text-decoration: line-through;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 900px) {
   .station-live-sheet .cutlist-print-columns {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .station-live-sheet .cutlist-print-columns {
     grid-template-columns: 1fr;
   }
