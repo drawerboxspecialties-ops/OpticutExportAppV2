@@ -222,26 +222,31 @@ export function estimateStationRowsPerColumn(
 }
 
 /**
- * Station packer: keep each order together in one column.
- * Place whole orders into the shortest column. Never split an order across
- * columns — empty space under a table is fine; "(cont.)" is not.
+ * Station screen packer: fill column 1 top-to-bottom, then 2, then 3.
+ * Keeps each order whole. Live view re-packs with viewport height via
+ * balanceStationFlowColumns; this keeps baked HTML close to that flow.
  *
  * @returns {Array<Array<Array<{order: string, titleHtml: string, rows: object[], rowStart: number}>>>}
  */
 export function packStationBalancedFlow(
   sections,
-  { columnCount = PRINT_FLOW_COLUMNS, titleCost = ORDER_TITLE_ROW_COST } = {}
+  {
+    columnCount = PRINT_FLOW_COLUMNS,
+    titleCost = ORDER_TITLE_ROW_COST,
+    rowsPerColumn = 22,
+  } = {}
 ) {
   const columns = Array.from({ length: columnCount }, () => []);
   const used = Array.from({ length: columnCount }, () => 0);
+  let colIndex = 0;
+  const budget = Math.max(4, rowsPerColumn);
 
   const place = (fragment, cost) => {
-    let best = 0;
-    for (let i = 1; i < columnCount; i++) {
-      if (used[i] < used[best]) best = i;
+    if (used[colIndex] > 0 && used[colIndex] + cost > budget && colIndex < columnCount - 1) {
+      colIndex += 1;
     }
-    columns[best].push(fragment);
-    used[best] += cost;
+    columns[colIndex].push(fragment);
+    used[colIndex] += cost;
   };
 
   for (const section of sections || []) {

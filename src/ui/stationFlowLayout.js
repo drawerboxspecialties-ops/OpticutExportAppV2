@@ -8,24 +8,63 @@ import {
 /** Max side-by-side columns on the station monitor. */
 export const STATION_FLOW_COLUMNS = 3;
 
+/** Fallback row-units per column when viewport height is unknown (bake / tests). */
+export const STATION_SCREEN_ROWS_PER_COLUMN = 22;
+
 /**
- * Place fragments into columns by shortest height (row-cost).
+ * Fill column 1 top-to-bottom, then column 2, then column 3.
+ * Stacks small orders in the same column until the budget is full — matches
+ * “fluid flow / less scrolling” on the station monitor.
+ *
  * @param {Array<{ cost: number }>} items
  * @param {number} [columnCount]
+ * @param {number} [maxCostPerColumn] row-units (title≈2 + data rows)
  * @returns {number[][]} column index → item indices
  */
-export function assignFragmentsToColumns(items, columnCount = STATION_FLOW_COLUMNS) {
+export function assignFragmentsToColumns(
+  items,
+  columnCount = STATION_FLOW_COLUMNS,
+  maxCostPerColumn = STATION_SCREEN_ROWS_PER_COLUMN
+) {
   const columns = Array.from({ length: columnCount }, () => []);
   const used = Array.from({ length: columnCount }, () => 0);
+  let col = 0;
+  const budget = Math.max(4, maxCostPerColumn || STATION_SCREEN_ROWS_PER_COLUMN);
+
   (items || []).forEach((item, index) => {
-    let best = 0;
-    for (let i = 1; i < columnCount; i++) {
-      if (used[i] < used[best]) best = i;
+    const cost = Math.max(1, item?.cost || 1);
+    if (used[col] > 0 && used[col] + cost > budget && col < columnCount - 1) {
+      col += 1;
     }
-    columns[best].push(index);
-    used[best] += Math.max(1, item?.cost || 1);
+    columns[col].push(index);
+    used[col] += cost;
   });
+
   return columns;
+}
+
+/**
+ * Estimate how many row-units fit in one station column for the current viewport.
+ * @param {ParentNode} root
+ * @returns {number}
+ */
+export function estimateStationViewportColumnBudget(root) {
+  const body =
+    root?.closest?.('.station-live-body') ||
+    root?.querySelector?.('.station-live-body') ||
+    root;
+  const avail = Math.max(180, (body?.clientHeight || 640) - 96);
+  const sample =
+    root?.querySelector?.('.cutlist-table tbody tr') ||
+    root?.querySelector?.('tbody tr');
+  let rowH = 22;
+  try {
+    const h = sample?.getBoundingClientRect?.().height;
+    if (h && h > 8) rowH = h;
+  } catch {
+    /* ignore */
+  }
+  return Math.max(8, Math.floor(avail / rowH));
 }
 
 function fragmentCost(el) {
@@ -113,13 +152,15 @@ export function stationFlowNeedsOrderMerge(root) {
 
 /**
  * Rebuild every cut-list / trim flow into up to three columns.
- * Keeps each order together; uses extra columns for additional orders.
- * Full monitor width only when multiple columns have content.
+ * Fills column 1 until the viewport budget is full, then column 2, then 3.
+ * Keeps each order together; only opens another column when needed.
  * @param {ParentNode} root
  * @param {number} [columnCount]
  */
 export function balanceStationFlowColumns(root, columnCount = STATION_FLOW_COLUMNS) {
   if (!root?.querySelectorAll) return;
+
+  const budget = estimateStationViewportColumnBudget(root);
 
   root.querySelectorAll('.cutlist-print-flow').forEach((flow) => {
     const raw = [...flow.querySelectorAll('.cutlist-order-fragment')];
@@ -127,7 +168,7 @@ export function balanceStationFlowColumns(root, columnCount = STATION_FLOW_COLUM
 
     const fragments = mergeStationOrderFragments(raw);
     const items = fragments.map((el) => ({ cost: fragmentCost(el) }));
-    const assignment = assignFragmentsToColumns(items, columnCount);
+    const assignment = assignFragmentsToColumns(items, columnCount, budget);
     const filled = assignment.filter((indexes) => indexes.length > 0);
     const usedCols = Math.max(1, filled.length);
 

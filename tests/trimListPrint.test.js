@@ -268,10 +268,10 @@ describe('buildTrimListPrintCard', () => {
     };
     const html = buildTrimListPrintCard('PLY_CFB_multi', batch, cols, { mode: 'station' });
     expect(html).toContain('data-trim-sheet');
-    expect(html).toContain('--station-flow-cols:3');
+    expect(html).toMatch(/--station-flow-cols:[23]/);
     expect(html).not.toContain('cutlist-order-column--empty');
     const filledCols = html.match(/cutlist-order-column(?!--empty)/g) || [];
-    expect(filledCols.length).toBeGreaterThanOrEqual(3);
+    expect(filledCols.length).toBeGreaterThanOrEqual(2);
     // Trailing decimals must remain visible (no 3.... truncation).
     expect(html).toContain('.938');
     expect(html).not.toMatch(/\d\.\.\.\./);

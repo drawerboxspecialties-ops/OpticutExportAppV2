@@ -327,7 +327,7 @@ describe('station checkbox mode', () => {
 });
 
 describe('packStationBalancedFlow', () => {
-  it('keeps two medium orders whole (does not split into a third cont. column)', () => {
+  it('stacks two medium orders in column 1 when they fit the screen budget', () => {
     const sections = [
       {
         order: 'A',
@@ -342,11 +342,11 @@ describe('packStationBalancedFlow', () => {
         rows: Array.from({ length: 7 }, () => ({})),
       },
     ];
-    const pages = packStationBalancedFlow(sections);
+    const pages = packStationBalancedFlow(sections, { rowsPerColumn: 22 });
     expect(pages).toHaveLength(1);
     const filled = pages[0].filter((col) => col.length > 0);
-    expect(filled).toHaveLength(2);
-    // Each order is a single fragment (no "(cont.)" split).
+    expect(filled).toHaveLength(1);
+    expect(pages[0][0].map((f) => f.order)).toEqual(['A', 'B']);
     expect(pages[0].flat().every((frag) => !/cont/i.test(frag.titleHtml || ''))).toBe(true);
   });
 
@@ -386,14 +386,17 @@ describe('packStationBalancedFlow', () => {
         rows: Array.from({ length: 10 }, () => ({})),
       },
     ];
-    const pages = packStationBalancedFlow(sections);
+    const pages = packStationBalancedFlow(sections, { rowsPerColumn: 22 });
     const frags = pages[0].flat();
     expect(frags.filter((f) => f.order === '602915')).toHaveLength(1);
     expect(frags.find((f) => f.order === '602915')?.rows).toHaveLength(15);
     expect(frags.every((f) => !/cont/i.test(f.titleHtml || ''))).toBe(true);
+    // 15+2 fit in col1 (19≤22); order 602938 opens col2.
+    expect(pages[0][0].map((f) => f.order)).toEqual(['602915', '602933']);
+    expect(pages[0][1].map((f) => f.order)).toEqual(['602938']);
   });
 
-  it('fills all three columns for a large OptiCut-sized list', () => {
+  it('fills later columns only after the screen budget is used', () => {
     const sections = [
       {
         order: 'A',
@@ -414,11 +417,10 @@ describe('packStationBalancedFlow', () => {
         rows: Array.from({ length: 19 }, () => ({})),
       },
     ];
-    const pages = packStationBalancedFlow(sections);
+    const pages = packStationBalancedFlow(sections, { rowsPerColumn: 22 });
     expect(pages).toHaveLength(1);
     const filled = pages[0].filter((col) => col.length > 0);
     expect(filled).toHaveLength(3);
-    // Still no continuations — each order is whole.
     expect(pages[0].flat().every((frag) => !/cont/i.test(frag.titleHtml || ''))).toBe(true);
   });
 
@@ -441,10 +443,9 @@ describe('packStationBalancedFlow', () => {
     };
     const html = buildCutListPrintCard('TEST', batch, cols, null, { mode: 'station' });
     const colBlocks = html.match(/cutlist-order-column(?!--empty)/g) || [];
-    expect(colBlocks.length).toBeGreaterThanOrEqual(3);
+    expect(colBlocks.length).toBeGreaterThanOrEqual(2);
     expect(html).toContain('data-order="1"');
     expect(html).not.toMatch(/\(cont\.\)/);
-    // Should not leave two trailing empty columns on the only band.
     expect(html).not.toMatch(
       /cutlist-order-column">[\s\S]*cutlist-order-column--empty[\s\S]*cutlist-order-column--empty[\s\S]*<\/div>\s*<\/div>\s*<\/div>$/
     );

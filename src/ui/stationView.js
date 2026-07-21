@@ -790,6 +790,16 @@ export function mountStationView(root) {
     zoomInEl.disabled = ZOOM_STEPS.indexOf(zoom) >= ZOOM_STEPS.length - 1;
     const sheet = bodyEl.querySelector('.station-live-sheet');
     if (sheet) sheet.style.zoom = String(zoom);
+    // Re-flow columns for the effective viewport after zoom.
+    if (bodyEl.querySelector('.cutlist-print-flow')) {
+      try {
+        balanceStationFlowColumns(bodyEl);
+        const job = activeJobs().find((j) => j.batchKey === selectedKey);
+        if (job) applyStationChecks(bodyEl, job);
+      } catch (err) {
+        console.warn('Station column layout failed:', err);
+      }
+    }
   }
 
   function stepZoom(direction) {
