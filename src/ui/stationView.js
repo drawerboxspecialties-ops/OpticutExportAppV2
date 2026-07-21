@@ -363,11 +363,12 @@ export function mountStationView(root) {
     if (job) renderSelected(job);
   }
 
-  /** Print via the shared print container so @media print rules work (not a blank page). */
+  /** Print the live station sheet (same order layout as on screen), fitted to the page. */
   function printSelectedBatch() {
     const job = activeJobs().find((j) => j.batchKey === selectedKey);
-    const html = isTrimTab() ? job?.trimHtml : job?.html;
-    if (!job || !html) {
+    const bakedHtml = isTrimTab() ? job?.trimHtml : job?.html;
+    const liveSheet = bodyEl.querySelector('.station-live-sheet .cutlist-print-sheet');
+    if (!job || (!liveSheet && !bakedHtml)) {
       setStatus('error', isTrimTab() ? 'No trim list — re-send batch from prep' : 'Select a batch to print');
       return;
     }
@@ -378,8 +379,14 @@ export function mountStationView(root) {
     }
 
     const card = document.createElement('div');
-    card.className = 'print-batch-card';
-    card.innerHTML = html;
+    card.className = 'print-batch-card print-batch-card--station';
+    // Prefer the live DOM so Print matches what the operator sees (whole orders, no forced balance).
+    if (liveSheet) {
+      card.appendChild(liveSheet.cloneNode(true));
+    } else {
+      card.innerHTML = bakedHtml;
+    }
+
     const checks = effectiveChecks(job);
     // Convert station checkboxes to print-check boxes (form controls often omit in print).
     card.querySelectorAll('.station-check[data-row-id]').forEach((input) => {
@@ -391,7 +398,6 @@ export function mountStationView(root) {
       if (checked) span.setAttribute('data-checked', '1');
       input.replaceWith(span);
     });
-    // Refresh printed timestamp to wall-clock print time.
     const timeEl = card.querySelector('.print-batch-time');
     if (timeEl) {
       timeEl.textContent = `Printed: ${new Date().toLocaleString('en-US', {
@@ -402,9 +408,9 @@ export function mountStationView(root) {
         minute: '2-digit',
         hour12: true,
       })}`;
+      timeEl.style.display = '';
     }
-    // Show barcode/time in print (hidden on live station sheet).
-    card.querySelectorAll('.print-batch-barcode, .print-batch-time').forEach((el) => {
+    card.querySelectorAll('.print-batch-barcode').forEach((el) => {
       el.style.display = '';
     });
 

@@ -3543,6 +3543,49 @@ body.station-live.print-active .station-root {
   body.station-print-active .station-root {
     display: none !important;
   }
+
+  /* Match the on-screen column count (not a forced 3-up balance). Fill the page. */
+  body.station-print-active .print-batch-card--station .cutlist-print-columns {
+    grid-template-columns: repeat(var(--station-flow-cols, 3), minmax(0, 1fr)) !important;
+    width: 100% !important;
+    max-width: none !important;
+    gap: 0.1in;
+  }
+
+  body.station-print-active .print-batch-card--station .cutlist-print-sheet {
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  body.station-print-active .print-batch-card--station .cutlist-order-fragment {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  body.station-print-active .print-batch-card--station .cutlist-table {
+    font-size: 9px;
+  }
+
+  body.station-print-active .print-batch-card--station .cutlist-table th {
+    font-size: 8px;
+    padding: 2px 3px;
+  }
+
+  body.station-print-active .print-batch-card--station .cutlist-table td {
+    padding: 2px 3px;
+  }
+
+  body.station-print-active .print-batch-card--station .cutlist-dim,
+  body.station-print-active .print-batch-card--station .cutlist-qty {
+    font-size: 9px;
+  }
+
+  body.station-print-active .print-batch-card--station .cutlist-order-title {
+    font-size: 9px;
+    padding: 2px 4px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
