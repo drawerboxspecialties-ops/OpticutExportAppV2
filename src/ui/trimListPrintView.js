@@ -127,10 +127,10 @@ function renderTrimTableHead(hasGroup) {
       <thead>
         <tr class="cutlist-columns-row">
           ${hasGroup ? '<th>Grp</th>' : ''}
-          <th>FB W</th>
-          <th>F / B</th>
-          <th>LR W</th>
-          <th>L / R</th>
+          <th>F/B W</th>
+          <th>L</th>
+          <th>L/R W</th>
+          <th>L</th>
           <th>Bx</th>
           <th>Pcs</th>
           <th class="cutlist-check-col" aria-label="Check"></th>
