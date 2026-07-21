@@ -290,7 +290,7 @@ describe('station checkbox mode', () => {
 });
 
 describe('packStationBalancedFlow', () => {
-  it('fills all three columns for two medium orders (no empty third)', () => {
+  it('keeps two medium orders whole (does not split into a third cont. column)', () => {
     const sections = [
       {
         order: 'A',
@@ -308,7 +308,24 @@ describe('packStationBalancedFlow', () => {
     const pages = packStationBalancedFlow(sections);
     expect(pages).toHaveLength(1);
     const filled = pages[0].filter((col) => col.length > 0);
-    expect(filled).toHaveLength(3);
+    expect(filled).toHaveLength(2);
+    // Each order is a single fragment (no "(cont.)" split).
+    expect(pages[0].flat().every((frag) => !/cont/i.test(frag.titleHtml || ''))).toBe(true);
+  });
+
+  it('keeps a single short order in one column (no 3-way cont. split)', () => {
+    const sections = [
+      {
+        order: '602947',
+        titleHtml: 'Order 602947',
+        contTitleHtml: 'Order 602947 (cont.)',
+        rows: Array.from({ length: 14 }, () => ({})),
+      },
+    ];
+    const pages = packStationBalancedFlow(sections);
+    const filled = pages[0].filter((col) => col.length > 0);
+    expect(filled).toHaveLength(1);
+    expect(pages[0].flat()).toHaveLength(1);
   });
 
   it('fills all three columns for a large OptiCut-sized list', () => {
@@ -336,11 +353,6 @@ describe('packStationBalancedFlow', () => {
     expect(pages).toHaveLength(1);
     const filled = pages[0].filter((col) => col.length > 0);
     expect(filled).toHaveLength(3);
-    const heights = pages[0].map((col) =>
-      col.reduce((sum, frag) => sum + 2 + (frag.rows?.length || 0), 0)
-    );
-    // Columns should be roughly even (not one tall + two empty).
-    expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(20);
   });
 
   it('is used by station OptiCut HTML (not a single left column)', () => {

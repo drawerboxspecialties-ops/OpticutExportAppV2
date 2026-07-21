@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   STATION_FLOW_COLUMNS,
   assignFragmentsToColumns,
+  stationOrderFragmentKey,
 } from '../src/ui/stationFlowLayout.js';
 
 describe('assignFragmentsToColumns', () => {
@@ -42,5 +43,12 @@ describe('assignFragmentsToColumns', () => {
     ];
     const cols = assignFragmentsToColumns(items);
     expect(cols.filter((c) => c.length > 0)).toHaveLength(3);
+  });
+});
+
+describe('stationOrderFragmentKey', () => {
+  it('matches primary and continuation titles for the same order', () => {
+    expect(stationOrderFragmentKey('Order 602947 - 43 boxes (1-24) ★ SPECIAL')).toBe('602947');
+    expect(stationOrderFragmentKey('Order 602947 (cont.)')).toBe('602947');
   });
 });

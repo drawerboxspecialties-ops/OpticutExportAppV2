@@ -222,26 +222,26 @@ export function estimateStationRowsPerColumn(
 }
 
 /**
- * Station-only packer: place each chunk into the shortest column so all
- * three columns fill evenly (unlike print, which fills col1 then col2…).
- * Chunks stay small enough that two medium orders still span the full width
- * instead of leaving an empty third column and a tall scroll.
+ * Station packer: keep each order together in one column.
+ * Place whole orders into the shortest column (so multiple orders use
+ * side-by-side space). Only split a single order when it is taller than
+ * STATION_ORDER_KEEP_TOGETHER_MAX — never scatter a short order across
+ * three columns with empty space underneath.
  *
  * @returns {Array<Array<Array<{order: string, titleHtml: string, rows: object[], rowStart: number}>>>}
  */
+export const STATION_ORDER_KEEP_TOGETHER_MAX = 28;
+
 export function packStationBalancedFlow(
   sections,
-  { columnCount = PRINT_FLOW_COLUMNS, titleCost = ORDER_TITLE_ROW_COST } = {}
+  {
+    columnCount = PRINT_FLOW_COLUMNS,
+    titleCost = ORDER_TITLE_ROW_COST,
+    keepTogetherMax = STATION_ORDER_KEEP_TOGETHER_MAX,
+  } = {}
 ) {
   const columns = Array.from({ length: columnCount }, () => []);
   const used = Array.from({ length: columnCount }, () => 0);
-
-  let totalRows = 0;
-  (sections || []).forEach((section) => {
-    totalRows += section?.rows?.length || 0;
-  });
-  // Spread across every column: min 3 rows/chunk so short batches still fill width.
-  const chunkSize = Math.max(3, Math.ceil(totalRows / Math.max(1, columnCount)) || 3);
 
   const place = (fragment, cost) => {
     let best = 0;
@@ -255,11 +255,17 @@ export function packStationBalancedFlow(
   for (const section of sections || []) {
     const rows = section.rows || [];
     if (!rows.length) continue;
+    const overhead = Math.max(1, titleCost);
+    // Keep the order in one piece unless it is too tall for a readable column.
+    const chunkSize =
+      rows.length > keepTogetherMax
+        ? Math.max(keepTogetherMax, Math.ceil(rows.length / columnCount))
+        : rows.length;
+
     let offset = 0;
     let firstFragment = true;
     while (offset < rows.length) {
       const chunk = rows.slice(offset, offset + chunkSize);
-      const overhead = Math.max(1, titleCost);
       place(
         {
           order: section.order,

@@ -26,11 +26,50 @@ function fragmentCost(el) {
   return 2 + rows;
 }
 
+/** Pull the order id from a fragment title ("Order 602947 - …" / "(cont.)"). */
+export function stationOrderFragmentKey(titleText) {
+  const text = String(titleText || '').trim();
+  const match = text.match(/order\s+([^\s(]+)/i);
+  if (match) return match[1].replace(/[,\s]+$/g, '').toLowerCase();
+  return text.replace(/\s*\(cont\.\)\s*/gi, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
 /**
- * Rebuild every cut-list / trim flow into up to three balanced columns.
- * Full monitor width only when all three columns have content; a single
- * column stays ~1/3 width so tables are not stretched edge-to-edge.
- * Applies to OptiCut and Trim (same fragment markup).
+ * Merge continuation fragments of the same order back into one table so a
+ * short order is not left split across columns with empty space below.
+ * @param {Element[]} fragments
+ * @returns {Element[]}
+ */
+export function mergeStationOrderFragments(fragments) {
+  const primaryByKey = new Map();
+  const orderKeys = [];
+
+  (fragments || []).forEach((frag) => {
+    const titleEl = frag.querySelector('.cutlist-order-title');
+    const titleText = titleEl?.textContent || '';
+    const key = stationOrderFragmentKey(titleText) || `frag-${orderKeys.length}`;
+
+    if (!primaryByKey.has(key)) {
+      primaryByKey.set(key, frag);
+      orderKeys.push(key);
+      return;
+    }
+
+    const primary = primaryByKey.get(key);
+    const tbody = primary.querySelector('tbody');
+    if (!tbody) return;
+    frag.querySelectorAll('tbody tr').forEach((row) => {
+      tbody.appendChild(row);
+    });
+  });
+
+  return orderKeys.map((key) => primaryByKey.get(key)).filter(Boolean);
+}
+
+/**
+ * Rebuild every cut-list / trim flow into up to three columns.
+ * Keeps each order together; uses extra columns for additional orders.
+ * Full monitor width only when multiple columns have content.
  * @param {ParentNode} root
  * @param {number} [columnCount]
  */
@@ -38,9 +77,10 @@ export function balanceStationFlowColumns(root, columnCount = STATION_FLOW_COLUM
   if (!root?.querySelectorAll) return;
 
   root.querySelectorAll('.cutlist-print-flow').forEach((flow) => {
-    const fragments = [...flow.querySelectorAll('.cutlist-order-fragment')];
-    if (!fragments.length) return;
+    const raw = [...flow.querySelectorAll('.cutlist-order-fragment')];
+    if (!raw.length) return;
 
+    const fragments = mergeStationOrderFragments(raw);
     const items = fragments.map((el) => ({ cost: fragmentCost(el) }));
     const assignment = assignFragmentsToColumns(items, columnCount);
     const filled = assignment.filter((indexes) => indexes.length > 0);
