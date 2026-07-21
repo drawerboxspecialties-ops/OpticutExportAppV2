@@ -3228,17 +3228,24 @@ body.station-live.print-active .station-root {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  width: 100%;
 }
 
 .station-live-sheet .cutlist-print-columns {
   display: grid;
-  grid-template-columns: repeat(var(--station-flow-cols, 3), minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
-  gap: 0.3rem 0.4rem;
+  gap: 0.3rem 0.45rem;
+  width: 100%;
 }
 
 .station-live-sheet .cutlist-print-columns + .cutlist-print-columns {
   margin-top: 0;
+}
+
+.station-live-sheet .cutlist-order-column {
+  min-width: 0;
+  width: 100%;
 }
 
 .station-live-sheet .cutlist-order-title {
@@ -3364,7 +3371,7 @@ body.station-live.print-active .station-root {
 
 @media (max-width: 900px) {
   .station-live-sheet .cutlist-print-columns {
-    grid-template-columns: repeat(min(2, var(--station-flow-cols, 2)), minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
