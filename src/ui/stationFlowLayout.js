@@ -1,4 +1,4 @@
-/** Station always shows this many side-by-side columns. */
+/** Max side-by-side columns on the station monitor. */
 export const STATION_FLOW_COLUMNS = 3;
 
 /**
@@ -27,8 +27,9 @@ function fragmentCost(el) {
 }
 
 /**
- * Rebuild every cut-list flow in `root` into exactly three balanced columns
- * that span the full station width. Works on already-sent (old) HTML too.
+ * Rebuild every cut-list flow into up to three balanced columns.
+ * Full monitor width only when all three columns have content; a single
+ * column stays ~1/3 width so tables are not stretched edge-to-edge.
  * @param {ParentNode} root
  * @param {number} [columnCount]
  */
@@ -41,19 +42,21 @@ export function balanceStationFlowColumns(root, columnCount = STATION_FLOW_COLUM
 
     const items = fragments.map((el) => ({ cost: fragmentCost(el) }));
     const assignment = assignFragmentsToColumns(items, columnCount);
+    const filled = assignment.filter((indexes) => indexes.length > 0);
+    const usedCols = Math.max(1, filled.length);
 
     const band = document.createElement('div');
     band.className = 'cutlist-print-columns';
-    band.style.setProperty('--station-flow-cols', String(columnCount));
+    band.style.setProperty('--station-flow-cols', String(usedCols));
 
-    for (let c = 0; c < columnCount; c++) {
+    filled.forEach((indexes) => {
       const col = document.createElement('div');
       col.className = 'cutlist-order-column';
-      assignment[c].forEach((fragIndex) => {
+      indexes.forEach((fragIndex) => {
         col.appendChild(fragments[fragIndex]);
       });
       band.appendChild(col);
-    }
+    });
 
     flow.replaceChildren(band);
   });

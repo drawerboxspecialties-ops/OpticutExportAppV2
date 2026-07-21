@@ -386,7 +386,7 @@ function renderFlowColumn(fragments, hasGroup, mode = 'print') {
 }
 
 function renderFlowPage(columns, hasGroup, mode = 'print') {
-  // Station: drop empty columns so remaining tables stretch full monitor width.
+  // Station: only emit filled columns; CSS sizes width to cols/3 of the monitor.
   const cols =
     mode === 'station' ? columns.filter((fragments) => fragments.length) : columns;
   const used = cols.length ? cols : columns;

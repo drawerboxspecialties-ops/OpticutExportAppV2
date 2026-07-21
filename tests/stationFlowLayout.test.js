@@ -22,6 +22,12 @@ describe('assignFragmentsToColumns', () => {
     expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(8);
   });
 
+  it('leaves unused columns empty when there is only one fragment', () => {
+    const cols = assignFragmentsToColumns([{ cost: 5 }]);
+    expect(cols.filter((c) => c.length > 0)).toHaveLength(1);
+    expect(cols[0]).toEqual([0]);
+  });
+
   it('fills three columns for a left-packed list (old station HTML shape)', () => {
     // Mimic old print packing: tall stack that used to sit only in column 1.
     const items = [
