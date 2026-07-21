@@ -2900,17 +2900,12 @@ body.station-live.print-active .station-root {
 }
 
 .trim-list-sheet .trim-lr-w {
-  color: var(--st-accent-ink);
+  color: inherit;
 }
 
 .trim-list-sheet .trim-row-needs .trim-lr-w {
   color: #9a6700;
-}
-
-.trim-list-flow {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  font-weight: 700;
 }
 
 .trim-list-empty {

@@ -148,11 +148,13 @@ describe('trimListRowId', () => {
 });
 
 describe('buildTrimListPrintCard', () => {
-  it('renders F/B W and L/R W columns with actual values', () => {
+  it('renders OptiCut-style flow with actual F/B and L/R W columns', () => {
     const batch = {
       materialName: 'PF: 5/8" Maple White',
       topEdge: 'Flat Foil',
       totalBoxes: 4,
+      sortedOrders: ['602913'],
+      orderColTotals: { '602913': 4 },
       sourceRows: [
         row({
           order: '602913',
@@ -193,12 +195,13 @@ describe('buildTrimListPrintCard', () => {
       ],
     };
     const html = buildTrimListPrintCard('SLD_CFB_602913', batch, cols, { mode: 'station' });
-    expect(html).toContain('Trim list');
+    expect(html).toContain('TRIM');
+    expect(html).toContain('cutlist-print-columns');
+    expect(html).toContain('print-meta-chip');
     expect(html).toContain('F/B W');
     expect(html).toContain('L/R W');
-    expect(html).not.toContain('Cut W');
-    expect(html).not.toContain('Finish W');
     expect(html).toContain('3.938');
     expect(html).toContain('data-trim-sheet');
+    expect(html).toContain('station-check');
   });
 });
