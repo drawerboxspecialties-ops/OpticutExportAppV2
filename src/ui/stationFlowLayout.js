@@ -35,6 +35,27 @@ export function stationOrderFragmentKey(titleText) {
 }
 
 /**
+ * Stable order key for a fragment: data-order, title, or first row id.
+ * @param {Element} frag
+ * @returns {string}
+ */
+export function stationOrderKeyFromFragment(frag) {
+  const dataOrder = frag?.getAttribute?.('data-order');
+  if (dataOrder) return String(dataOrder).trim().toLowerCase();
+
+  const titleText = frag?.querySelector?.('.cutlist-order-title')?.textContent || '';
+  const fromTitle = stationOrderFragmentKey(titleText);
+  if (fromTitle) return fromTitle;
+
+  const rowId =
+    frag?.querySelector?.('tr[data-row-id], [data-row-id]')?.getAttribute('data-row-id') || '';
+  if (!rowId) return '';
+  const parts = rowId.split('|');
+  if (parts[0] === 't') return String(parts[1] || '').trim().toLowerCase();
+  return String(parts[0] || '').trim().toLowerCase();
+}
+
+/**
  * Merge continuation fragments of the same order back into one table so a
  * short order is not left split across columns with empty space below.
  * @param {Element[]} fragments
@@ -44,10 +65,8 @@ export function mergeStationOrderFragments(fragments) {
   const primaryByKey = new Map();
   const orderKeys = [];
 
-  (fragments || []).forEach((frag) => {
-    const titleEl = frag.querySelector('.cutlist-order-title');
-    const titleText = titleEl?.textContent || '';
-    const key = stationOrderFragmentKey(titleText) || `frag-${orderKeys.length}`;
+  (fragments || []).forEach((frag, index) => {
+    const key = stationOrderKeyFromFragment(frag) || `frag-${index}`;
 
     if (!primaryByKey.has(key)) {
       primaryByKey.set(key, frag);
@@ -64,6 +83,14 @@ export function mergeStationOrderFragments(fragments) {
   });
 
   return orderKeys.map((key) => primaryByKey.get(key)).filter(Boolean);
+}
+
+/** True when any order is still split with a "(cont.)" title. */
+export function stationFlowNeedsOrderMerge(root) {
+  if (!root?.querySelectorAll) return false;
+  return [...root.querySelectorAll('.cutlist-order-title')].some((el) =>
+    /\(cont\.\)/i.test(el.textContent || '')
+  );
 }
 
 /**

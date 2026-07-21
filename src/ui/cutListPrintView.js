@@ -223,22 +223,14 @@ export function estimateStationRowsPerColumn(
 
 /**
  * Station packer: keep each order together in one column.
- * Place whole orders into the shortest column (so multiple orders use
- * side-by-side space). Only split a single order when it is taller than
- * STATION_ORDER_KEEP_TOGETHER_MAX — never scatter a short order across
- * three columns with empty space underneath.
+ * Place whole orders into the shortest column. Never split an order across
+ * columns — empty space under a table is fine; "(cont.)" is not.
  *
  * @returns {Array<Array<Array<{order: string, titleHtml: string, rows: object[], rowStart: number}>>>}
  */
-export const STATION_ORDER_KEEP_TOGETHER_MAX = 28;
-
 export function packStationBalancedFlow(
   sections,
-  {
-    columnCount = PRINT_FLOW_COLUMNS,
-    titleCost = ORDER_TITLE_ROW_COST,
-    keepTogetherMax = STATION_ORDER_KEEP_TOGETHER_MAX,
-  } = {}
+  { columnCount = PRINT_FLOW_COLUMNS, titleCost = ORDER_TITLE_ROW_COST } = {}
 ) {
   const columns = Array.from({ length: columnCount }, () => []);
   const used = Array.from({ length: columnCount }, () => 0);
@@ -256,28 +248,15 @@ export function packStationBalancedFlow(
     const rows = section.rows || [];
     if (!rows.length) continue;
     const overhead = Math.max(1, titleCost);
-    // Keep the order in one piece unless it is too tall for a readable column.
-    const chunkSize =
-      rows.length > keepTogetherMax
-        ? Math.max(keepTogetherMax, Math.ceil(rows.length / columnCount))
-        : rows.length;
-
-    let offset = 0;
-    let firstFragment = true;
-    while (offset < rows.length) {
-      const chunk = rows.slice(offset, offset + chunkSize);
-      place(
-        {
-          order: section.order,
-          titleHtml: firstFragment ? section.titleHtml || '' : section.contTitleHtml || '',
-          rows: chunk,
-          rowStart: offset,
-        },
-        overhead + chunk.length
-      );
-      offset += chunk.length;
-      firstFragment = false;
-    }
+    place(
+      {
+        order: section.order,
+        titleHtml: section.titleHtml || '',
+        rows,
+        rowStart: 0,
+      },
+      overhead + rows.length
+    );
   }
 
   if (!columns.some((col) => col.length)) return [];
@@ -374,7 +353,10 @@ function renderFlowFragment(fragment, hasGroup, mode = 'print') {
   const title = fragment.titleHtml
     ? `<div class="cutlist-order-title">${fragment.titleHtml}</div>`
     : '';
-  return `<div class="cutlist-order-fragment">${title}${renderCutListColumnTable(
+  const orderAttr = fragment.order
+    ? ` data-order="${escapeAttr(String(fragment.order))}"`
+    : '';
+  return `<div class="cutlist-order-fragment"${orderAttr}>${title}${renderCutListColumnTable(
     fragment.rows,
     hasGroup,
     fragment.rowStart || 0,

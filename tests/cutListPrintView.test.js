@@ -328,6 +328,34 @@ describe('packStationBalancedFlow', () => {
     expect(pages[0].flat()).toHaveLength(1);
   });
 
+  it('never splits a long order like 602915 across columns', () => {
+    const sections = [
+      {
+        order: '602915',
+        titleHtml: 'Order 602915 - 39 boxes',
+        contTitleHtml: 'Order 602915 (cont.)',
+        rows: Array.from({ length: 15 }, () => ({})),
+      },
+      {
+        order: '602933',
+        titleHtml: 'Order 602933',
+        contTitleHtml: 'Order 602933 (cont.)',
+        rows: Array.from({ length: 2 }, () => ({})),
+      },
+      {
+        order: '602938',
+        titleHtml: 'Order 602938',
+        contTitleHtml: 'Order 602938 (cont.)',
+        rows: Array.from({ length: 10 }, () => ({})),
+      },
+    ];
+    const pages = packStationBalancedFlow(sections);
+    const frags = pages[0].flat();
+    expect(frags.filter((f) => f.order === '602915')).toHaveLength(1);
+    expect(frags.find((f) => f.order === '602915')?.rows).toHaveLength(15);
+    expect(frags.every((f) => !/cont/i.test(f.titleHtml || ''))).toBe(true);
+  });
+
   it('fills all three columns for a large OptiCut-sized list', () => {
     const sections = [
       {
@@ -353,6 +381,8 @@ describe('packStationBalancedFlow', () => {
     expect(pages).toHaveLength(1);
     const filled = pages[0].filter((col) => col.length > 0);
     expect(filled).toHaveLength(3);
+    // Still no continuations — each order is whole.
+    expect(pages[0].flat().every((frag) => !/cont/i.test(frag.titleHtml || ''))).toBe(true);
   });
 
   it('is used by station OptiCut HTML (not a single left column)', () => {
@@ -375,6 +405,8 @@ describe('packStationBalancedFlow', () => {
     const html = buildCutListPrintCard('TEST', batch, cols, null, { mode: 'station' });
     const colBlocks = html.match(/cutlist-order-column(?!--empty)/g) || [];
     expect(colBlocks.length).toBeGreaterThanOrEqual(3);
+    expect(html).toContain('data-order="1"');
+    expect(html).not.toMatch(/\(cont\.\)/);
     // Should not leave two trailing empty columns on the only band.
     expect(html).not.toMatch(
       /cutlist-order-column">[\s\S]*cutlist-order-column--empty[\s\S]*cutlist-order-column--empty[\s\S]*<\/div>\s*<\/div>\s*<\/div>$/

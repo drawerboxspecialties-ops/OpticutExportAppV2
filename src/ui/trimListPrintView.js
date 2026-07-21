@@ -191,7 +191,10 @@ function renderTrimFlowFragment(fragment, hasGroup, mode = 'print') {
   const title = fragment.titleHtml
     ? `<div class="cutlist-order-title">${fragment.titleHtml}</div>`
     : '';
-  return `<div class="cutlist-order-fragment">${title}${renderTrimColumnTable(
+  const orderAttr = fragment.order
+    ? ` data-order="${escapeAttr(String(fragment.order))}"`
+    : '';
+  return `<div class="cutlist-order-fragment"${orderAttr}>${title}${renderTrimColumnTable(
     fragment,
     hasGroup,
     mode

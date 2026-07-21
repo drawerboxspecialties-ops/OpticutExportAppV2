@@ -16,7 +16,7 @@ import {
   wipeAllStationJobs,
   verifyStationWipePassword,
 } from '../logic/stationSync.js';
-import { balanceStationFlowColumns } from './stationFlowLayout.js';
+import { balanceStationFlowColumns, stationFlowNeedsOrderMerge } from './stationFlowLayout.js';
 
 const ZOOM_STORAGE_KEY = 'opticut-station-zoom';
 const SHEET_TAB_STORAGE_KEY = 'opticut-station-sheet-tab';
@@ -863,6 +863,10 @@ export function mountStationView(root) {
 
     const nextKey = sheetRenderKey(job, sheetTab);
     if (nextKey === renderedKey && bodyEl.querySelector('.station-check')) {
+      // Old baked HTML may still have "(cont.)" splits — fold them back together.
+      if (stationFlowNeedsOrderMerge(bodyEl)) {
+        balanceStationFlowColumns(bodyEl);
+      }
       applyStationChecks(bodyEl, job);
       return;
     }
@@ -870,7 +874,11 @@ export function mountStationView(root) {
     renderedKey = nextKey;
     const html = isTrimTab() ? job.trimHtml : job.html;
     bodyEl.innerHTML = `<div class="station-live-sheet">${html}</div>`;
-    balanceStationFlowColumns(bodyEl);
+    try {
+      balanceStationFlowColumns(bodyEl);
+    } catch (err) {
+      console.warn('Station column layout failed:', err);
+    }
     applyStationChecks(bodyEl, job);
     applyZoom();
   }
