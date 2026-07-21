@@ -5,6 +5,7 @@ import {
   cutListRowId,
   packCutListPrintFlow,
   estimateRowsPerPrintColumn,
+  estimateStationRowsPerColumn,
   formatPrintBatchOrders,
   PRINT_FLOW_COLUMNS,
   PRINT_ROWS_PER_COLUMN,
@@ -284,6 +285,36 @@ describe('station checkbox mode', () => {
     expect(stationHtml).toContain('station-check');
     expect(stationHtml).toContain('data-row-id=');
     expect(stationHtml).not.toContain('print-check');
+  });
+});
+
+describe('estimateStationRowsPerColumn', () => {
+  it('balances large lists across three columns', () => {
+    const sections = [
+      { rows: Array.from({ length: 39 }, () => ({})) },
+      { rows: Array.from({ length: 20 }, () => ({})) },
+      { rows: Array.from({ length: 19 }, () => ({})) },
+    ];
+    // 78 rows + 3 titles ≈ 84 units → ~28 per column (not the old 72+)
+    const perCol = estimateStationRowsPerColumn(sections);
+    expect(perCol).toBeGreaterThanOrEqual(10);
+    expect(perCol).toBeLessThanOrEqual(40);
+    const pages = packCutListPrintFlow(
+      sections.map((s, i) => ({
+        order: String(i),
+        titleHtml: `Order ${i}`,
+        contTitleHtml: `Order ${i}`,
+        rows: s.rows,
+      })),
+      { columnCount: 3, rowsPerColumn: perCol, titleCost: 2 }
+    );
+    const filledCols = pages.flatMap((page) => page).filter((col) => col.length > 0);
+    expect(filledCols.length).toBeGreaterThanOrEqual(3);
+    expect(pages[0].filter((col) => col.length > 0).length).toBe(3);
+  });
+
+  it('keeps tiny lists in one column', () => {
+    expect(estimateStationRowsPerColumn([{ rows: [{}, {}] }])).toBe(4); // 2 rows + 2 title
   });
 });
 

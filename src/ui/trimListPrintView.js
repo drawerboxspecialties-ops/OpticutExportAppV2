@@ -8,6 +8,7 @@ import { buildCode128Svg } from '../logic/code128.js';
 import {
   packCutListPrintFlow,
   estimateRowsPerPrintColumn,
+  estimateStationRowsPerColumn,
   formatPrintBatchOrders,
   PRINT_ROWS_PER_COLUMN,
 } from './cutListPrintView.js';
@@ -31,7 +32,8 @@ export function buildTrimListPrintCard(batchKey, batch, colIndices, options = {}
     orderCount: Math.max(sections.length, (batch?.sortedOrders || []).length, 1),
     hasShipDate: Boolean(formatShipDateLabel(batch?.shipDate, colIndices)),
   });
-  const rowsPerColumn = mode === 'station' ? Math.max(72, printRows * 3) : printRows;
+  const rowsPerColumn =
+    mode === 'station' ? estimateStationRowsPerColumn(sections) : printRows;
 
   return `<div class="cutlist-print-sheet trim-list-sheet"${
     mode === 'station' ? ' data-station-sheet="1" data-trim-sheet="1"' : ''

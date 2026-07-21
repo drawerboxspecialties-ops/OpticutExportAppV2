@@ -195,6 +195,33 @@ export function estimateRowsPerPrintColumn({
 }
 
 /**
+ * Station screen: balance content across 3 columns so width is used and
+ * vertical scroll is shorter. Print packing is unchanged.
+ *
+ * @param {Array<{ rows?: object[] }>} sections
+ * @param {{ columnCount?: number, titleCost?: number }} [options]
+ * @returns {number}
+ */
+export function estimateStationRowsPerColumn(
+  sections,
+  { columnCount = PRINT_FLOW_COLUMNS, titleCost = ORDER_TITLE_ROW_COST } = {}
+) {
+  let totalRows = 0;
+  let orderBlocks = 0;
+  (sections || []).forEach((section) => {
+    const n = section?.rows?.length || 0;
+    if (!n) return;
+    orderBlocks += 1;
+    totalRows += n;
+  });
+  const totalUnits = totalRows + orderBlocks * Math.max(1, titleCost);
+  if (totalUnits <= 0) return PRINT_ROWS_PER_COLUMN;
+  // Tiny lists stay in one column (avoid three skinny stubs).
+  if (totalUnits <= 14) return totalUnits;
+  return Math.max(10, Math.ceil(totalUnits / Math.max(1, columnCount)));
+}
+
+/**
  * Pack order sections into page bands of columns.
  * Fill column 1 top-to-bottom, then column 2, then column 3.
  * The next order continues in the same column under the previous table
@@ -393,8 +420,9 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
     orderCount: Math.max(sections.length, (batch?.sortedOrders || []).length, 1),
     hasShipDate: Boolean(formatShipDateLabel(batch?.shipDate, colIndices)),
   });
-  // Station screen: pack denser so operators scroll less (print stays page-safe).
-  const rowsPerColumn = mode === 'station' ? Math.max(72, printRows * 3) : printRows;
+  // Station: spread across 3 columns to use width / reduce scroll. Print stays page-safe.
+  const rowsPerColumn =
+    mode === 'station' ? estimateStationRowsPerColumn(sections) : printRows;
 
   return `<div class="cutlist-print-sheet"${mode === 'station' ? ' data-station-sheet="1"' : ''}>${headerBanner}<div class="cutlist-print-flow">${renderCutListFlowBody(sections, batch, colIndices, hasGroup, anySpecial, colCount, rowsPerColumn, mode)}</div></div>`;
 }
