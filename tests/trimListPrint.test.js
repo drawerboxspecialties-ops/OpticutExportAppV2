@@ -23,16 +23,7 @@ const headers = [
 ];
 const cols = mapHeaders(headers);
 
-function row({
-  order,
-  part,
-  length,
-  qty,
-  w,
-  drawerWidth,
-  groupId = '',
-  label = '',
-}) {
+function row({ order, part, length, qty, w, drawerWidth, groupId = '', label = '' }) {
   const partW = w ?? drawerWidth ?? '6';
   const height = drawerWidth ?? w ?? '6';
   return [
@@ -56,43 +47,43 @@ function row({
 }
 
 describe('getTrimListPrintSections', () => {
-  it('shows cut width rounded up and finish width actual, with lengths', () => {
+  it('keeps actual F/B and L/R part W without rounding (Parts Cut Sheet style)', () => {
     const batch = {
       sourceRows: [
         row({
-          order: '602350',
+          order: '602913',
           part: 'F',
-          w: '3.937',
-          length: '24.125',
-          qty: 4,
-          drawerWidth: '3.937',
+          w: '4',
+          length: '28.063',
+          qty: 2,
+          drawerWidth: '4',
           groupId: '1',
         }),
         row({
-          order: '602350',
+          order: '602913',
           part: 'B',
-          w: '3.937',
-          length: '24.125',
-          qty: 4,
-          drawerWidth: '3.937',
+          w: '4',
+          length: '28.063',
+          qty: 2,
+          drawerWidth: '4',
           groupId: '1',
         }),
         row({
-          order: '602350',
+          order: '602913',
           part: 'L',
-          w: '3.875',
-          length: '17.6875',
-          qty: 4,
-          drawerWidth: '3.937',
+          w: '3.938',
+          length: '17.376',
+          qty: 2,
+          drawerWidth: '4',
           groupId: '1',
         }),
         row({
-          order: '602350',
+          order: '602913',
           part: 'R',
-          w: '3.875',
-          length: '17.6875',
-          qty: 4,
-          drawerWidth: '3.937',
+          w: '3.938',
+          length: '17.376',
+          qty: 2,
+          drawerWidth: '4',
           groupId: '1',
         }),
       ],
@@ -101,28 +92,43 @@ describe('getTrimListPrintSections', () => {
     expect(sections).toHaveLength(1);
     expect(sections[0].rows[0]).toMatchObject({
       groupId: '1',
-      cutWidth: '4',
-      finishWidth: '3.937',
+      fbW: '4',
+      fbLength: '28.063',
+      lrW: '3.938',
+      lrLength: '17.376',
       needsTrim: true,
-      fbLength: '24.125',
-      lrLength: '17.6875',
-      parts: 16,
+      parts: 8,
     });
   });
 
-  it('keeps whole-number widths without needing trim', () => {
+  it('does not round L/R W up to whole inches', () => {
     const batch = {
       sourceRows: [
-        row({ order: '1', part: 'F', length: '20', qty: 4, drawerWidth: '5', groupId: '2' }),
-        row({ order: '1', part: 'B', length: '20', qty: 4, drawerWidth: '5', groupId: '2' }),
-        row({ order: '1', part: 'L', length: '12', qty: 4, drawerWidth: '5', groupId: '2' }),
-        row({ order: '1', part: 'R', length: '12', qty: 4, drawerWidth: '5', groupId: '2' }),
+        row({ order: '1', part: 'F', w: '4', length: '25.063', qty: 2, drawerWidth: '4', groupId: '1' }),
+        row({ order: '1', part: 'B', w: '4', length: '25.063', qty: 2, drawerWidth: '4', groupId: '1' }),
+        row({
+          order: '1',
+          part: 'L',
+          w: '3.938',
+          length: '17.376',
+          qty: 2,
+          drawerWidth: '4',
+          groupId: '1',
+        }),
+        row({
+          order: '1',
+          part: 'R',
+          w: '3.938',
+          length: '17.376',
+          qty: 2,
+          drawerWidth: '4',
+          groupId: '1',
+        }),
       ],
     };
     const row0 = getTrimListPrintSections(batch, cols)[0].rows[0];
-    expect(row0.cutWidth).toBe('5');
-    expect(row0.finishWidth).toBe('5');
-    expect(row0.needsTrim).toBe(false);
+    expect(row0.lrW).toBe('3.938');
+    expect(row0.lrW).not.toBe('4');
   });
 });
 
@@ -130,37 +136,69 @@ describe('trimListRowId', () => {
   it('prefixes trim ids so they never collide with OptiCut checks', () => {
     expect(
       trimListRowId({
-        order: '602350',
+        order: '602913',
         groupId: '1',
-        cutWidth: '4',
-        finishWidth: '3.937',
-        fbLength: '24.125',
-        lrLength: '17.6875',
+        fbW: '4',
+        fbLength: '28.063',
+        lrW: '3.938',
+        lrLength: '17.376',
       })
-    ).toBe('t|602350|1|4|3.937|24.125|17.6875');
+    ).toBe('t|602913|1|4|28.063|3.938|17.376');
   });
 });
 
 describe('buildTrimListPrintCard', () => {
-  it('renders station trim sheet with Cut W and Finish W columns', () => {
+  it('renders F/B W and L/R W columns with actual values', () => {
     const batch = {
-      materialName: 'PF: 12MM Baltic Birch Ply',
-      topEdge: 'PVC',
-      totalBoxes: 2,
+      materialName: 'PF: 5/8" Maple White',
+      topEdge: 'Flat Foil',
+      totalBoxes: 4,
       sourceRows: [
-        row({ order: '9', part: 'F', length: '20', qty: 4, drawerWidth: '3.5', groupId: '1' }),
-        row({ order: '9', part: 'B', length: '20', qty: 4, drawerWidth: '3.5', groupId: '1' }),
-        row({ order: '9', part: 'L', length: '12', qty: 4, drawerWidth: '3.5', groupId: '1' }),
-        row({ order: '9', part: 'R', length: '12', qty: 4, drawerWidth: '3.5', groupId: '1' }),
+        row({
+          order: '602913',
+          part: 'F',
+          w: '4',
+          length: '25.063',
+          qty: 2,
+          drawerWidth: '4',
+          groupId: '1',
+        }),
+        row({
+          order: '602913',
+          part: 'B',
+          w: '4',
+          length: '25.063',
+          qty: 2,
+          drawerWidth: '4',
+          groupId: '1',
+        }),
+        row({
+          order: '602913',
+          part: 'L',
+          w: '3.938',
+          length: '17.376',
+          qty: 2,
+          drawerWidth: '4',
+          groupId: '1',
+        }),
+        row({
+          order: '602913',
+          part: 'R',
+          w: '3.938',
+          length: '17.376',
+          qty: 2,
+          drawerWidth: '4',
+          groupId: '1',
+        }),
       ],
     };
-    const html = buildTrimListPrintCard('PLY_PVC_9', batch, cols, { mode: 'station' });
+    const html = buildTrimListPrintCard('SLD_CFB_602913', batch, cols, { mode: 'station' });
     expect(html).toContain('Trim list');
-    expect(html).toContain('Cut W');
-    expect(html).toContain('Finish W');
+    expect(html).toContain('F/B W');
+    expect(html).toContain('L/R W');
+    expect(html).not.toContain('Cut W');
+    expect(html).not.toContain('Finish W');
+    expect(html).toContain('3.938');
     expect(html).toContain('data-trim-sheet');
-    expect(html).toContain('station-check');
-    expect(html).toContain('3.5');
-    expect(html).toContain('4');
   });
 });

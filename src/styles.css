@@ -2899,11 +2899,11 @@ body.station-live.print-active .station-root {
   outline-offset: 2px;
 }
 
-.trim-list-sheet .trim-finish-w {
+.trim-list-sheet .trim-lr-w {
   color: var(--st-accent-ink);
 }
 
-.trim-list-sheet .trim-row-needs .trim-cut-w {
+.trim-list-sheet .trim-row-needs .trim-lr-w {
   color: #9a6700;
 }
 

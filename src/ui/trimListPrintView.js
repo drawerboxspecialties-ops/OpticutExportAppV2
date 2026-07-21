@@ -6,7 +6,9 @@ import { DFM_MARK } from '../logic/cutListPrint.js';
 import { buildCode128Svg } from '../logic/code128.js';
 
 /**
- * Station / print HTML for the trim-saw list (Cut W → Finish W + lengths).
+ * Station / print HTML for the trim-saw list.
+ * Shows actual F/B and L/R part W (never rounded) with matching lengths.
+ *
  * @param {string} batchKey
  * @param {object} batch
  * @param {object} colIndices
@@ -30,8 +32,9 @@ export function buildTrimListPrintCard(batchKey, batch, colIndices, options = {}
   const body = sections.length
     ? sections
         .map((section) => {
-          const special =
-            section.special ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
+          const special = section.special
+            ? ' <span class="cutlist-order-special">★ SPECIAL</span>'
+            : '';
           const rowsHtml = section.rows
             .map((r, i) => {
               const alt = i % 2 === 1 ? ' cutlist-row-alt' : '';
@@ -42,16 +45,17 @@ export function buildTrimListPrintCard(batchKey, batch, colIndices, options = {}
               const groupCell = hasGroup
                 ? `<td class="cutlist-group${r.special ? ' cutlist-group-special' : ''}"><span class="cutlist-group-id">${escapeHTML(r.groupId || '')}${r.special ? ' <span class="cutlist-group-star">★</span>' : ''}</span>${dfm}</td>`
                 : '';
+              const rowId = trimListRowId({ ...r, order: section.order });
               const checkCell =
                 mode === 'station'
-                  ? `<td class="cutlist-check"><input type="checkbox" class="station-check" data-row-id="${escapeAttr(trimListRowId({ ...r, order: section.order }))}" aria-label="Mark trim line complete"></td>`
+                  ? `<td class="cutlist-check"><input type="checkbox" class="station-check" data-row-id="${escapeAttr(rowId)}" aria-label="Mark trim line complete"></td>`
                   : `<td class="cutlist-check"><span class="print-check" aria-hidden="true"></span></td>`;
               return `
-          <tr class="cutlist-data-row${alt}${needs}"${mode === 'station' ? ` data-row-id="${escapeAttr(trimListRowId({ ...r, order: section.order }))}"` : ''}>
+          <tr class="cutlist-data-row${alt}${needs}"${mode === 'station' ? ` data-row-id="${escapeAttr(rowId)}"` : ''}>
             ${groupCell}
-            <td class="cutlist-dim trim-cut-w"><b>${escapeHTML(r.cutWidth)}"</b></td>
-            <td class="cutlist-dim trim-finish-w"><b>${escapeHTML(r.finishWidth)}"</b></td>
+            <td class="cutlist-dim trim-fb-w"><b>${r.fbW ? `${escapeHTML(r.fbW)}"` : ''}</b></td>
             <td class="cutlist-dim">${r.fbLength ? `<b>${escapeHTML(r.fbLength)}"</b>` : ''}</td>
+            <td class="cutlist-dim trim-lr-w"><b>${r.lrW ? `${escapeHTML(r.lrW)}"` : ''}</b></td>
             <td class="cutlist-dim">${r.lrLength ? `<b>${escapeHTML(r.lrLength)}"</b>` : ''}</td>
             <td class="cutlist-qty"><b>${r.parts}</b></td>
             ${checkCell}
@@ -66,9 +70,9 @@ export function buildTrimListPrintCard(batchKey, batch, colIndices, options = {}
           <thead>
             <tr class="cutlist-columns-row">
               ${hasGroup ? '<th>Grp</th>' : ''}
-              <th>Cut W</th>
-              <th>Finish W</th>
+              <th>F/B W</th>
               <th>F / B</th>
+              <th>L/R W</th>
               <th>L / R</th>
               <th>Pcs</th>
               <th class="cutlist-check-col" aria-label="Check"></th>

@@ -1,7 +1,6 @@
 import { boxesForParts } from './boxMath.js';
 import {
   getSummaryHeight,
-  roundWidthUpToWhole,
   formatDecimalForDisplay,
   getNumericSortValue,
   getFractionalSortValue,
@@ -10,8 +9,8 @@ import { getSpecialGroupKeys, getGroupSpecialKey } from './specialOrders.js';
 import { getDifferentFrontMaterialKeys, dfmDrawerKey } from './cutListPrint.js';
 
 /**
- * Trim-saw cut list: same order/group pairing as OptiCut, but keyed by
- * actual finish width so rounded OptiCut width and finish width both show.
+ * Trim-saw cut list: same order/group pairing as OptiCut.
+ * Shows actual part W for F/B and L/R (never rounded up) plus lengths.
  *
  * @param {{ sourceRows?: string[][], rows?: string[][] }} batch
  * @param {object} colIndices
@@ -43,9 +42,9 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
     const qty = parseInt(row[colIndices.quantity]) || 0;
     if (!side || !dim.length || qty <= 0) return;
 
-    const finishWidth = formatDecimalForDisplay(getSummaryHeight(row, colIndices));
-    const cutWidth = formatDecimalForDisplay(roundWidthUpToWhole(finishWidth));
-    if (!finishWidth || finishWidth === '0') return;
+    // Drawer height only for pairing drawers — not shown as rounded trim W.
+    const drawerHeight = formatDecimalForDisplay(getSummaryHeight(row, colIndices));
+    if (!drawerHeight || drawerHeight === '0') return;
 
     const groupId =
       hasGroupId && colIndices.groupId < row.length
@@ -53,7 +52,7 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
         : '';
     const label =
       hasLabel && colIndices.label < row.length ? String(row[colIndices.label] ?? '').trim() : '';
-    const setKey = drawerSetKey(order, groupId, label) || `${order}|fw:${finishWidth}`;
+    const setKey = drawerSetKey(order, groupId, label) || `${order}|h:${drawerHeight}`;
 
     if (!buckets.has(setKey)) {
       buckets.set(setKey, {
@@ -70,9 +69,8 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
       side,
       dim,
       qty,
-      finishWidth,
-      cutWidth,
-      finishWidthSort: getFractionalSortValue(finishWidth),
+      drawerHeight,
+      drawerHeightSort: getFractionalSortValue(drawerHeight),
       lengthSort: getFractionalSortValue(dim.length),
     });
   });
@@ -86,17 +84,17 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
     const rights = bucket.parts.filter((p) => p.side === 'right');
 
     if (fronts.length === 0) {
-      const byWidth = new Map();
+      const byKey = new Map();
       [...lefts, ...rights, ...backs].forEach((p) => {
-        if (!byWidth.has(p.finishWidth)) {
-          byWidth.set(p.finishWidth, {
+        const lineKey = p.drawerHeight;
+        if (!byKey.has(lineKey)) {
+          byKey.set(lineKey, {
             order: bucket.order,
             groupId: bucket.groupId,
             special: bucket.special,
             dfm: bucket.dfm,
-            finishWidth: p.finishWidth,
-            cutWidth: p.cutWidth,
-            finishWidthSort: p.finishWidthSort,
+            drawerHeight: p.drawerHeight,
+            drawerHeightSort: p.drawerHeightSort,
             front: emptySide(),
             back: emptySide(),
             left: emptySide(),
@@ -104,13 +102,13 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
             parts: 0,
           });
         }
-        const line = byWidth.get(p.finishWidth);
+        const line = byKey.get(lineKey);
         if (p.side === 'left') setSide(line.left, p.dim);
         if (p.side === 'right') setSide(line.right, p.dim);
         if (p.side === 'back') setSide(line.back, p.dim);
         line.parts += p.qty;
       });
-      byWidth.forEach((line) => boxRows.push(line));
+      byKey.forEach((line) => boxRows.push(line));
       return;
     }
 
@@ -124,9 +122,8 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
         groupId: bucket.groupId,
         special: bucket.special,
         dfm: bucket.dfm,
-        finishWidth: lead.finishWidth,
-        cutWidth: lead.cutWidth,
-        finishWidthSort: lead.finishWidthSort,
+        drawerHeight: lead.drawerHeight,
+        drawerHeightSort: lead.drawerHeightSort,
         front: { ...lead.dim },
         back: emptySide(),
         left: emptySide(),
@@ -159,7 +156,7 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
     if (a.order !== b.order) return a.order.localeCompare(b.order);
     const groupCmp = compareGroupIds(a, b);
     if (groupCmp !== 0) return groupCmp;
-    if (b.finishWidthSort !== a.finishWidthSort) return b.finishWidthSort - a.finishWidthSort;
+    if (b.drawerHeightSort !== a.drawerHeightSort) return b.drawerHeightSort - a.drawerHeightSort;
     const aLen = getFractionalSortValue(a.front.length || a.left.length);
     const bLen = getFractionalSortValue(b.front.length || b.left.length);
     return bLen - aLen;
@@ -175,19 +172,20 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
     const section = sections[sections.length - 1];
     const frontOnlyDfm = Boolean(row.dfm) && !row.left.length && !row.right.length;
     const boxes = frontOnlyDfm ? row.parts : boxesForParts(row.parts);
-    const cutWidth = row.cutWidth;
-    const finishWidth = row.finishWidth;
+    const fbW = row.front.w || row.back.w || '';
+    const lrW = row.left.w || row.right.w || '';
     section.rows.push({
       parts: row.parts,
       boxes,
       groupId: row.groupId,
       special: row.special,
       dfm: Boolean(row.dfm),
-      cutWidth,
-      finishWidth,
-      needsTrim: cutWidth !== finishWidth,
+      fbW,
+      lrW,
       fbLength: row.front.length || row.back.length,
       lrLength: row.left.length || row.right.length,
+      /** Highlight when F/B and L/R finish W differ (typical trim case). */
+      needsTrim: Boolean(fbW && lrW && fbW !== lrW),
     });
     if (row.special) section.special = true;
   });
@@ -195,15 +193,15 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
   return sections;
 }
 
-/** Stable checkbox id for a trim line (never collides with OptiCut ids). */
+/** Stable checkbox id for a trim line (never collides with OptiCut checks). */
 export function trimListRowId(row) {
   return [
     't',
     String(row?.order ?? '').trim(),
     String(row?.groupId ?? '').trim(),
-    String(row?.cutWidth ?? '').trim(),
-    String(row?.finishWidth ?? '').trim(),
+    String(row?.fbW ?? '').trim(),
     String(row?.fbLength ?? '').trim(),
+    String(row?.lrW ?? '').trim(),
     String(row?.lrLength ?? '').trim(),
   ].join('|');
 }
@@ -258,7 +256,7 @@ function setSide(target, dim) {
 
 function sortFrontParts(fronts) {
   return fronts.slice().sort((a, b) => {
-    const swDiff = b.finishWidthSort - a.finishWidthSort;
+    const swDiff = b.drawerHeightSort - a.drawerHeightSort;
     if (swDiff !== 0) return swDiff;
     return getFractionalSortValue(b.dim.length) - getFractionalSortValue(a.dim.length);
   });
@@ -271,7 +269,7 @@ function pickClosestPart(list, used, lead, { requireLength } = {}) {
 
   list.forEach((p, i) => {
     if (used.has(i)) return;
-    if (p.finishWidth !== lead.finishWidth) return;
+    if (p.drawerHeight !== lead.drawerHeight) return;
     if (requireLength && p.dim.length !== lead.dim.length) return;
     if (lead.dim.w && p.dim.w) {
       const diff = Math.abs(parseFloat(p.dim.w) - parseFloat(lead.dim.w));
@@ -299,11 +297,13 @@ function trimRowMergeKey(row) {
   return [
     row.order,
     row.groupId,
-    row.finishWidth,
-    row.cutWidth,
+    row.front.w,
     row.front.length,
+    row.back.w,
     row.back.length,
+    row.left.w,
     row.left.length,
+    row.right.w,
     row.right.length,
     row.special ? '1' : '0',
     row.dfm ? '1' : '0',
