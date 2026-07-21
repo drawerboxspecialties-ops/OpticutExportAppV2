@@ -162,6 +162,19 @@ function rowHtmlForPrint(tr, checks) {
   return clone.outerHTML;
 }
 
+/** Convert any leftover station-check inputs to print-check spans. */
+function convertStationChecksInRoot(root, checks = {}) {
+  root?.querySelectorAll?.('.station-check[data-row-id]').forEach((input) => {
+    const id = input.getAttribute('data-row-id') || '';
+    const checked = Boolean(checks[id]);
+    const span = document.createElement('span');
+    span.className = checked ? 'print-check print-check--done' : 'print-check';
+    span.setAttribute('aria-hidden', 'true');
+    if (checked) span.setAttribute('data-checked', '1');
+    input.replaceWith(span);
+  });
+}
+
 function renderPrintDomFragment(fragment, tableHeadByOrder) {
   const order = String(fragment.order || '');
   const title = fragment.titleHtml
@@ -214,6 +227,7 @@ export function buildStationPrintSheetHtml(sheetEl, { checks = {} } = {}) {
     ...working.querySelectorAll('.cutlist-order-fragment'),
   ]);
   if (!merged.length) {
+    convertStationChecksInRoot(working, checks);
     return working.outerHTML;
   }
 

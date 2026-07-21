@@ -385,15 +385,11 @@ export function mountStationView(root) {
     if (liveSheet) {
       card.innerHTML = buildStationPrintSheetHtml(liveSheet, { checks });
     } else {
-      card.innerHTML = bakedHtml;
-      card.querySelectorAll('.station-check[data-row-id]').forEach((input) => {
-        const id = input.getAttribute('data-row-id') || '';
-        const checked = Boolean(checks[id]);
-        const span = document.createElement('span');
-        span.className = checked ? 'print-check print-check--done' : 'print-check';
-        span.setAttribute('aria-hidden', 'true');
-        input.replaceWith(span);
-      });
+      // Fallback: mount baked HTML briefly so print packing still runs.
+      const mount = document.createElement('div');
+      mount.innerHTML = bakedHtml;
+      const bakedSheet = mount.querySelector('.cutlist-print-sheet') || mount;
+      card.innerHTML = buildStationPrintSheetHtml(bakedSheet, { checks });
     }
 
     const timeEl = card.querySelector('.print-batch-time');
@@ -492,6 +488,7 @@ export function mountStationView(root) {
     try {
       await softDeleteStationJob(batchKey);
       pendingByBatch.delete(batchKey);
+      pendingTrimByBatch.delete(batchKey);
       checkedKeys.delete(batchKey);
       selectedKey = '';
       renderedKey = '';
@@ -517,6 +514,7 @@ export function mountStationView(root) {
       await softDeleteStationJobs(keys);
       keys.forEach((key) => {
         pendingByBatch.delete(key);
+        pendingTrimByBatch.delete(key);
         checkedKeys.delete(key);
       });
       if (keys.includes(selectedKey)) {
@@ -547,6 +545,7 @@ export function mountStationView(root) {
       await softDeleteStationJobs(keys);
       keys.forEach((key) => {
         pendingByBatch.delete(key);
+        pendingTrimByBatch.delete(key);
         checkedKeys.delete(key);
       });
       selectedKey = '';
@@ -660,12 +659,12 @@ export function mountStationView(root) {
     map[rowId] = checked;
   }
 
-  function clearPendingRow(batchKey, rowId) {
-    const mapStore = isTrimTab() ? pendingTrimByBatch : pendingByBatch;
-    const map = mapStore.get(batchKey);
+  function clearPendingRow(batchKey, rowId, mapStore = null) {
+    const store = mapStore || (isTrimTab() ? pendingTrimByBatch : pendingByBatch);
+    const map = store.get(batchKey);
     if (!map) return;
     delete map[rowId];
-    if (!Object.keys(map).length) mapStore.delete(batchKey);
+    if (!Object.keys(map).length) store.delete(batchKey);
   }
 
   /** Drop pending entries once the server matches what we wanted. */
@@ -1094,6 +1093,8 @@ export function mountStationView(root) {
 
     const checked = input.checked;
     input.closest('tr')?.classList.toggle('cutlist-row-done', checked);
+    const pendingStore = isTrimTab() ? pendingTrimByBatch : pendingByBatch;
+    const field = checkField();
     setPending(batchKey, rowId, checked);
 
     const job = allJobs.find((j) => j.batchKey === batchKey);
@@ -1102,14 +1103,14 @@ export function mountStationView(root) {
       updateQueueItemProgress(batchKey, job);
     }
 
-    void updateStationJobCheck(batchKey, rowId, checked, { field: checkField() })
+    void updateStationJobCheck(batchKey, rowId, checked, { field })
       .then(() => {
         // Keep pending until a snapshot confirms; avoids flicker if another
         // snapshot arrives mid-flight.
       })
       .catch((err) => {
         console.error(err);
-        clearPendingRow(batchKey, rowId);
+        clearPendingRow(batchKey, rowId, pendingStore);
         input.checked = !checked;
         input.closest('tr')?.classList.toggle('cutlist-row-done', !checked);
         if (job) {
