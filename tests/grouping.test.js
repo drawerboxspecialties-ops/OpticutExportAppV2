@@ -51,6 +51,19 @@ describe('defaultFrontTopEdgesFromBacks (B-edge priority rule)', () => {
     expect(rows[0][cols.topEdge]).toBe('Clear Foil');
   });
 
+  it('does not copy a back TopEdge onto a different-material front (*DFM)', () => {
+    const cols = mapHeaders(['OrderNumber', 'MaterialName', 'PartName', 'W', 'Length', 'Quantity', 'Label', 'Width', 'TopEdge']);
+    const rows = [
+      ['100', 'FAA: 3/4" Maple', 'F', '4', '22', '4', '', '4', 'Clear Foil Bullnose'],
+      ['100', 'PF: 1/2" Maple White', 'B', '4', '22', '4', '', '4', 'PVC Flat Flush'],
+      ['100', 'PF: 1/2" Maple White', 'L', '4', '16', '4', '', '4', 'PVC Flat Flush'],
+      ['100', 'PF: 1/2" Maple White', 'R', '4', '16', '4', '', '4', 'PVC Flat Flush'],
+    ];
+    defaultFrontTopEdgesFromBacks(rows, cols);
+    expect(rows[0][cols.topEdge]).toBe('Clear Foil Bullnose');
+    expect(rows[1][cols.topEdge]).toBe('PVC Flat Flush');
+  });
+
   it('is a no-op when topEdge column is missing', () => {
     const cols = { orderNumber: 0, materialName: 1, partName: 2, topEdge: -1, length: 4, width: 7, w: 3 };
     const rows = [['100', 'Baltic Birch', 'F', '4.5', '20', '1', '', '4.5', 'Raw Wood']];

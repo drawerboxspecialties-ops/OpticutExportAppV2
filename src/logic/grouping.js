@@ -34,7 +34,8 @@ export function defaultFrontTopEdgesFromBacks(rows, colIndices) {
   }
 
   const backTopEdgeByExactMatch = {};
-  const backTopEdgesByOrder = {};
+  /** @type {Record<string, Set<string>>} order|material → back TopEdges */
+  const backTopEdgesByOrderMaterial = {};
 
   rows.forEach((row) => {
     const orderNum = String(row[colIndices.orderNumber] || '').trim();
@@ -47,10 +48,12 @@ export function defaultFrontTopEdgesFromBacks(rows, colIndices) {
       if (!backTopEdgeByExactMatch[exactKey]) {
         backTopEdgeByExactMatch[exactKey] = topEdge;
       }
-      if (!backTopEdgesByOrder[orderNum]) {
-        backTopEdgesByOrder[orderNum] = new Set();
+      const mat = cleanMaterialName(row[colIndices.materialName] || '');
+      const omKey = `${orderNum}|${mat}`;
+      if (!backTopEdgesByOrderMaterial[omKey]) {
+        backTopEdgesByOrderMaterial[omKey] = new Set();
       }
-      backTopEdgesByOrder[orderNum].add(topEdge);
+      backTopEdgesByOrderMaterial[omKey].add(topEdge);
     }
   });
 
@@ -60,8 +63,14 @@ export function defaultFrontTopEdgesFromBacks(rows, colIndices) {
     if (!(partName === 'F' || partName.startsWith('FRONT'))) return;
 
     const exactKey = getBackTopEdgeMatchKey(row, colIndices);
-    const orderEdges = backTopEdgesByOrder[orderNum] ? Array.from(backTopEdgesByOrder[orderNum]) : [];
-    const backTopEdge = backTopEdgeByExactMatch[exactKey] || (orderEdges.length === 1 ? orderEdges[0] : '');
+    const mat = cleanMaterialName(row[colIndices.materialName] || '');
+    const omKey = `${orderNum}|${mat}`;
+    const orderEdges = backTopEdgesByOrderMaterial[omKey]
+      ? Array.from(backTopEdgesByOrderMaterial[omKey])
+      : [];
+    // Same-material fallback only — never copy a back edge onto a different-material front (*DFM).
+    const backTopEdge =
+      backTopEdgeByExactMatch[exactKey] || (orderEdges.length === 1 ? orderEdges[0] : '');
     if (!backTopEdge) return;
 
     const currentTopEdge = String(row[colIndices.topEdge] || '').trim();

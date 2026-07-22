@@ -248,4 +248,17 @@ describe('combineOppositePartSides', () => {
     expect(key).toContain('20');
     expect(key).toContain('6');
   });
+
+  it('preserves qty for multiple same-size drawers when rounding is off', () => {
+    const rows = [
+      ['100', 'Baltic Birch Ply 12mm', 'F', '4', '22', '2', 'a', '4', 'Clear Foil'],
+      ['100', 'Baltic Birch Ply 12mm', 'B', '4', '22', '2', 'a', '4', 'Clear Foil'],
+      ['100', 'Baltic Birch Ply 12mm', 'F', '4', '22', '2', 'b', '4', 'Clear Foil'],
+      ['100', 'Baltic Birch Ply 12mm', 'B', '4', '22', '2', 'b', '4', 'Clear Foil'],
+    ];
+    const out = getCutListRowsForExport(rows, cols, false);
+    expect(out).toHaveLength(1);
+    expect(out[0][cols.partName]).toBe('F');
+    expect(out[0][cols.quantity]).toBe('8');
+  });
 });

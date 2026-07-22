@@ -123,7 +123,24 @@ export function combineOppositePartSides(rows, colIndices, excludedIndices = [])
       if (!groups.has(key)) {
         groups.set(key, { row: [...row] });
       }
-      groups.get(key)[side] = row;
+      const bucket = groups.get(key);
+      if (bucket[side]) {
+        // Same side can appear more than once (multi-drawer). Sum qty — do not overwrite.
+        const existing = bucket[side];
+        const qtyExisting = parseInt(existing[colIndices.quantity]) || 0;
+        const qtyNew = parseInt(row[colIndices.quantity]) || 0;
+        const mergedSide = [...existing];
+        mergedSide[colIndices.quantity] = String(qtyExisting + qtyNew);
+        if (colIndices.label !== -1 && colIndices.label < mergedSide.length) {
+          mergedSide[colIndices.label] = mergeLabelValues(
+            existing[colIndices.label],
+            row[colIndices.label]
+          );
+        }
+        bucket[side] = mergedSide;
+      } else {
+        bucket[side] = [...row];
+      }
     });
 
     const combined = [];
