@@ -548,8 +548,9 @@ export function getCutListPrintSections(batch, colIndices, options = {}) {
     const groupCmp = compareGroupIds(a, b);
     if (groupCmp !== 0) return groupCmp;
     if (b.stackWidthSort !== a.stackWidthSort) return b.stackWidthSort - a.stackWidthSort;
-    const aLen = getFractionalSortValue(a.front.length || a.left.length);
-    const bLen = getFractionalSortValue(b.front.length || b.left.length);
+    // Match the printed F/B column (front or back) — not L/R when F is absent (*DFM sides).
+    const aLen = getFractionalSortValue(a.front.length || a.back.length || a.left.length);
+    const bLen = getFractionalSortValue(b.front.length || b.back.length || b.left.length);
     return bLen - aLen;
   });
 

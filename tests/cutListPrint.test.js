@@ -519,6 +519,32 @@ describe('different front material (*DFM)', () => {
     expect(rows.reduce((s, r) => s + r.boxes, 0)).toBe(16);
   });
 
+  it('sorts side-only *DFM rows by F/B (back) length, not L/R', () => {
+    const frontMat = 'FAA: 3/4" White Maple';
+    const sideMat = 'PF: 1/2" Maple White';
+    const allRows = [
+      matRow({ order: '602947', material: frontMat, part: 'F', length: '14', qty: 2, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'B', length: '14', qty: 2, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'L', length: '23.626', qty: 2, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'R', length: '23.626', qty: 2, groupId: '1' }),
+      matRow({ order: '602947', material: frontMat, part: 'F', length: '24.125', qty: 3, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'B', length: '24.125', qty: 3, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'L', length: '20.626', qty: 3, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'R', length: '20.626', qty: 3, groupId: '1' }),
+      matRow({ order: '602947', material: frontMat, part: 'F', length: '22.063', qty: 10, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'B', length: '22.063', qty: 10, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'L', length: '23.626', qty: 10, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'R', length: '23.626', qty: 10, groupId: '1' }),
+    ];
+    const sideBatch = {
+      sourceRows: allRows.filter((r) => r[cols.partName] !== 'F'),
+      totalBoxes: 15,
+      sortedOrders: ['602947'],
+    };
+    const rows = getCutListPrintSections(sideBatch, cols, { allRows })[0].rows;
+    expect(rows.map((r) => r.fbLength)).toEqual(['24.125', '22.063', '14']);
+  });
+
   it('sets Bx = Pcs on front-only *DFM rows (each front is one drawer box)', () => {
     const allRows = [
       matRow({

@@ -184,8 +184,9 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
     const groupCmp = compareGroupIds(a, b);
     if (groupCmp !== 0) return groupCmp;
     if (b.drawerHeightSort !== a.drawerHeightSort) return b.drawerHeightSort - a.drawerHeightSort;
-    const aLen = getFractionalSortValue(a.front.length || a.left.length);
-    const bLen = getFractionalSortValue(b.front.length || b.left.length);
+    // Match the printed F/B length (front or back) — not L/R when F is absent (*DFM sides).
+    const aLen = getFractionalSortValue(a.front.length || a.back.length || a.left.length);
+    const bLen = getFractionalSortValue(b.front.length || b.back.length || b.left.length);
     return bLen - aLen;
   });
 
