@@ -243,20 +243,17 @@ function renderTrimFlowPage(columns, hasGroup, mode = 'print') {
 function buildTrimSectionTitleHtml(section, batch, colIndices, anySpecial) {
   const specialMark =
     section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
-  const groupId = String(section.groupId ?? '').trim();
-  const groupMark = groupId ? ` · Grp ${escapeHTML(groupId)}` : '';
-  const boxSummary =
-    section.rows.some((r) => r.frontOnlyDfm || r.sideOnlyDfm) || groupId
-      ? formatSectionBoxSummary(section) || formatFrontOnlyDfmBoxSummary(section)
-      : formatOrderCutListBoxSummary(section.order, batch, colIndices);
+  const useDfmDrawerTotal = section.rows.some((r) => r.frontOnlyDfm || r.sideOnlyDfm);
+  const boxSummary = useDfmDrawerTotal
+    ? formatFrontOnlyDfmBoxSummary(section)
+    : formatOrderCutListBoxSummary(section.order, batch, colIndices) ||
+      formatSectionBoxSummary(section);
   const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
-  return `Order ${escapeHTML(section.order)}${groupMark}${boxMark}${specialMark}`;
+  return `Order ${escapeHTML(section.order)}${boxMark}${specialMark}`;
 }
 
 function buildTrimSectionContTitleHtml(section) {
-  const groupId = String(section.groupId ?? '').trim();
-  const groupMark = groupId ? ` · Grp ${escapeHTML(groupId)}` : '';
-  return `Order ${escapeHTML(section.order)}${groupMark} <span class="cutlist-order-cont">(cont.)</span>`;
+  return `Order ${escapeHTML(section.order)} <span class="cutlist-order-cont">(cont.)</span>`;
 }
 
 function renderTrimFlowBody(

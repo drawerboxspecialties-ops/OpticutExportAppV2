@@ -133,12 +133,9 @@ describe('getCutListPrintSections', () => {
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections).toHaveLength(2);
-    expect(sections.map((s) => s.groupId)).toEqual(['1', '2']);
-    expect(sections[0].rows).toHaveLength(1);
-    expect(sections[1].rows).toHaveLength(1);
-    expect(sections[0].rows[0].groupId).toBe('1');
-    expect(sections[1].rows[0].groupId).toBe('2');
+    expect(sections).toHaveLength(1);
+    expect(sections[0].rows).toHaveLength(2);
+    expect(sections[0].rows.map((r) => r.groupId)).toEqual(['1', '2']);
   });
 
   it('sorts GroupIDs in numeric sequence within each order', () => {
@@ -150,11 +147,11 @@ describe('getCutListPrintSections', () => {
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections.map((s) => s.groupId)).toEqual(['1', '2', '3']);
-    expect(sections.every((s) => s.order === '602336')).toBe(true);
+    expect(sections).toHaveLength(1);
+    expect(sections[0].rows.map((r) => r.groupId)).toEqual(['1', '2', '3']);
   });
 
-  it('does not mix GroupIDs in the same cut-list section', () => {
+  it('keeps multiple GroupIDs in one order table', () => {
     const batch = {
       sourceRows: [
         row({ order: '602947', part: 'F', length: '22', qty: 4, groupId: '1' }),
@@ -163,12 +160,9 @@ describe('getCutListPrintSections', () => {
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections).toHaveLength(3);
-    sections.forEach((section) => {
-      const ids = new Set(section.rows.map((r) => String(r.groupId ?? '').trim()));
-      expect(ids.size).toBe(1);
-      expect([...ids][0]).toBe(section.groupId);
-    });
+    expect(sections).toHaveLength(1);
+    expect(sections[0].order).toBe('602947');
+    expect(sections[0].rows.map((r) => r.groupId)).toEqual(['1', '2', '3']);
   });
 
   it('creates separate rows for multiple front sizes in the same GroupID', () => {
@@ -194,11 +188,10 @@ describe('getCutListPrintSections', () => {
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections).toHaveLength(2);
-    expect(sections.find((s) => s.groupId === '3')?.special).toBe(true);
-    expect(sections.find((s) => s.groupId === '3')?.rows[0]?.special).toBe(true);
-    expect(sections.find((s) => s.groupId === '1')?.special).toBe(false);
-    expect(sections.find((s) => s.groupId === '1')?.rows[0]?.special).toBe(false);
+    expect(sections).toHaveLength(1);
+    expect(sections[0].special).toBe(true);
+    expect(sections[0].rows.find((r) => r.groupId === '3')?.special).toBe(true);
+    expect(sections[0].rows.find((r) => r.groupId === '1')?.special).toBe(false);
   });
 
   it('does not flag a group special for drill front alone', () => {

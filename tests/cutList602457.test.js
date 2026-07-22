@@ -68,8 +68,7 @@ describe('602457 cut-list box totals', () => {
     }
 
     const sections = getCutListPrintSections({ sourceRows }, cols);
-    expect(sections.map((s) => s.groupId)).toEqual(['1', '2', '3']);
-    const cutRows = sections.flatMap((s) => s.rows);
+    const cutRows = sections[0].rows;
     expect(cutRows.reduce((s, r) => s + r.parts, 0)).toBe(68);
     expect(cutRows.reduce((s, r) => s + r.boxes, 0)).toBe(17);
   });

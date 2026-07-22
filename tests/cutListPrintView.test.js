@@ -270,7 +270,7 @@ describe('buildCutListPrintCard', () => {
     expect(html).toContain('cutlist-dfm-mark');
     expect(html).toContain('2 Boxes');
     expect(html).not.toContain('matl');
-    expect(html).toContain('Order 602648 · Grp 3 · 2 boxes');
+    expect(html).toContain('Order 602648 · 2 boxes');
   });
 });
 

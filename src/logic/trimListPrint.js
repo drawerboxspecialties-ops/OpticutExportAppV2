@@ -159,9 +159,8 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
   const sections = [];
   merged.forEach((row) => {
     const last = sections[sections.length - 1];
-    const groupId = String(row.groupId ?? '').trim();
-    if (!last || last.order !== row.order || last.groupId !== groupId) {
-      sections.push({ order: row.order, groupId, special: false, rows: [] });
+    if (!last || last.order !== row.order) {
+      sections.push({ order: row.order, special: false, rows: [] });
     }
     const section = sections[sections.length - 1];
     const hasFront = Boolean(row.front.length);
