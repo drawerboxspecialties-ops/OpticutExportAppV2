@@ -22,6 +22,10 @@ import {
 import { DEMO_CSV } from './logic/demoData.js';
 import { buildCutListPrintCard, buildBatchOrdersIndex } from './ui/cutListPrintView.js';
 import { buildTrimListPrintCard } from './ui/trimListPrintView.js';
+import {
+  getBatchDisplayBoxInfo,
+  formatBatchBoxesTotalLabel,
+} from './logic/cutListPrint.js';
 import { publishStationJob, purgeExpiredStationJobs, isStationHash } from './logic/stationSync.js';
 import { mountStationView } from './ui/stationView.js';
 
@@ -237,10 +241,10 @@ function showWorkspace() {
   $('stat-total-rows').innerText = totalQty;
   const uniqueOrders = new Set(state.parsedRows.map((r) => r[state.colIndices.orderNumber]));
   $('stat-orders').innerText = uniqueOrders.size;
-  const totalBoxes = Object.values(state.splitGroups).reduce(
-    (sum, g) => sum + (g.totalBoxes || 0),
-    0
-  );
+  const totalBoxes = Object.values(state.splitGroups).reduce((sum, g) => {
+    const info = getBatchDisplayBoxInfo(g, state.colIndices, { allRows: state.parsedRows });
+    return sum + (info.displayBoxes || 0);
+  }, 0);
   $('stat-total-boxes').innerText = totalBoxes;
 
   updateExclusionOptions();
@@ -404,9 +408,12 @@ function renderBatchTabs() {
     const specialBadge = batch.isSpecial ? '<span class="batch-special-badge">SPECIAL</span>' : '';
     const shipMeta = formatBatchShipMeta(batch);
     const orderCount = batch.sortedOrders.length;
-    const boxLabel = `${batch.totalBoxes} ${batch.totalBoxes === 1 ? 'Box' : 'Boxes'}`;
+    const boxInfo = getBatchDisplayBoxInfo(batch, state.colIndices, {
+      allRows: state.parsedRows,
+    });
+    const boxLabel = formatBatchBoxesTotalLabel(boxInfo);
     const orderLabel = `${orderCount} ${orderCount === 1 ? 'Order' : 'Orders'}`;
-    btn.innerHTML = `<span class="batch-name">${escapeHTML(batchKey)}${specialBadge}</span><span class="batch-meta">${boxLabel} • ${orderLabel}${escapeHTML(shipMeta)}</span>`;
+    btn.innerHTML = `<span class="batch-name">${escapeHTML(batchKey)}${specialBadge}</span><span class="batch-meta">${escapeHTML(boxLabel)} • ${orderLabel}${escapeHTML(shipMeta)}</span>`;
     btn.addEventListener('click', () => selectGroup(batchKey));
 
     const splitBtn = document.createElement('button');
@@ -968,7 +975,9 @@ function printBatchOrdersIndex() {
   runPrintJob(() => {
     const wrap = document.createElement('div');
     wrap.className = 'print-batch-card print-batch-index-card';
-    wrap.innerHTML = buildBatchOrdersIndex(state.splitGroups, state.colIndices);
+    wrap.innerHTML = buildBatchOrdersIndex(state.splitGroups, state.colIndices, {
+      allRows: state.parsedRows,
+    });
     return wrap;
   }, ['print-active', 'print-batch-index-active']);
 }
@@ -1037,11 +1046,15 @@ async function sendActiveBatchToStation() {
 }
 
 function buildStationJobPayload(batchKey, batch) {
+  const boxInfo = getBatchDisplayBoxInfo(batch, state.colIndices, {
+    allRows: state.parsedRows,
+  });
   return {
     batchKey,
     fileName: state.currentFileName || state.appSettings?.recentFiles?.[0] || '',
     materialName: batch.materialName || '',
-    totalBoxes: batch.totalBoxes || 0,
+    totalBoxes: boxInfo.displayBoxes || 0,
+    materialBoxes: boxInfo.isFrontOnlyDfm ? boxInfo.materialBoxes : undefined,
     orders: batch.sortedOrders || [],
     isSpecial: Boolean(batch.isSpecial),
     html: buildCutListPrintCard(batchKey, batch, state.colIndices, null, {

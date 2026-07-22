@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getCutListPrintSections, getDifferentFrontMaterialKeys, dfmDrawerKey } from '../src/logic/cutListPrint.js';
+import { getCutListPrintSections, getDifferentFrontMaterialKeys, dfmDrawerKey, getBatchDisplayBoxInfo, formatBatchBoxesTotalLabel, formatBatchIndexBoxesCell, formatFrontOnlyDfmOrderGroupLabel } from '../src/logic/cutListPrint.js';
 import { mapHeaders } from '../src/logic/headers.js';
 
 const headers = [
@@ -133,8 +133,12 @@ describe('getCutListPrintSections', () => {
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections[0].rows).toHaveLength(2);
-    expect(sections[0].rows.map((r) => r.groupId)).toEqual(['1', '2']);
+    expect(sections).toHaveLength(2);
+    expect(sections.map((s) => s.groupId)).toEqual(['1', '2']);
+    expect(sections[0].rows).toHaveLength(1);
+    expect(sections[1].rows).toHaveLength(1);
+    expect(sections[0].rows[0].groupId).toBe('1');
+    expect(sections[1].rows[0].groupId).toBe('2');
   });
 
   it('sorts GroupIDs in numeric sequence within each order', () => {
@@ -146,7 +150,25 @@ describe('getCutListPrintSections', () => {
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections[0].rows.map((r) => r.groupId)).toEqual(['1', '2', '3']);
+    expect(sections.map((s) => s.groupId)).toEqual(['1', '2', '3']);
+    expect(sections.every((s) => s.order === '602336')).toBe(true);
+  });
+
+  it('does not mix GroupIDs in the same cut-list section', () => {
+    const batch = {
+      sourceRows: [
+        row({ order: '602947', part: 'F', length: '22', qty: 4, groupId: '1' }),
+        row({ order: '602947', part: 'F', length: '18', qty: 4, groupId: '2' }),
+        row({ order: '602947', part: 'F', length: '34', qty: 4, groupId: '3' }),
+      ],
+    };
+    const sections = getCutListPrintSections(batch, cols);
+    expect(sections).toHaveLength(3);
+    sections.forEach((section) => {
+      const ids = new Set(section.rows.map((r) => String(r.groupId ?? '').trim()));
+      expect(ids.size).toBe(1);
+      expect([...ids][0]).toBe(section.groupId);
+    });
   });
 
   it('creates separate rows for multiple front sizes in the same GroupID', () => {
@@ -172,10 +194,11 @@ describe('getCutListPrintSections', () => {
       ],
     };
     const sections = getCutListPrintSections(batch, cols);
-    expect(sections).toHaveLength(1);
-    expect(sections[0].special).toBe(true);
-    expect(sections[0].rows.find((r) => r.groupId === '3')?.special).toBe(true);
-    expect(sections[0].rows.find((r) => r.groupId === '1')?.special).toBe(false);
+    expect(sections).toHaveLength(2);
+    expect(sections.find((s) => s.groupId === '3')?.special).toBe(true);
+    expect(sections.find((s) => s.groupId === '3')?.rows[0]?.special).toBe(true);
+    expect(sections.find((s) => s.groupId === '1')?.special).toBe(false);
+    expect(sections.find((s) => s.groupId === '1')?.rows[0]?.special).toBe(false);
   });
 
   it('does not flag a group special for drill front alone', () => {
@@ -408,6 +431,64 @@ describe('different front material (*DFM)', () => {
     expect(sideSections[0].rows.every((r) => r.dfm)).toBe(true);
   });
 
+  it('side-only *DFM omits F but Bx counts matching fronts', () => {
+    const allRows = [
+      matRow({
+        order: '602648',
+        material: 'FAA: 3/4" Premium White Maple FSC',
+        part: 'F',
+        length: '34.875',
+        qty: 4,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'B',
+        length: '34.875',
+        qty: 4,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'L',
+        length: '20.876',
+        qty: 4,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'R',
+        length: '20.876',
+        qty: 4,
+        groupId: '3',
+      }),
+    ];
+
+    const sideBatch = {
+      sourceRows: allRows.filter((r) => r[cols.partName] !== 'F'),
+      totalBoxes: 3, // ceil(12/4) on sides only
+      sortedOrders: ['602648'],
+    };
+    const rows = getCutListPrintSections(sideBatch, cols, { allRows })[0].rows;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].sideOnlyDfm).toBe(true);
+    expect(rows[0].frontOnlyDfm).toBe(false);
+    expect(rows[0].fbLength).toBe('34.875');
+    expect(rows[0].lrLength).toBe('20.876');
+    // 4 fronts → 4 boxes (not ceil(12/4)=3)
+    expect(rows[0].boxes).toBe(4);
+    expect(rows[0].parts).toBe(12);
+
+    const info = getBatchDisplayBoxInfo(sideBatch, cols, { allRows });
+    expect(info.isSideOnlyDfm).toBe(true);
+    expect(info.displayBoxes).toBe(4);
+    expect(info.materialBoxes).toBe(3);
+    expect(formatBatchBoxesTotalLabel(info)).toBe('4 Boxes (3 matl)');
+  });
+
   it('sets Bx = Pcs on front-only *DFM rows (each front is one drawer box)', () => {
     const allRows = [
       matRow({
@@ -457,5 +538,65 @@ describe('different front material (*DFM)', () => {
     expect(rows.every((r) => r.frontOnlyDfm)).toBe(true);
     expect(rows.every((r) => r.boxes === r.parts)).toBe(true);
     expect(rows.reduce((s, r) => s + r.boxes, 0)).toBe(5);
+  });
+
+  it('uses front qty for batch header/index boxes on front-only *DFM', () => {
+    const allRows = [
+      matRow({
+        order: '602648',
+        material: 'FAA: 3/4" Premium White Maple FSC',
+        part: 'F',
+        length: '34.875',
+        qty: 3,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 3/4" Premium White Maple FSC',
+        part: 'F',
+        length: '28.938',
+        qty: 2,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'B',
+        length: '34.875',
+        qty: 3,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'L',
+        length: '20.876',
+        qty: 3,
+        groupId: '3',
+      }),
+      matRow({
+        order: '602648',
+        material: 'FAA: 1/2" Maple White',
+        part: 'R',
+        length: '20.876',
+        qty: 3,
+        groupId: '3',
+      }),
+    ];
+
+    const frontBatch = {
+      sourceRows: allRows.filter((r) => r[cols.partName] === 'F'),
+      totalBoxes: 2, // ceil(5/4) material math
+      sortedOrders: ['602648'],
+      orderColTotals: { '602648': 2 },
+    };
+    const info = getBatchDisplayBoxInfo(frontBatch, cols, { allRows });
+    expect(info.isFrontOnlyDfm).toBe(true);
+    expect(info.displayBoxes).toBe(5);
+    expect(info.materialBoxes).toBe(2);
+    expect(formatBatchBoxesTotalLabel(info)).toBe('5 Boxes (2 matl)');
+    expect(formatBatchIndexBoxesCell(info)).toContain('5');
+    expect(formatBatchIndexBoxesCell(info)).toContain('2 matl');
+    expect(formatFrontOnlyDfmOrderGroupLabel('602648', info)).toBe('3-5');
   });
 });

@@ -2,11 +2,23 @@ import { escapeHTML, escapeAttr } from '../logic/csv.js';
 import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
 import { formatOrderCutListBoxSummary, formatOrderGroupBoxLabel } from '../logic/groupBoxes.js';
-import { getCutListPrintSections, DFM_MARK } from '../logic/cutListPrint.js';
+import {
+  getCutListPrintSections,
+  DFM_MARK,
+  formatFrontOnlyDfmBoxSummary,
+  formatSectionBoxSummary,
+  getBatchDisplayBoxInfoFromSections,
+  formatBatchBoxesTotalLabel,
+  formatBatchIndexBoxesCell,
+  formatFrontOnlyDfmOrderGroupLabel,
+  getBatchDisplayBoxInfo,
+} from '../logic/cutListPrint.js';
 import { buildCode128Svg } from '../logic/code128.js';
 
 /** Max order numbers shown in the print header before summarizing. */
 export const PRINT_HEADER_ORDER_LIMIT = 10;
+
+export { getBatchDisplayBoxInfo, formatBatchBoxesTotalLabel };
 
 /** Stable id for a cut-list line (station checkbox persistence). */
 export function cutListRowId(row) {
@@ -37,7 +49,7 @@ export function formatPrintBatchOrders(batch, limit = PRINT_HEADER_ORDER_LIMIT) 
   return `${shown} <span class="print-batch-orders-more">+${more} more</span>`;
 }
 
-function buildPrintHeaderBanner(batchKey, batch, colIndices, position = null) {
+function buildPrintHeaderBanner(batchKey, batch, colIndices, position = null, boxesLabel = null) {
   const safeBatchKey = escapeHTML(batchKey);
   const safePrintedAt = escapeHTML(
     new Date().toLocaleString('en-US', {
@@ -76,13 +88,17 @@ function buildPrintHeaderBanner(batchKey, batch, colIndices, position = null) {
   const barcodeBlock = barcodeSvg
     ? `<div class="print-batch-barcode" title="${escapeAttr(batchKey)}">${barcodeSvg}</div>`
     : '';
+  const boxesTotal =
+    boxesLabel !== null && boxesLabel !== undefined
+      ? escapeHTML(boxesLabel)
+      : `${Number(batch.totalBoxes) || 0} Boxes`;
 
   return `
     <div class="print-batch-header">
       <div class="print-batch-header-row">
         <div class="print-batch-title">
           ${safeBatchKey}.csv${batchTag}${specialTag}
-          <span class="print-batch-boxes-total">${batch.totalBoxes} Boxes</span>
+          <span class="print-batch-boxes-total">${boxesTotal}</span>
           <span class="print-batch-orders-list">${formatPrintBatchOrders(batch)}</span>
         </div>
         <div class="print-batch-header-aside">
@@ -392,39 +408,24 @@ function renderFlowPage(columns, hasGroup, mode = 'print') {
     .join('')}</div>`;
 }
 
-function formatFrontOnlyDfmBoxSummary(section) {
-  const total = section.rows.reduce((sum, r) => sum + (r.boxes || 0), 0);
-  if (total <= 0) return '';
-  const boxWord = total === 1 ? 'box' : 'boxes';
-  const byGroup = new Map();
-  section.rows.forEach((r) => {
-    const id = String(r.groupId ?? '').trim();
-    if (!id) return;
-    byGroup.set(id, (byGroup.get(id) || 0) + (r.boxes || 0));
-  });
-  if (byGroup.size) {
-    const breakdown = [...byGroup.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
-      .map(([id, boxes]) => `${id}-${boxes}`)
-      .join(', ');
-    return `${total} ${boxWord} (${breakdown})`;
-  }
-  return `${total} ${boxWord}`;
-}
-
 function buildSectionTitleHtml(section, batch, colIndices, anySpecial) {
   const specialMark =
     section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
-  const useFrontOnlyDfmTotal = section.rows.some((r) => r.frontOnlyDfm);
-  const boxSummary = useFrontOnlyDfmTotal
-    ? formatFrontOnlyDfmBoxSummary(section)
-    : formatOrderCutListBoxSummary(section.order, batch, colIndices);
+  const groupId = String(section.groupId ?? '').trim();
+  const groupMark = groupId ? ` · Grp ${escapeHTML(groupId)}` : '';
+  // Section is already one GroupID — always summarize this block's line Bx only.
+  const boxSummary =
+    section.rows.some((r) => r.frontOnlyDfm || r.sideOnlyDfm) || groupId
+      ? formatSectionBoxSummary(section) || formatFrontOnlyDfmBoxSummary(section)
+      : formatOrderCutListBoxSummary(section.order, batch, colIndices);
   const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
-  return `Order ${escapeHTML(section.order)}${boxMark}${specialMark}`;
+  return `Order ${escapeHTML(section.order)}${groupMark}${boxMark}${specialMark}`;
 }
 
 function buildSectionContTitleHtml(section) {
-  return `Order ${escapeHTML(section.order)} <span class="cutlist-order-cont">(cont.)</span>`;
+  const groupId = String(section.groupId ?? '').trim();
+  const groupMark = groupId ? ` · Grp ${escapeHTML(groupId)}` : '';
+  return `Order ${escapeHTML(section.order)}${groupMark} <span class="cutlist-order-cont">(cont.)</span>`;
 }
 
 function renderCutListFlowBody(
@@ -473,11 +474,18 @@ function renderCutListFlowBody(
 
 export function buildCutListPrintCard(batchKey, batch, colIndices, position = null, options = {}) {
   const mode = options.mode === 'station' ? 'station' : 'print';
-  const headerBanner = buildPrintHeaderBanner(batchKey, batch, colIndices, position);
   const sections = getCutListPrintSections(batch, colIndices, {
     allRows: options.allRows,
     dfmKeys: options.dfmKeys,
   });
+  const boxInfo = getBatchDisplayBoxInfoFromSections(batch, sections);
+  const headerBanner = buildPrintHeaderBanner(
+    batchKey,
+    batch,
+    colIndices,
+    position,
+    formatBatchBoxesTotalLabel(boxInfo)
+  );
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
   const colCount = 6 + (hasGroup ? 1 : 0);
@@ -495,8 +503,9 @@ export function buildCutListPrintCard(batchKey, batch, colIndices, position = nu
  * Printable batch → orders index for shop lookup (computer labeled by batch name).
  * @param {Record<string, object>} splitGroups
  * @param {object} colIndices
+ * @param {{ allRows?: string[][] }} [options]
  */
-export function buildBatchOrdersIndex(splitGroups, colIndices) {
+export function buildBatchOrdersIndex(splitGroups, colIndices, options = {}) {
   const keys = Object.keys(splitGroups || {}).sort();
   const printedAt = escapeHTML(
     new Date().toLocaleString('en-US', {
@@ -513,6 +522,7 @@ export function buildBatchOrdersIndex(splitGroups, colIndices) {
     .map((batchKey) => {
       const batch = splitGroups[batchKey];
       if (!batch) return '';
+      const boxInfo = getBatchDisplayBoxInfo(batch, colIndices, { allRows: options.allRows });
       const orders = (batch.sortedOrders || []).map((o) => String(o).trim()).filter(Boolean);
       const material = batch.materialName
         ? escapeHTML(getExportMaterialName(batch.materialName))
@@ -523,7 +533,8 @@ export function buildBatchOrdersIndex(splitGroups, colIndices) {
       const ordersHtml = orders.length
         ? orders
             .map((o) => {
-              const qtyLabel = formatOrderGroupBoxLabel(o, batch, colIndices);
+              const dfmLabel = formatFrontOnlyDfmOrderGroupLabel(o, boxInfo);
+              const qtyLabel = dfmLabel || formatOrderGroupBoxLabel(o, batch, colIndices);
               const qtyHtml =
                 qtyLabel && qtyLabel !== '0'
                   ? ` <span class="batch-index-order-qty">(${escapeHTML(qtyLabel)})</span>`
@@ -550,7 +561,7 @@ export function buildBatchOrdersIndex(splitGroups, colIndices) {
             shipDateLabel ? ` · ${escapeHTML(shipDateLabel)}` : ''
           }</div>
         </td>
-        <td class="batch-index-boxes">${Number(batch.totalBoxes) || 0}</td>
+        <td class="batch-index-boxes">${formatBatchIndexBoxesCell(boxInfo)}</td>
         <td class="batch-index-count">${orders.length}</td>
         <td class="batch-index-orders">${ordersHtml}</td>
       </tr>`;

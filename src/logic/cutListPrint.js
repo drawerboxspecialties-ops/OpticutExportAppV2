@@ -23,6 +23,78 @@ export function dfmDrawerKey(order, groupId = '') {
 }
 
 /**
+ * Front qty maps for *DFM side sheets (F lives on another batch).
+ * - bySize: order|groupId|width|fbLength → front pcs (drawer count for that size)
+ * - byGroup: order|groupId → total front pcs
+ *
+ * @param {string[][]} rows full import (or all rows that include fronts)
+ * @param {object} colIndices
+ * @returns {{ bySize: Map<string, number>, byGroup: Map<string, number> }}
+ */
+export function buildDfmFrontQtyMaps(rows, colIndices) {
+  const bySize = new Map();
+  const byGroup = new Map();
+  if (!rows?.length || !colIndices || colIndices.partName === -1) {
+    return { bySize, byGroup };
+  }
+
+  rows.forEach((row) => {
+    if (getPartSide(row, colIndices) !== 'front') return;
+    const order = String(row[colIndices.orderNumber] ?? '').trim();
+    if (!order) return;
+    const qty = parseInt(row[colIndices.quantity], 10) || 0;
+    if (qty <= 0) return;
+    const groupId =
+      colIndices.groupId !== -1 && colIndices.groupId < row.length
+        ? String(row[colIndices.groupId] ?? '').trim()
+        : '';
+    const width = formatDecimalForDisplay(getStackMatrixWidth(row, colIndices));
+    const length = formatDecimalForDisplay(String(row[colIndices.length] ?? '').trim());
+    const sizeKey = dfmFrontSizeKey(order, groupId, width, length);
+    const groupKey = dfmDrawerKey(order, groupId);
+    bySize.set(sizeKey, (bySize.get(sizeKey) || 0) + qty);
+    byGroup.set(groupKey, (byGroup.get(groupKey) || 0) + qty);
+  });
+
+  return { bySize, byGroup };
+}
+
+/**
+ * @param {string} order
+ * @param {string} groupId
+ * @param {string} width
+ * @param {string} fbLength
+ */
+export function dfmFrontSizeKey(order, groupId, width, fbLength) {
+  return `${String(order ?? '').trim()}|${String(groupId ?? '').trim()}|${String(width ?? '').trim()}|${String(fbLength ?? '').trim()}`;
+}
+
+/**
+ * Drawer box count for a side-only *DFM line: prefer matching front qty from
+ * the full file; fall back to max(B/L/R) qty on the line.
+ *
+ * @param {object} row
+ * @param {{ bySize: Map<string, number>, byGroup: Map<string, number> }} frontMaps
+ * @returns {number}
+ */
+export function resolveSideOnlyDfmBoxes(row, frontMaps) {
+  const order = String(row?.order ?? '').trim();
+  const groupId = String(row?.groupId ?? '').trim();
+  const width = String(row?.width ?? '').trim();
+  const fbLength = String(row?.back?.length || row?.front?.length || row?.fbLength || '').trim();
+  const sizeKey = dfmFrontSizeKey(order, groupId, width, fbLength);
+  if (frontMaps?.bySize?.has(sizeKey)) {
+    return frontMaps.bySize.get(sizeKey) || 0;
+  }
+  if (row?.drawerCount > 0) return row.drawerCount;
+  const groupKey = dfmDrawerKey(order, groupId);
+  if (typeof row?.sideOnlyDfmGroupLines === 'number' && row.sideOnlyDfmGroupLines === 1) {
+    if (frontMaps?.byGroup?.has(groupKey)) return frontMaps.byGroup.get(groupKey) || 0;
+  }
+  return boxesForParts(row?.parts || 0);
+}
+
+/**
  * Find drawers whose Front material differs from Back/Left/Right material.
  * Keys are `order|groupId` (blank groupId when GroupID is absent).
  *
@@ -228,7 +300,14 @@ function mergeIdenticalBoxRows(rows) {
     const key = boxRowMergeKey(row);
     const existingIndex = indexByKey.get(key);
     if (existingIndex !== undefined) {
-      merged[existingIndex].parts += row.parts;
+      const existing = merged[existingIndex];
+      existing.parts += row.parts;
+      if (row.drawerCount) {
+        existing.drawerCount = (existing.drawerCount || 0) + row.drawerCount;
+      }
+      if (row.backQty) existing.backQty = (existing.backQty || 0) + row.backQty;
+      if (row.leftQty) existing.leftQty = (existing.leftQty || 0) + row.leftQty;
+      if (row.rightQty) existing.rightQty = (existing.rightQty || 0) + row.rightQty;
       return;
     }
     indexByKey.set(key, merged.length);
@@ -251,10 +330,11 @@ export function getCutListPrintSections(batch, colIndices, options = {}) {
   const rows = batch?.sourceRows?.length ? batch.sourceRows : batch?.rows || [];
   if (!rows.length || !colIndices) return [];
 
+  const lookupRows = options.allRows?.length ? options.allRows : rows;
   const dfmKeys =
-    options.dfmKeys ||
-    getDifferentFrontMaterialKeys(options.allRows?.length ? options.allRows : rows, colIndices);
+    options.dfmKeys || getDifferentFrontMaterialKeys(lookupRows, colIndices);
   const isDfm = (order, groupId) => dfmKeys.has(dfmDrawerKey(order, groupId));
+  const frontMaps = buildDfmFrontQtyMaps(lookupRows, colIndices);
 
   const specialGroups = getSpecialGroupKeys(rows, colIndices);
   const hasGroupId = colIndices.groupId !== -1;
@@ -329,15 +409,30 @@ export function getCutListPrintSections(batch, colIndices, options = {}) {
             left: emptySide(),
             right: emptySide(),
             parts: 0,
+            backQty: 0,
+            leftQty: 0,
+            rightQty: 0,
           });
         }
         const line = byWidth.get(p.stackWidth);
-        if (p.side === 'left') setSide(line.left, p.dim);
-        if (p.side === 'right') setSide(line.right, p.dim);
-        if (p.side === 'back') setSide(line.back, p.dim);
+        if (p.side === 'left') {
+          setSide(line.left, p.dim);
+          line.leftQty += p.qty;
+        }
+        if (p.side === 'right') {
+          setSide(line.right, p.dim);
+          line.rightQty += p.qty;
+        }
+        if (p.side === 'back') {
+          setSide(line.back, p.dim);
+          line.backQty += p.qty;
+        }
         line.parts += p.qty;
       });
-      byWidth.forEach((line) => boxRows.push(line));
+      byWidth.forEach((line) => {
+        line.drawerCount = Math.max(line.backQty, line.leftQty, line.rightQty);
+        boxRows.push(line);
+      });
       return;
     }
 
@@ -398,16 +493,46 @@ export function getCutListPrintSections(batch, colIndices, options = {}) {
 
   const mergedBoxRows = mergeIdenticalBoxRows(boxRows);
 
+  // Count side-only *DFM lines per group (for single-line group front rollup).
+  const sideOnlyDfmLinesByGroup = new Map();
+  mergedBoxRows.forEach((row) => {
+    const sideOnly =
+      Boolean(row.dfm) && !row.front.length && (row.left.length || row.right.length || row.back.length);
+    if (!sideOnly) return;
+    const key = dfmDrawerKey(row.order, row.groupId);
+    sideOnlyDfmLinesByGroup.set(key, (sideOnlyDfmLinesByGroup.get(key) || 0) + 1);
+  });
+
   const sections = [];
   mergedBoxRows.forEach((row) => {
     const last = sections[sections.length - 1];
-    if (!last || last.order !== row.order) {
-      sections.push({ order: row.order, special: false, rows: [] });
+    const groupId = String(row.groupId ?? '').trim();
+    if (!last || last.order !== row.order || last.groupId !== groupId) {
+      sections.push({ order: row.order, groupId, special: false, rows: [] });
     }
     const section = sections[sections.length - 1];
-    const frontOnlyDfm = Boolean(row.dfm) && !row.left.length && !row.right.length;
-    // Front-only *DFM: each front is one drawer box (sides live on another cut list).
-    const boxes = frontOnlyDfm ? row.parts : boxesForParts(row.parts);
+    const hasFront = Boolean(row.front.length);
+    const hasSide = Boolean(row.left.length || row.right.length || row.back.length);
+    const frontOnlyDfm = Boolean(row.dfm) && hasFront && !row.left.length && !row.right.length;
+    const sideOnlyDfm = Boolean(row.dfm) && !hasFront && hasSide;
+    let boxes;
+    if (frontOnlyDfm) {
+      // Each front is one drawer box (sides live on another cut list).
+      boxes = row.parts;
+    } else if (sideOnlyDfm) {
+      // No F on this sheet — Bx still counts drawers via front qty from full file.
+      const groupKey = dfmDrawerKey(row.order, row.groupId);
+      boxes = resolveSideOnlyDfmBoxes(
+        {
+          ...row,
+          fbLength: row.back.length || row.front.length,
+          sideOnlyDfmGroupLines: sideOnlyDfmLinesByGroup.get(groupKey) || 1,
+        },
+        frontMaps
+      );
+    } else {
+      boxes = boxesForParts(row.parts);
+    }
     section.rows.push({
       parts: row.parts,
       boxes,
@@ -415,6 +540,7 @@ export function getCutListPrintSections(batch, colIndices, options = {}) {
       special: row.special,
       dfm: Boolean(row.dfm),
       frontOnlyDfm,
+      sideOnlyDfm,
       width: row.width,
       fbLength: row.front.length || row.back.length,
       lrLength: row.left.length || row.right.length,
@@ -423,4 +549,185 @@ export function getCutListPrintSections(batch, colIndices, options = {}) {
   });
 
   return sections;
+}
+
+/**
+ * Box summary for one cut-list section (already scoped to one order / GroupID).
+ * Example: "5 boxes"
+ *
+ * @param {{ rows: Array<{ boxes?: number }> }} section
+ * @returns {string}
+ */
+export function formatSectionBoxSummary(section) {
+  const total = (section?.rows || []).reduce((sum, r) => sum + (r.boxes || 0), 0);
+  if (total <= 0) return '';
+  return `${total} ${total === 1 ? 'box' : 'boxes'}`;
+}
+
+/**
+ * Order-title box summary when every line is front-only *DFM
+ * (Bx = front qty). Example: "5 boxes (3-5)".
+ *
+ * @param {{ rows: Array<{ boxes?: number, groupId?: string }> }} section
+ * @returns {string}
+ */
+export function formatFrontOnlyDfmBoxSummary(section) {
+  if (section?.groupId) return formatSectionBoxSummary(section);
+  const total = (section?.rows || []).reduce((sum, r) => sum + (r.boxes || 0), 0);
+  if (total <= 0) return '';
+  const boxWord = total === 1 ? 'box' : 'boxes';
+  const byGroup = new Map();
+  (section.rows || []).forEach((r) => {
+    const id = String(r.groupId ?? '').trim();
+    if (!id) return;
+    byGroup.set(id, (byGroup.get(id) || 0) + (r.boxes || 0));
+  });
+  if (byGroup.size) {
+    const breakdown = [...byGroup.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+      .map(([id, boxes]) => `${id}-${boxes}`)
+      .join(', ');
+    return `${total} ${boxWord} (${breakdown})`;
+  }
+  return `${total} ${boxWord}`;
+}
+
+/**
+ * Display box totals for a batch. *DFM sheets (front-only or side-only) count
+ * drawers from front qty; materialBoxes stays ceil(parts/4).
+ *
+ * @param {{ totalBoxes?: number }} batch
+ * @param {Array<{ order: string, rows: Array<{ boxes?: number, groupId?: string, frontOnlyDfm?: boolean, sideOnlyDfm?: boolean }> }>} sections
+ */
+export function getBatchDisplayBoxInfoFromSections(batch, sections) {
+  const materialBoxes = Number(batch?.totalBoxes) || 0;
+  const rows = (sections || []).flatMap((s) => s.rows || []);
+  if (!rows.length) {
+    return {
+      displayBoxes: materialBoxes,
+      materialBoxes,
+      isFrontOnlyDfm: false,
+      isSideOnlyDfm: false,
+      usesDrawerBoxCount: false,
+      orderDisplayBoxes: {},
+      orderGroupDisplayBoxes: {},
+    };
+  }
+
+  const isFrontOnlyDfm = rows.every((r) => r.frontOnlyDfm);
+  const isSideOnlyDfm = rows.every((r) => r.sideOnlyDfm);
+  const usesDrawerBoxCount =
+    isFrontOnlyDfm ||
+    isSideOnlyDfm ||
+    rows.some((r) => r.frontOnlyDfm || r.sideOnlyDfm);
+
+  if (!usesDrawerBoxCount) {
+    return {
+      displayBoxes: materialBoxes,
+      materialBoxes,
+      isFrontOnlyDfm: false,
+      isSideOnlyDfm: false,
+      usesDrawerBoxCount: false,
+      orderDisplayBoxes: {},
+      orderGroupDisplayBoxes: {},
+    };
+  }
+
+  /** @type {Record<string, number>} */
+  const orderDisplayBoxes = {};
+  /** @type {Record<string, Array<{ groupId: string, boxes: number }>>} */
+  const orderGroupDisplayBoxes = {};
+
+  (sections || []).forEach((section) => {
+    const order = String(section.order ?? '').trim();
+    if (!order) return;
+    const byGroup = new Map();
+    let orderTotal = 0;
+    (section.rows || []).forEach((r) => {
+      const boxes = r.boxes || 0;
+      orderTotal += boxes;
+      const gid = String(r.groupId ?? '').trim();
+      if (gid) byGroup.set(gid, (byGroup.get(gid) || 0) + boxes);
+    });
+    orderDisplayBoxes[order] = (orderDisplayBoxes[order] || 0) + orderTotal;
+    orderGroupDisplayBoxes[order] = [...byGroup.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+      .map(([groupId, boxes]) => ({ groupId, boxes }));
+  });
+
+  const displayBoxes = rows.reduce((sum, r) => sum + (r.boxes || 0), 0);
+  return {
+    displayBoxes,
+    materialBoxes,
+    isFrontOnlyDfm,
+    isSideOnlyDfm,
+    usesDrawerBoxCount: true,
+    orderDisplayBoxes,
+    orderGroupDisplayBoxes,
+  };
+}
+
+/**
+ * @param {{ sourceRows?: string[][], rows?: string[][], totalBoxes?: number }} batch
+ * @param {object} colIndices
+ * @param {{ allRows?: string[][], dfmKeys?: Set<string> }} [options]
+ */
+export function getBatchDisplayBoxInfo(batch, colIndices, options = {}) {
+  return getBatchDisplayBoxInfoFromSections(
+    batch,
+    getCutListPrintSections(batch, colIndices, options)
+  );
+}
+
+/**
+ * Header / sidebar label. *DFM drawer-count sheets show front qty and matl boxes when they differ.
+ * @param {{ displayBoxes: number, materialBoxes: number, usesDrawerBoxCount?: boolean, isFrontOnlyDfm?: boolean }} info
+ * @returns {string}
+ */
+export function formatBatchBoxesTotalLabel(info) {
+  const n = Number(info?.displayBoxes) || 0;
+  const word = n === 1 ? 'Box' : 'Boxes';
+  const material = Number(info?.materialBoxes) || 0;
+  const showMatl =
+    (info?.usesDrawerBoxCount || info?.isFrontOnlyDfm || info?.isSideOnlyDfm) &&
+    material > 0 &&
+    material !== n;
+  if (showMatl) {
+    return `${n} ${word} (${material} matl)`;
+  }
+  return `${n} ${word}`;
+}
+
+/**
+ * Batch-index Boxes cell HTML (drawer count, with matl note when *DFM differs).
+ * @param {{ displayBoxes: number, materialBoxes: number, usesDrawerBoxCount?: boolean, isFrontOnlyDfm?: boolean, isSideOnlyDfm?: boolean }} info
+ * @returns {string}
+ */
+export function formatBatchIndexBoxesCell(info) {
+  const n = Number(info?.displayBoxes) || 0;
+  const material = Number(info?.materialBoxes) || 0;
+  const showMatl =
+    (info?.usesDrawerBoxCount || info?.isFrontOnlyDfm || info?.isSideOnlyDfm) &&
+    material > 0 &&
+    material !== n;
+  if (showMatl) {
+    return `${n} <span class="batch-index-matl">(${material} matl)</span>`;
+  }
+  return String(n);
+}
+
+/**
+ * Per-order GroupID label for batch index on *DFM drawer-count batches.
+ * @param {string} order
+ * @param {{ usesDrawerBoxCount?: boolean, isFrontOnlyDfm?: boolean, orderGroupDisplayBoxes?: Record<string, Array<{ groupId: string, boxes: number }>>, orderDisplayBoxes?: Record<string, number> }} info
+ * @returns {string}
+ */
+export function formatFrontOnlyDfmOrderGroupLabel(order, info) {
+  if (!info?.usesDrawerBoxCount && !info?.isFrontOnlyDfm && !info?.isSideOnlyDfm) return '';
+  const groups = info.orderGroupDisplayBoxes?.[order];
+  if (groups?.length) {
+    return groups.map((g) => `${g.groupId}-${g.boxes}`).join(', ');
+  }
+  const total = info.orderDisplayBoxes?.[order];
+  return total !== undefined && total !== null ? String(total) : '';
 }

@@ -3,7 +3,13 @@ import { getExportMaterialName } from '../logic/materialNames.js';
 import { formatShipDateLabel } from '../logic/shipDate.js';
 import { formatOrderCutListBoxSummary } from '../logic/groupBoxes.js';
 import { getTrimListPrintSections, trimListRowId } from '../logic/trimListPrint.js';
-import { DFM_MARK } from '../logic/cutListPrint.js';
+import {
+  DFM_MARK,
+  formatFrontOnlyDfmBoxSummary,
+  formatSectionBoxSummary,
+  getBatchDisplayBoxInfoFromSections,
+  formatBatchBoxesTotalLabel,
+} from '../logic/cutListPrint.js';
 import { buildCode128Svg } from '../logic/code128.js';
 import {
   packCutListPrintFlow,
@@ -25,6 +31,7 @@ import {
 export function buildTrimListPrintCard(batchKey, batch, colIndices, options = {}) {
   const mode = options.mode === 'station' ? 'station' : 'print';
   const sections = getTrimListPrintSections(batch, colIndices, { allRows: options.allRows });
+  const boxInfo = getBatchDisplayBoxInfoFromSections(batch, sections);
   const hasGroup = colIndices.groupId !== -1;
   const anySpecial = sections.some((s) => s.special);
   const colCount = 7 + (hasGroup ? 1 : 0);
@@ -36,7 +43,12 @@ export function buildTrimListPrintCard(batchKey, batch, colIndices, options = {}
 
   return `<div class="cutlist-print-sheet trim-list-sheet"${
     mode === 'station' ? ' data-station-sheet="1" data-trim-sheet="1"' : ''
-  }>${buildTrimHeaderBanner(batchKey, batch, colIndices)}<div class="cutlist-print-flow">${renderTrimFlowBody(
+  }>${buildTrimHeaderBanner(
+    batchKey,
+    batch,
+    colIndices,
+    formatBatchBoxesTotalLabel(boxInfo)
+  )}<div class="cutlist-print-flow">${renderTrimFlowBody(
     sections,
     batch,
     colIndices,
@@ -48,7 +60,7 @@ export function buildTrimListPrintCard(batchKey, batch, colIndices, options = {}
   )}</div></div>`;
 }
 
-function buildTrimHeaderBanner(batchKey, batch, colIndices) {
+function buildTrimHeaderBanner(batchKey, batch, colIndices, boxesLabel = null) {
   const safeBatchKey = escapeHTML(batchKey);
   const safePrintedAt = escapeHTML(
     new Date().toLocaleString('en-US', {
@@ -83,13 +95,17 @@ function buildTrimHeaderBanner(batchKey, batch, colIndices) {
   const barcodeBlock = barcodeSvg
     ? `<div class="print-batch-barcode" title="${escapeAttr(batchKey)}">${barcodeSvg}</div>`
     : '';
+  const boxesTotal =
+    boxesLabel !== null && boxesLabel !== undefined
+      ? escapeHTML(boxesLabel)
+      : `${Number(batch.totalBoxes) || 0} Boxes`;
 
   return `
     <div class="print-batch-header">
       <div class="print-batch-header-row">
         <div class="print-batch-title">
           ${safeBatchKey}.csv <span class="print-batch-trim">TRIM</span>${specialTag}
-          <span class="print-batch-boxes-total">${batch.totalBoxes || 0} Boxes</span>
+          <span class="print-batch-boxes-total">${boxesTotal}</span>
           <span class="print-batch-orders-list">${formatPrintBatchOrders(batch)}</span>
         </div>
         <div class="print-batch-header-aside">
@@ -227,13 +243,20 @@ function renderTrimFlowPage(columns, hasGroup, mode = 'print') {
 function buildTrimSectionTitleHtml(section, batch, colIndices, anySpecial) {
   const specialMark =
     section.special && anySpecial ? ' <span class="cutlist-order-special">★ SPECIAL</span>' : '';
-  const boxSummary = formatOrderCutListBoxSummary(section.order, batch, colIndices);
+  const groupId = String(section.groupId ?? '').trim();
+  const groupMark = groupId ? ` · Grp ${escapeHTML(groupId)}` : '';
+  const boxSummary =
+    section.rows.some((r) => r.frontOnlyDfm || r.sideOnlyDfm) || groupId
+      ? formatSectionBoxSummary(section) || formatFrontOnlyDfmBoxSummary(section)
+      : formatOrderCutListBoxSummary(section.order, batch, colIndices);
   const boxMark = boxSummary ? ` · ${escapeHTML(boxSummary)}` : '';
-  return `Order ${escapeHTML(section.order)}${boxMark}${specialMark}`;
+  return `Order ${escapeHTML(section.order)}${groupMark}${boxMark}${specialMark}`;
 }
 
 function buildTrimSectionContTitleHtml(section) {
-  return `Order ${escapeHTML(section.order)} <span class="cutlist-order-cont">(cont.)</span>`;
+  const groupId = String(section.groupId ?? '').trim();
+  const groupMark = groupId ? ` · Grp ${escapeHTML(groupId)}` : '';
+  return `Order ${escapeHTML(section.order)}${groupMark} <span class="cutlist-order-cont">(cont.)</span>`;
 }
 
 function renderTrimFlowBody(

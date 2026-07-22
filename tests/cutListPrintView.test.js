@@ -268,6 +268,8 @@ describe('buildCutListPrintCard', () => {
     const html = buildCutListPrintCard('TEST', batch, cols, null, { allRows });
     expect(html).toContain('*DFM');
     expect(html).toContain('cutlist-dfm-mark');
+    expect(html).toContain('2 Boxes (1 matl)');
+    expect(html).toContain('Order 602648 · Grp 3 · 2 boxes');
   });
 });
 
@@ -510,5 +512,32 @@ describe('buildBatchOrdersIndex', () => {
     expect(html).toContain('★ SPECIAL');
     expect(html).toContain('code128-barcode');
     expect(html).toContain('<rect');
+  });
+
+  it('shows front qty and mat\'l boxes for front-only *DFM batches', () => {
+    const frontMat = 'FAA: 3/4" Premium White Maple FSC';
+    const sideMat = 'FAA: 1/2" Maple White';
+    const allRows = [
+      ['602648', frontMat, 'F', '4', '19.063', '5', '', '4', 'Bullnose', '3'],
+      ['602648', sideMat, 'B', '4', '19.063', '5', '', '4', 'Bullnose', '3'],
+      ['602648', sideMat, 'L', '4', '20.876', '5', '', '4', 'Bullnose', '3'],
+      ['602648', sideMat, 'R', '4', '20.876', '5', '', '4', 'Bullnose', '3'],
+    ];
+    const html = buildBatchOrdersIndex(
+      {
+        FAA_BN_602648: {
+          materialName: frontMat,
+          topEdge: 'Bullnose',
+          totalBoxes: 2,
+          sortedOrders: ['602648'],
+          orderColTotals: { '602648': 2 },
+          sourceRows: [allRows[0]],
+        },
+      },
+      cols,
+      { allRows }
+    );
+    expect(html).toContain('5 <span class="batch-index-matl">(2 matl)</span>');
+    expect(html).toContain('(3-5)');
   });
 });

@@ -2083,6 +2083,18 @@ tbody tr:hover td {
   font-weight: 700;
 }
 
+.batch-index-boxes {
+  width: auto;
+  min-width: 2.4rem;
+  white-space: nowrap;
+}
+
+.batch-index-matl {
+  font-weight: 500;
+  color: #666;
+  font-size: 0.85em;
+}
+
 .batch-index-orders {
   line-height: 1.45;
 }

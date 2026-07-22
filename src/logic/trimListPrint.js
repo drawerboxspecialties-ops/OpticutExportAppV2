@@ -4,9 +4,15 @@ import {
   formatDecimalForDisplay,
   getNumericSortValue,
   getFractionalSortValue,
+  roundWidthUpToWhole,
 } from './widths.js';
 import { getSpecialGroupKeys, getGroupSpecialKey } from './specialOrders.js';
-import { getDifferentFrontMaterialKeys, dfmDrawerKey } from './cutListPrint.js';
+import {
+  getDifferentFrontMaterialKeys,
+  dfmDrawerKey,
+  buildDfmFrontQtyMaps,
+  resolveSideOnlyDfmBoxes,
+} from './cutListPrint.js';
 
 /**
  * Trim-saw cut list: same order/group pairing as OptiCut.
@@ -21,10 +27,11 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
   const rows = batch?.sourceRows?.length ? batch.sourceRows : batch?.rows || [];
   if (!rows.length || !colIndices) return [];
 
+  const lookupRows = options.allRows?.length ? options.allRows : rows;
   const dfmKeys =
-    options.dfmKeys ||
-    getDifferentFrontMaterialKeys(options.allRows?.length ? options.allRows : rows, colIndices);
+    options.dfmKeys || getDifferentFrontMaterialKeys(lookupRows, colIndices);
   const isDfm = (order, groupId) => dfmKeys.has(dfmDrawerKey(order, groupId));
+  const frontMaps = buildDfmFrontQtyMaps(lookupRows, colIndices);
 
   const specialGroups = getSpecialGroupKeys(rows, colIndices);
   const hasGroupId = colIndices.groupId !== -1;
@@ -95,20 +102,36 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
             dfm: bucket.dfm,
             drawerHeight: p.drawerHeight,
             drawerHeightSort: p.drawerHeightSort,
+            width: p.drawerHeight,
             front: emptySide(),
             back: emptySide(),
             left: emptySide(),
             right: emptySide(),
             parts: 0,
+            backQty: 0,
+            leftQty: 0,
+            rightQty: 0,
           });
         }
         const line = byKey.get(lineKey);
-        if (p.side === 'left') setSide(line.left, p.dim);
-        if (p.side === 'right') setSide(line.right, p.dim);
-        if (p.side === 'back') setSide(line.back, p.dim);
+        if (p.side === 'left') {
+          setSide(line.left, p.dim);
+          line.leftQty += p.qty;
+        }
+        if (p.side === 'right') {
+          setSide(line.right, p.dim);
+          line.rightQty += p.qty;
+        }
+        if (p.side === 'back') {
+          setSide(line.back, p.dim);
+          line.backQty += p.qty;
+        }
         line.parts += p.qty;
       });
-      byKey.forEach((line) => boxRows.push(line));
+      byKey.forEach((line) => {
+        line.drawerCount = Math.max(line.backQty, line.leftQty, line.rightQty);
+        boxRows.push(line);
+      });
       return;
     }
 
@@ -163,15 +186,46 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
   });
 
   const merged = mergeIdenticalTrimRows(boxRows);
+
+  const sideOnlyDfmLinesByGroup = new Map();
+  merged.forEach((row) => {
+    const sideOnly =
+      Boolean(row.dfm) && !row.front.length && (row.left.length || row.right.length || row.back.length);
+    if (!sideOnly) return;
+    const key = dfmDrawerKey(row.order, row.groupId);
+    sideOnlyDfmLinesByGroup.set(key, (sideOnlyDfmLinesByGroup.get(key) || 0) + 1);
+  });
+
   const sections = [];
   merged.forEach((row) => {
     const last = sections[sections.length - 1];
-    if (!last || last.order !== row.order) {
-      sections.push({ order: row.order, special: false, rows: [] });
+    const groupId = String(row.groupId ?? '').trim();
+    if (!last || last.order !== row.order || last.groupId !== groupId) {
+      sections.push({ order: row.order, groupId, special: false, rows: [] });
     }
     const section = sections[sections.length - 1];
-    const frontOnlyDfm = Boolean(row.dfm) && !row.left.length && !row.right.length;
-    const boxes = frontOnlyDfm ? row.parts : boxesForParts(row.parts);
+    const hasFront = Boolean(row.front.length);
+    const hasSide = Boolean(row.left.length || row.right.length || row.back.length);
+    const frontOnlyDfm = Boolean(row.dfm) && hasFront && !row.left.length && !row.right.length;
+    const sideOnlyDfm = Boolean(row.dfm) && !hasFront && hasSide;
+    let boxes;
+    if (frontOnlyDfm) {
+      boxes = row.parts;
+    } else if (sideOnlyDfm) {
+      const groupKey = dfmDrawerKey(row.order, row.groupId);
+      boxes = resolveSideOnlyDfmBoxes(
+        {
+          ...row,
+          // Front qty map keys use OptiCut stack width (rounded up).
+          width: formatDecimalForDisplay(roundWidthUpToWhole(row.drawerHeight || row.width || '')),
+          fbLength: row.back.length || row.front.length,
+          sideOnlyDfmGroupLines: sideOnlyDfmLinesByGroup.get(groupKey) || 1,
+        },
+        frontMaps
+      );
+    } else {
+      boxes = boxesForParts(row.parts);
+    }
     const fbW = row.front.w || row.back.w || '';
     const lrW = row.left.w || row.right.w || '';
     section.rows.push({
@@ -180,6 +234,8 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
       groupId: row.groupId,
       special: row.special,
       dfm: Boolean(row.dfm),
+      frontOnlyDfm,
+      sideOnlyDfm,
       fbW,
       lrW,
       fbLength: row.front.length || row.back.length,
@@ -317,7 +373,14 @@ function mergeIdenticalTrimRows(rows) {
     const key = trimRowMergeKey(row);
     const existingIndex = indexByKey.get(key);
     if (existingIndex !== undefined) {
-      merged[existingIndex].parts += row.parts;
+      const existing = merged[existingIndex];
+      existing.parts += row.parts;
+      if (row.drawerCount) {
+        existing.drawerCount = (existing.drawerCount || 0) + row.drawerCount;
+      }
+      if (row.backQty) existing.backQty = (existing.backQty || 0) + row.backQty;
+      if (row.leftQty) existing.leftQty = (existing.leftQty || 0) + row.leftQty;
+      if (row.rightQty) existing.rightQty = (existing.rightQty || 0) + row.rightQty;
       return;
     }
     indexByKey.set(key, merged.length);
