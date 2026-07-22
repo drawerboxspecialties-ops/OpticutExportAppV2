@@ -91,47 +91,7 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
     const rights = bucket.parts.filter((p) => p.side === 'right');
 
     if (fronts.length === 0) {
-      const byKey = new Map();
-      [...lefts, ...rights, ...backs].forEach((p) => {
-        const lineKey = p.drawerHeight;
-        if (!byKey.has(lineKey)) {
-          byKey.set(lineKey, {
-            order: bucket.order,
-            groupId: bucket.groupId,
-            special: bucket.special,
-            dfm: bucket.dfm,
-            drawerHeight: p.drawerHeight,
-            drawerHeightSort: p.drawerHeightSort,
-            width: p.drawerHeight,
-            front: emptySide(),
-            back: emptySide(),
-            left: emptySide(),
-            right: emptySide(),
-            parts: 0,
-            backQty: 0,
-            leftQty: 0,
-            rightQty: 0,
-          });
-        }
-        const line = byKey.get(lineKey);
-        if (p.side === 'left') {
-          setSide(line.left, p.dim);
-          line.leftQty += p.qty;
-        }
-        if (p.side === 'right') {
-          setSide(line.right, p.dim);
-          line.rightQty += p.qty;
-        }
-        if (p.side === 'back') {
-          setSide(line.back, p.dim);
-          line.backQty += p.qty;
-        }
-        line.parts += p.qty;
-      });
-      byKey.forEach((line) => {
-        line.drawerCount = Math.max(line.backQty, line.leftQty, line.rightQty);
-        boxRows.push(line);
-      });
+      pushTrimSideOnlyBoxRows(bucket, backs, lefts, rights, boxRows);
       return;
     }
 
@@ -318,27 +278,114 @@ function sortFrontParts(fronts) {
   });
 }
 
+/**
+ * Side-only (*DFM) trim lines: pair from each back, then L/R — never by height alone.
+ */
+function pushTrimSideOnlyBoxRows(bucket, backs, lefts, rights, boxRows) {
+  const usedLeft = new Set();
+  const usedRight = new Set();
+
+  if (backs.length) {
+    sortFrontParts(backs).forEach((lead) => {
+      const line = {
+        order: bucket.order,
+        groupId: bucket.groupId,
+        special: bucket.special,
+        dfm: bucket.dfm,
+        drawerHeight: lead.drawerHeight,
+        drawerHeightSort: lead.drawerHeightSort,
+        width: lead.drawerHeight,
+        front: emptySide(),
+        back: { ...lead.dim },
+        left: emptySide(),
+        right: emptySide(),
+        parts: lead.qty,
+        backQty: lead.qty,
+        leftQty: 0,
+        rightQty: 0,
+      };
+      const leftPart = pickClosestPart(lefts, usedLeft, lead);
+      if (leftPart) {
+        setSide(line.left, leftPart.dim);
+        line.leftQty = leftPart.qty;
+        line.parts += leftPart.qty;
+      }
+      const rightPart = pickClosestPart(rights, usedRight, lead);
+      if (rightPart) {
+        setSide(line.right, rightPart.dim);
+        line.rightQty = rightPart.qty;
+        line.parts += rightPart.qty;
+      }
+      line.drawerCount = Math.max(line.backQty, line.leftQty, line.rightQty);
+      boxRows.push(line);
+    });
+    return;
+  }
+
+  const bySize = new Map();
+  [...lefts, ...rights].forEach((p) => {
+    const sizeKey = `${p.drawerHeight}|${p.dim.length}|${p.dim.w}`;
+    if (!bySize.has(sizeKey)) {
+      bySize.set(sizeKey, {
+        order: bucket.order,
+        groupId: bucket.groupId,
+        special: bucket.special,
+        dfm: bucket.dfm,
+        drawerHeight: p.drawerHeight,
+        drawerHeightSort: p.drawerHeightSort,
+        width: p.drawerHeight,
+        front: emptySide(),
+        back: emptySide(),
+        left: emptySide(),
+        right: emptySide(),
+        parts: 0,
+        backQty: 0,
+        leftQty: 0,
+        rightQty: 0,
+      });
+    }
+    const line = bySize.get(sizeKey);
+    if (p.side === 'left') {
+      setSide(line.left, p.dim);
+      line.leftQty += p.qty;
+    }
+    if (p.side === 'right') {
+      setSide(line.right, p.dim);
+      line.rightQty += p.qty;
+    }
+    line.parts += p.qty;
+  });
+  bySize.forEach((line) => {
+    line.drawerCount = Math.max(line.leftQty, line.rightQty);
+    boxRows.push(line);
+  });
+}
+
 function pickClosestPart(list, used, lead, { requireLength } = {}) {
   let best = null;
   let bestIdx = -1;
   let bestDiff = Infinity;
+  let bestQtyGap = Infinity;
 
   list.forEach((p, i) => {
     if (used.has(i)) return;
     if (p.drawerHeight !== lead.drawerHeight) return;
     if (requireLength && p.dim.length !== lead.dim.length) return;
+    let diff = Infinity;
     if (lead.dim.w && p.dim.w) {
-      const diff = Math.abs(parseFloat(p.dim.w) - parseFloat(lead.dim.w));
-      if (Number.isFinite(diff) && diff < bestDiff) {
-        best = p;
-        bestIdx = i;
-        bestDiff = diff;
-      }
+      diff = Math.abs(parseFloat(p.dim.w) - parseFloat(lead.dim.w));
+      if (!Number.isFinite(diff)) return;
+    } else if (!requireLength) {
+      diff = 0;
+    } else {
       return;
     }
-    if (!requireLength && bestDiff === Infinity) {
+    const qtyGap = Math.abs((p.qty || 0) - (lead.qty || 0));
+    if (diff < bestDiff || (diff === bestDiff && qtyGap < bestQtyGap)) {
       best = p;
       bestIdx = i;
+      bestDiff = diff;
+      bestQtyGap = qtyGap;
     }
   });
 

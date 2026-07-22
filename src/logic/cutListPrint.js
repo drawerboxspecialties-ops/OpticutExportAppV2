@@ -70,14 +70,16 @@ export function dfmFrontSizeKey(order, groupId, width, fbLength) {
 }
 
 /**
- * Drawer box count for a side-only *DFM line: prefer matching front qty from
- * the full file; fall back to max(B/L/R) qty on the line.
+ * Drawer box count for a side-only *DFM line.
+ * Prefer this line's side qty (drawerCount) so two sizes that share FB length
+ * (different L/R) are not both assigned the full front-size total.
  *
  * @param {object} row
  * @param {{ bySize: Map<string, number>, byGroup: Map<string, number> }} frontMaps
  * @returns {number}
  */
 export function resolveSideOnlyDfmBoxes(row, frontMaps) {
+  if (row?.drawerCount > 0) return row.drawerCount;
   const order = String(row?.order ?? '').trim();
   const groupId = String(row?.groupId ?? '').trim();
   const width = String(row?.width ?? '').trim();
@@ -86,7 +88,6 @@ export function resolveSideOnlyDfmBoxes(row, frontMaps) {
   if (frontMaps?.bySize?.has(sizeKey)) {
     return frontMaps.bySize.get(sizeKey) || 0;
   }
-  if (row?.drawerCount > 0) return row.drawerCount;
   const groupKey = dfmDrawerKey(order, groupId);
   if (typeof row?.sideOnlyDfmGroupLines === 'number' && row.sideOnlyDfmGroupLines === 1) {
     if (frontMaps?.byGroup?.has(groupKey)) return frontMaps.byGroup.get(groupKey) || 0;
@@ -212,6 +213,97 @@ function sortFrontParts(fronts) {
   });
 }
 
+/**
+ * Side-only (*DFM) lines: pair from each back (FB length = drawer size), then L/R.
+ * Never collapse all Widths into one row — that merged Pantry/Dry Bar sizes.
+ *
+ * @param {object} bucket
+ * @param {object[]} backs
+ * @param {object[]} lefts
+ * @param {object[]} rights
+ * @param {object[]} boxRows
+ */
+function pushSideOnlyBoxRows(bucket, backs, lefts, rights, boxRows) {
+  const usedLeft = new Set();
+  const usedRight = new Set();
+
+  if (backs.length) {
+    sortFrontParts(backs).forEach((lead) => {
+      const line = {
+        order: bucket.order,
+        groupId: bucket.groupId,
+        lineLabel: bucket.lineLabel,
+        special: bucket.special,
+        dfm: bucket.dfm,
+        width: lead.stackWidth,
+        stackWidthSort: lead.stackWidthSort,
+        front: emptySide(),
+        back: { ...lead.dim },
+        left: emptySide(),
+        right: emptySide(),
+        parts: lead.qty,
+        backQty: lead.qty,
+        leftQty: 0,
+        rightQty: 0,
+      };
+      const leftPart = pickClosestWPart(lefts, usedLeft, lead);
+      if (leftPart) {
+        setSide(line.left, leftPart.dim);
+        line.leftQty = leftPart.qty;
+        line.parts += leftPart.qty;
+      }
+      const rightPart = pickClosestWPart(rights, usedRight, lead);
+      if (rightPart) {
+        setSide(line.right, rightPart.dim);
+        line.rightQty = rightPart.qty;
+        line.parts += rightPart.qty;
+      }
+      line.drawerCount = Math.max(line.backQty, line.leftQty, line.rightQty);
+      boxRows.push(line);
+    });
+    return;
+  }
+
+  // No backs: emit L/R groups by stackWidth + length (do not merge different lengths).
+  const bySize = new Map();
+  [...lefts, ...rights].forEach((p) => {
+    const sizeKey = `${p.stackWidth}|${p.dim.length}|${p.dim.w}`;
+    if (!bySize.has(sizeKey)) {
+      bySize.set(sizeKey, {
+        order: bucket.order,
+        groupId: bucket.groupId,
+        lineLabel: bucket.lineLabel,
+        special: bucket.special,
+        dfm: bucket.dfm,
+        width: p.stackWidth,
+        stackWidthSort: p.stackWidthSort,
+        front: emptySide(),
+        back: emptySide(),
+        left: emptySide(),
+        right: emptySide(),
+        parts: 0,
+        backQty: 0,
+        leftQty: 0,
+        rightQty: 0,
+      });
+    }
+    const line = bySize.get(sizeKey);
+    if (p.side === 'left') {
+      setSide(line.left, p.dim);
+      line.leftQty += p.qty;
+    }
+    if (p.side === 'right') {
+      setSide(line.right, p.dim);
+      line.rightQty += p.qty;
+    }
+    line.parts += p.qty;
+  });
+  bySize.forEach((line) => {
+    line.drawerCount = Math.max(line.leftQty, line.rightQty);
+    boxRows.push(line);
+  });
+}
+
 function buildBoxLineFromFront(lead, bucket) {
   return {
     order: bucket.order,
@@ -252,22 +344,26 @@ function pickClosestWPart(list, used, lead, { requireLength } = {}) {
   let best = null;
   let bestIdx = -1;
   let bestDiff = Infinity;
+  let bestQtyGap = Infinity;
 
   list.forEach((p, i) => {
     if (used.has(i)) return;
     if (requireLength && p.dim.length !== lead.dim.length) return;
+    let diff = Infinity;
     if (lead.dim.w && p.dim.w) {
-      const diff = Math.abs(parseFloat(p.dim.w) - parseFloat(lead.dim.w));
-      if (Number.isFinite(diff) && diff < bestDiff) {
-        best = p;
-        bestIdx = i;
-        bestDiff = diff;
-      }
+      diff = Math.abs(parseFloat(p.dim.w) - parseFloat(lead.dim.w));
+      if (!Number.isFinite(diff)) return;
+    } else if (!requireLength && p.stackWidth === lead.stackWidth) {
+      diff = 0;
+    } else {
       return;
     }
-    if (!requireLength && p.stackWidth === lead.stackWidth && bestDiff === Infinity) {
+    const qtyGap = Math.abs((p.qty || 0) - (lead.qty || 0));
+    if (diff < bestDiff || (diff === bestDiff && qtyGap < bestQtyGap)) {
       best = p;
       bestIdx = i;
+      bestDiff = diff;
+      bestQtyGap = qtyGap;
     }
   });
 
@@ -393,46 +489,7 @@ export function getCutListPrintSections(batch, colIndices, options = {}) {
     const rights = bucket.parts.filter((p) => p.side === 'right');
 
     if (fronts.length === 0) {
-      const byWidth = new Map();
-      [...lefts, ...rights, ...backs].forEach((p) => {
-        if (!byWidth.has(p.stackWidth)) {
-          byWidth.set(p.stackWidth, {
-            order: bucket.order,
-            groupId: bucket.groupId,
-            lineLabel: bucket.lineLabel,
-            special: bucket.special,
-            dfm: bucket.dfm,
-            width: p.stackWidth,
-            stackWidthSort: p.stackWidthSort,
-            front: emptySide(),
-            back: emptySide(),
-            left: emptySide(),
-            right: emptySide(),
-            parts: 0,
-            backQty: 0,
-            leftQty: 0,
-            rightQty: 0,
-          });
-        }
-        const line = byWidth.get(p.stackWidth);
-        if (p.side === 'left') {
-          setSide(line.left, p.dim);
-          line.leftQty += p.qty;
-        }
-        if (p.side === 'right') {
-          setSide(line.right, p.dim);
-          line.rightQty += p.qty;
-        }
-        if (p.side === 'back') {
-          setSide(line.back, p.dim);
-          line.backQty += p.qty;
-        }
-        line.parts += p.qty;
-      });
-      byWidth.forEach((line) => {
-        line.drawerCount = Math.max(line.backQty, line.leftQty, line.rightQty);
-        boxRows.push(line);
-      });
+      pushSideOnlyBoxRows(bucket, backs, lefts, rights, boxRows);
       return;
     }
 

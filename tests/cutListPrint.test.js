@@ -489,6 +489,43 @@ describe('different front material (*DFM)', () => {
     expect(formatBatchBoxesTotalLabel(info)).toBe('4 Boxes (3 matl)');
   });
 
+  it('side-only *DFM keeps separate sizes (no Width-only collapse)', () => {
+    const frontMat = 'FAA: 3/4" White Maple';
+    const sideMat = 'PF: 1/2" Maple White';
+    const allRows = [
+      // Size A: FB 22.063 / LR 23.626 ×10
+      matRow({ order: '602947', material: frontMat, part: 'F', length: '22.063', qty: 10, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'B', length: '22.063', qty: 10, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'L', length: '23.626', qty: 10, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'R', length: '23.626', qty: 10, groupId: '1' }),
+      // Size B: FB 22.063 / LR 20.626 ×2 (same FB length, different LR)
+      matRow({ order: '602947', material: frontMat, part: 'F', length: '22.063', qty: 2, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'B', length: '22.063', qty: 2, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'L', length: '20.626', qty: 2, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'R', length: '20.626', qty: 2, groupId: '1' }),
+      // Size C: FB 14.813 / LR 14.626 ×4
+      matRow({ order: '602947', material: frontMat, part: 'F', length: '14.813', qty: 4, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'B', length: '14.813', qty: 4, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'L', length: '14.626', qty: 4, groupId: '1' }),
+      matRow({ order: '602947', material: sideMat, part: 'R', length: '14.626', qty: 4, groupId: '1' }),
+    ];
+
+    const sideBatch = {
+      sourceRows: allRows.filter((r) => r[cols.partName] !== 'F'),
+      totalBoxes: 12,
+      sortedOrders: ['602947'],
+    };
+    const rows = getCutListPrintSections(sideBatch, cols, { allRows })[0].rows;
+    expect(rows).toHaveLength(3);
+    expect(rows.map((r) => r.parts).sort((a, b) => a - b)).toEqual([6, 12, 30]);
+    expect(rows.find((r) => r.fbLength === '14.813')).toMatchObject({
+      lrLength: '14.626',
+      boxes: 4,
+      parts: 12,
+    });
+    expect(rows.reduce((s, r) => s + r.boxes, 0)).toBe(16);
+  });
+
   it('sets Bx = Pcs on front-only *DFM rows (each front is one drawer box)', () => {
     const allRows = [
       matRow({
