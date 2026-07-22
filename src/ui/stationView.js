@@ -84,6 +84,14 @@ function sheetRenderKey(job, tab = 'opticut') {
   return `${job.batchKey}|${tab}|${job.sentAt || ''}|${String(html).length}`;
 }
 
+/** Box count for chips / queue — OptiCut by default; Trim when that tab is active. */
+function jobDisplayBoxes(job, tab = 'opticut') {
+  if (tab === 'trim' && job?.trimTotalBoxes != null && Number(job.trimTotalBoxes) > 0) {
+    return Number(job.trimTotalBoxes) || 0;
+  }
+  return Number(job?.totalBoxes) || 0;
+}
+
 function loadZoom() {
   try {
     const saved = parseFloat(globalThis.localStorage?.getItem(ZOOM_STORAGE_KEY));
@@ -848,10 +856,11 @@ export function mountStationView(root) {
     batchTitleEl.textContent = job.batchKey || '';
 
     const orderCount = Array.isArray(job.orders) ? job.orders.length : 0;
+    const displayBoxes = jobDisplayBoxes(job, sheetTab);
     const chips = [
       job.isSpecial ? { text: '★ Special', cls: ' station-chip--special' } : null,
       job.materialName ? { text: job.materialName, cls: '' } : null,
-      job.totalBoxes ? { text: `${job.totalBoxes} boxes`, cls: '' } : null,
+      displayBoxes ? { text: `${displayBoxes} boxes`, cls: '' } : null,
       orderCount ? { text: `${orderCount} order${orderCount === 1 ? '' : 's'}`, cls: '' } : null,
       job.sentAt ? { text: `Sent ${formatSentAt(job.sentAt)}`, cls: ' station-chip--muted' } : null,
     ].filter(Boolean);

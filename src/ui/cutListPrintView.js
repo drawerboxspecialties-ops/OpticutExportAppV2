@@ -28,6 +28,8 @@ export function cutListRowId(row) {
     String(row?.width ?? '').trim(),
     String(row?.fbLength ?? '').trim(),
     String(row?.lrLength ?? '').trim(),
+    row?.special ? '1' : '0',
+    row?.dfm ? '1' : '0',
   ].join('|');
 }
 
@@ -420,8 +422,8 @@ function buildSectionTitleHtml(section, batch, colIndices, anySpecial) {
   return `Order ${escapeHTML(section.order)}${boxMark}${specialMark}`;
 }
 
-function buildSectionContTitleHtml(section) {
-  return `Order ${escapeHTML(section.order)} <span class="cutlist-order-cont">(cont.)</span>`;
+function buildSectionContTitleHtml(section, batch, colIndices, anySpecial) {
+  return `${buildSectionTitleHtml(section, batch, colIndices, anySpecial)} <span class="cutlist-order-cont">(cont.)</span>`;
 }
 
 function renderCutListFlowBody(
@@ -458,7 +460,7 @@ function renderCutListFlowBody(
   const titled = sections.map((section) => ({
     ...section,
     titleHtml: buildSectionTitleHtml(section, batch, colIndices, anySpecial),
-    contTitleHtml: buildSectionContTitleHtml(section),
+    contTitleHtml: buildSectionContTitleHtml(section, batch, colIndices, anySpecial),
   }));
   const pages =
     mode === 'station'

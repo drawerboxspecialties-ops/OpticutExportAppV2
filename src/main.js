@@ -24,8 +24,10 @@ import { buildCutListPrintCard, buildBatchOrdersIndex } from './ui/cutListPrintV
 import { buildTrimListPrintCard } from './ui/trimListPrintView.js';
 import {
   getBatchDisplayBoxInfo,
+  getBatchDisplayBoxInfoFromSections,
   formatBatchBoxesTotalLabel,
 } from './logic/cutListPrint.js';
+import { getTrimListPrintSections } from './logic/trimListPrint.js';
 import { publishStationJob, purgeExpiredStationJobs, isStationHash } from './logic/stationSync.js';
 import { mountStationView } from './ui/stationView.js';
 
@@ -1046,15 +1048,22 @@ async function sendActiveBatchToStation() {
 }
 
 function buildStationJobPayload(batchKey, batch) {
-  const boxInfo = getBatchDisplayBoxInfo(batch, state.colIndices, {
-    allRows: state.parsedRows,
-  });
+  const opts = { allRows: state.parsedRows };
+  const boxInfo = getBatchDisplayBoxInfo(batch, state.colIndices, opts);
+  const trimBoxInfo = getBatchDisplayBoxInfoFromSections(
+    batch,
+    getTrimListPrintSections(batch, state.colIndices, opts)
+  );
   return {
     batchKey,
     fileName: state.currentFileName || state.appSettings?.recentFiles?.[0] || '',
     materialName: batch.materialName || '',
     totalBoxes: boxInfo.displayBoxes || 0,
-    materialBoxes: boxInfo.isFrontOnlyDfm ? boxInfo.materialBoxes : undefined,
+    trimTotalBoxes: trimBoxInfo.displayBoxes || 0,
+    materialBoxes:
+      boxInfo.usesDrawerBoxCount && boxInfo.materialBoxes !== boxInfo.displayBoxes
+        ? boxInfo.materialBoxes
+        : undefined,
     orders: batch.sortedOrders || [],
     isSpecial: Boolean(batch.isSpecial),
     html: buildCutListPrintCard(batchKey, batch, state.colIndices, null, {

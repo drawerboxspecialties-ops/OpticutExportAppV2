@@ -294,7 +294,7 @@ export function buildStationPrintSheetHtml(sheetEl, { checks = {} } = {}) {
     return {
       order,
       titleHtml,
-      contTitleHtml: `Order ${escapeHTML(order)} <span class="cutlist-order-cont">(cont.)</span>`,
+      contTitleHtml: `${titleHtml} <span class="cutlist-order-cont">(cont.)</span>`,
       rows,
     };
   });

@@ -50,8 +50,8 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
     if (!side || !dim.length || qty <= 0) return;
 
     // Drawer height only for pairing drawers — not shown as rounded trim W.
+    // Keep rows even when Width is blank/0 so Trim stays in sync with OptiCut.
     const drawerHeight = formatDecimalForDisplay(getSummaryHeight(row, colIndices));
-    if (!drawerHeight || drawerHeight === '0') return;
 
     const groupId =
       hasGroupId && colIndices.groupId < row.length
@@ -95,9 +95,52 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
       return;
     }
 
+    const frontGroups = new Map();
+    fronts.forEach((p) => {
+      const key = `${p.dim.w}|${p.dim.length}|${p.drawerHeight}`;
+      if (!frontGroups.has(key)) frontGroups.set(key, []);
+      frontGroups.get(key).push(p);
+    });
+
     const usedBack = new Set();
     const usedLeft = new Set();
     const usedRight = new Set();
+
+    // Same-size fronts → one line (matches OptiCut); attach any leftover B/L/R.
+    if (frontGroups.size === 1) {
+      const group = frontGroups.values().next().value;
+      const lead = group[0];
+      const line = {
+        order: bucket.order,
+        groupId: bucket.groupId,
+        special: bucket.special,
+        dfm: bucket.dfm,
+        drawerHeight: lead.drawerHeight,
+        drawerHeightSort: lead.drawerHeightSort,
+        front: { ...lead.dim },
+        back: emptySide(),
+        left: emptySide(),
+        right: emptySide(),
+        frontQty: sumPartQtys(fronts),
+        parts: sumPartQtys(bucket.parts),
+      };
+      const back = pickClosestPart(backs, usedBack, lead, { requireLength: true });
+      if (back) setSide(line.back, back.dim);
+
+      const pickFirstUnused = (list, used) => {
+        const idx = list.findIndex((_, i) => !used.has(i));
+        if (idx === -1) return null;
+        used.add(idx);
+        return list[idx];
+      };
+      const leftPart = pickFirstUnused(lefts, usedLeft);
+      const rightPart = pickFirstUnused(rights, usedRight);
+      if (leftPart) setSide(line.left, leftPart.dim);
+      if (rightPart) setSide(line.right, rightPart.dim);
+
+      boxRows.push(line);
+      return;
+    }
 
     sortFrontParts(fronts).forEach((lead) => {
       const line = {
@@ -111,6 +154,7 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
         back: emptySide(),
         left: emptySide(),
         right: emptySide(),
+        frontQty: lead.qty,
         parts: lead.qty,
       };
       const back = pickClosestPart(backs, usedBack, lead, { requireLength: true });
@@ -169,7 +213,8 @@ export function getTrimListPrintSections(batch, colIndices, options = {}) {
     const sideOnlyDfm = Boolean(row.dfm) && !hasFront && hasSide;
     let boxes;
     if (frontOnlyDfm) {
-      boxes = row.parts;
+      // Bx = front qty only (B on the same sheet must not inflate drawer count).
+      boxes = row.frontQty > 0 ? row.frontQty : row.parts;
     } else if (sideOnlyDfm) {
       const groupKey = dfmDrawerKey(row.order, row.groupId);
       boxes = resolveSideOnlyDfmBoxes(
@@ -218,7 +263,13 @@ export function trimListRowId(row) {
     String(row?.fbLength ?? '').trim(),
     String(row?.lrW ?? '').trim(),
     String(row?.lrLength ?? '').trim(),
+    row?.special ? '1' : '0',
+    row?.dfm ? '1' : '0',
   ].join('|');
+}
+
+function sumPartQtys(parts) {
+  return parts.reduce((sum, p) => sum + (p.qty || 0), 0);
 }
 
 function getPartSide(row, colIndices) {
@@ -365,25 +416,39 @@ function pickClosestPart(list, used, lead, { requireLength } = {}) {
   let bestIdx = -1;
   let bestDiff = Infinity;
   let bestQtyGap = Infinity;
+  let bestHeightGap = Infinity;
 
   list.forEach((p, i) => {
     if (used.has(i)) return;
-    if (p.drawerHeight !== lead.drawerHeight) return;
     if (requireLength && p.dim.length !== lead.dim.length) return;
     let diff = Infinity;
     if (lead.dim.w && p.dim.w) {
       diff = Math.abs(parseFloat(p.dim.w) - parseFloat(lead.dim.w));
       if (!Number.isFinite(diff)) return;
-    } else if (!requireLength) {
+    } else if (!requireLength && p.drawerHeight === lead.drawerHeight) {
       diff = 0;
+    } else if (!requireLength) {
+      // Prefer same drawer height, but still attach leftover L/R (OptiCut parity).
+      diff = 1000;
     } else {
       return;
     }
+    const heightGap =
+      p.drawerHeight === lead.drawerHeight
+        ? 0
+        : Math.abs(
+            (parseFloat(p.drawerHeight) || 0) - (parseFloat(lead.drawerHeight) || 0)
+          );
     const qtyGap = Math.abs((p.qty || 0) - (lead.qty || 0));
-    if (diff < bestDiff || (diff === bestDiff && qtyGap < bestQtyGap)) {
+    if (
+      diff < bestDiff ||
+      (diff === bestDiff && heightGap < bestHeightGap) ||
+      (diff === bestDiff && heightGap === bestHeightGap && qtyGap < bestQtyGap)
+    ) {
       best = p;
       bestIdx = i;
       bestDiff = diff;
+      bestHeightGap = heightGap;
       bestQtyGap = qtyGap;
     }
   });
@@ -421,6 +486,9 @@ function mergeIdenticalTrimRows(rows) {
     if (existingIndex !== undefined) {
       const existing = merged[existingIndex];
       existing.parts += row.parts;
+      if (row.frontQty) {
+        existing.frontQty = (existing.frontQty || 0) + row.frontQty;
+      }
       if (row.drawerCount) {
         existing.drawerCount = (existing.drawerCount || 0) + row.drawerCount;
       }

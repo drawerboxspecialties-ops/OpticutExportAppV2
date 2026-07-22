@@ -252,8 +252,8 @@ function buildTrimSectionTitleHtml(section, batch, colIndices, anySpecial) {
   return `Order ${escapeHTML(section.order)}${boxMark}${specialMark}`;
 }
 
-function buildTrimSectionContTitleHtml(section) {
-  return `Order ${escapeHTML(section.order)} <span class="cutlist-order-cont">(cont.)</span>`;
+function buildTrimSectionContTitleHtml(section, batch, colIndices, anySpecial) {
+  return `${buildTrimSectionTitleHtml(section, batch, colIndices, anySpecial)} <span class="cutlist-order-cont">(cont.)</span>`;
 }
 
 function renderTrimFlowBody(
@@ -290,7 +290,7 @@ function renderTrimFlowBody(
   const titled = sections.map((section) => ({
     ...section,
     titleHtml: buildTrimSectionTitleHtml(section, batch, colIndices, anySpecial),
-    contTitleHtml: buildTrimSectionContTitleHtml(section),
+    contTitleHtml: buildTrimSectionContTitleHtml(section, batch, colIndices, anySpecial),
   }));
   const pages =
     mode === 'station'

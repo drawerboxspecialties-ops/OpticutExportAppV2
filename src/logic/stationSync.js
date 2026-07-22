@@ -265,6 +265,11 @@ export async function publishStationJob(job, options = {}) {
     fileName: String(job.fileName || ''),
     materialName: String(job.materialName || ''),
     totalBoxes: Number(job.totalBoxes) || 0,
+    trimTotalBoxes: Number(job.trimTotalBoxes) || 0,
+    materialBoxes:
+      job.materialBoxes != null && Number.isFinite(Number(job.materialBoxes))
+        ? Number(job.materialBoxes)
+        : null,
     orders,
     isSpecial: Boolean(job.isSpecial),
     html: String(job.html),

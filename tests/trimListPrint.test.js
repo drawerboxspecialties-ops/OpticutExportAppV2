@@ -130,6 +130,65 @@ describe('getTrimListPrintSections', () => {
     expect(row0.lrW).toBe('3.938');
     expect(row0.lrW).not.toBe('4');
   });
+
+  it('keeps all sides on one row when drawer heights differ (OptiCut parity)', () => {
+    const batch = {
+      sourceRows: [
+        row({ order: '602016', part: 'F', w: '4.5', length: '18', qty: 8, drawerWidth: '10', label: '1.2' }),
+        row({ order: '602016', part: 'L', w: '4.5', length: '18', qty: 4, drawerWidth: '5', label: '1.2' }),
+        row({ order: '602016', part: 'R', w: '4.5', length: '18', qty: 16, drawerWidth: '8', label: '1.2' }),
+      ],
+    };
+    const sections = getTrimListPrintSections(batch, cols);
+    expect(sections[0].rows).toHaveLength(1);
+    expect(sections[0].rows[0]).toMatchObject({
+      parts: 28,
+      boxes: 7,
+      fbLength: '18',
+      lrLength: '18',
+    });
+  });
+
+  it('collapses identical front rows into one line with shared B/L/R (OptiCut parity)', () => {
+    const batch = {
+      sourceRows: [
+        row({ order: '1', part: 'F', w: '4', length: '22', qty: 2, drawerWidth: '4', groupId: '1' }),
+        row({ order: '1', part: 'F', w: '4', length: '22', qty: 2, drawerWidth: '4', groupId: '1' }),
+        row({ order: '1', part: 'B', w: '4', length: '22', qty: 4, drawerWidth: '4', groupId: '1' }),
+        row({ order: '1', part: 'L', w: '3.9', length: '16', qty: 4, drawerWidth: '4', groupId: '1' }),
+        row({ order: '1', part: 'R', w: '3.9', length: '16', qty: 4, drawerWidth: '4', groupId: '1' }),
+      ],
+    };
+    const rows = getTrimListPrintSections(batch, cols)[0].rows;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].parts).toBe(16);
+    expect(rows[0].boxes).toBe(4);
+  });
+
+  it('still includes parts when Width is blank/zero', () => {
+    const blankHeight = [
+      '9',
+      'PF: 12MM Baltic Birch Ply',
+      'F',
+      '4',
+      '22',
+      '4',
+      '',
+      '',
+      'Clear Foil Bullnose',
+      '1',
+      'None',
+      'None',
+      'None',
+      'None',
+      'None',
+      'None',
+    ];
+    const batch = { sourceRows: [blankHeight] };
+    const sections = getTrimListPrintSections(batch, cols);
+    expect(sections[0].rows).toHaveLength(1);
+    expect(sections[0].rows[0].parts).toBe(4);
+  });
 });
 
 describe('trimListRowId', () => {
@@ -143,7 +202,22 @@ describe('trimListRowId', () => {
         lrW: '3.938',
         lrLength: '17.376',
       })
-    ).toBe('t|602913|1|4|28.063|3.938|17.376');
+    ).toBe('t|602913|1|4|28.063|3.938|17.376|0|0');
+  });
+
+  it('includes special and dfm so distinct lines do not share a checkbox', () => {
+    expect(
+      trimListRowId({
+        order: '602913',
+        groupId: '1',
+        fbW: '4',
+        fbLength: '28.063',
+        lrW: '3.938',
+        lrLength: '17.376',
+        special: true,
+        dfm: true,
+      })
+    ).toBe('t|602913|1|4|28.063|3.938|17.376|1|1');
   });
 });
 

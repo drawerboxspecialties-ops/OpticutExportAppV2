@@ -307,7 +307,18 @@ describe('station checkbox mode', () => {
         fbLength: '19.063',
         lrLength: '',
       })
-    ).toBe('602648|3|4|19.063|');
+    ).toBe('602648|3|4|19.063||0|0');
+    expect(
+      cutListRowId({
+        order: '602648',
+        groupId: '3',
+        width: '4',
+        fbLength: '19.063',
+        lrLength: '',
+        special: true,
+        dfm: true,
+      })
+    ).toBe('602648|3|4|19.063||1|1');
   });
 
   it('renders interactive checkboxes only in station mode', () => {

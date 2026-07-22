@@ -322,6 +322,7 @@ function buildBoxLineFromFront(lead, bucket) {
 }
 
 function pairDrawerSides(line, lead, backs, lefts, rights, usedBack, usedLeft, usedRight) {
+  line.frontQty = lead.qty;
   line.parts = lead.qty;
   const back = pickClosestWPart(backs, usedBack, lead, { requireLength: true });
   if (back) {
@@ -398,6 +399,9 @@ function mergeIdenticalBoxRows(rows) {
     if (existingIndex !== undefined) {
       const existing = merged[existingIndex];
       existing.parts += row.parts;
+      if (row.frontQty) {
+        existing.frontQty = (existing.frontQty || 0) + row.frontQty;
+      }
       if (row.drawerCount) {
         existing.drawerCount = (existing.drawerCount || 0) + row.drawerCount;
       }
@@ -508,6 +512,7 @@ export function getCutListPrintSections(batch, colIndices, options = {}) {
       const group = frontGroups.values().next().value;
       const lead = group[0];
       const line = buildBoxLineFromFront(lead, bucket);
+      line.frontQty = sumPartQtys(fronts);
       line.parts = sumPartQtys(bucket.parts);
 
       const back = pickClosestWPart(backs, usedBack, lead, { requireLength: true });
@@ -574,7 +579,8 @@ export function getCutListPrintSections(batch, colIndices, options = {}) {
     let boxes;
     if (frontOnlyDfm) {
       // Each front is one drawer box (sides live on another cut list).
-      boxes = row.parts;
+      // If B shares this sheet, do not count backs toward Bx.
+      boxes = row.frontQty > 0 ? row.frontQty : row.parts;
     } else if (sideOnlyDfm) {
       // No F on this sheet — Bx still counts drawers via front qty from full file.
       const groupKey = dfmDrawerKey(row.order, row.groupId);

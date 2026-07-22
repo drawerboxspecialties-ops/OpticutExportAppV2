@@ -628,4 +628,51 @@ describe('different front material (*DFM)', () => {
     expect(formatBatchIndexBoxesCell(info)).toBe('5');
     expect(formatFrontOnlyDfmOrderGroupLabel('602648', info)).toBe('3-5');
   });
+
+  it('front-only *DFM Bx uses front qty even when Back shares the sheet', () => {
+    const allRows = [
+      matRow({
+        order: '700001',
+        material: 'FAA: 3/4" Maple',
+        part: 'F',
+        length: '22',
+        qty: 4,
+        groupId: '1',
+      }),
+      matRow({
+        order: '700001',
+        material: 'FAA: 3/4" Maple',
+        part: 'B',
+        length: '22',
+        qty: 4,
+        groupId: '1',
+      }),
+      matRow({
+        order: '700001',
+        material: 'PF: 1/2" Maple',
+        part: 'L',
+        length: '16',
+        qty: 4,
+        groupId: '1',
+      }),
+      matRow({
+        order: '700001',
+        material: 'PF: 1/2" Maple',
+        part: 'R',
+        length: '16',
+        qty: 4,
+        groupId: '1',
+      }),
+    ];
+    const frontBatch = {
+      sourceRows: allRows.filter((r) => r[cols.partName] === 'F' || r[cols.partName] === 'B'),
+      totalBoxes: 2,
+      sortedOrders: ['700001'],
+    };
+    const rows = getCutListPrintSections(frontBatch, cols, { allRows })[0].rows;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].frontOnlyDfm).toBe(true);
+    expect(rows[0].parts).toBe(8);
+    expect(rows[0].boxes).toBe(4);
+  });
 });
