@@ -131,7 +131,7 @@ Material names are reformatted to OptiCut's 32-character limit.
 
 ### Step 7 — Station (shop floor)
 
-1. On the prep computer, open a batch → **Send to station** (or **Send all to station**).
+1. On the prep computer, click **Export ZIP** (downloads all CSVs and sends every batch to the station queue). Use **Send to station** only to re-send one batch without exporting.
 2. On the floor computer, open **Station** (header link or `#station`).
 3. Scan a batch barcode (from Batch index or cut-list header) or tap a batch in the queue.
 4. Check off cut-list lines; progress syncs live.
@@ -179,7 +179,7 @@ tests/              Vitest tests lock every critical rule
 2. Open the live app → drag & drop the file.
 3. Review batches in the sidebar (look for **SPECIAL** badge if applicable).
 4. Print **Cut list** / **Cut lists**, and **Batch index** for barcodes.
-5. **Send to station** (or Send all) for the floor computer.
+5. **Export ZIP** to download OptiCut CSVs and push all batches to the floor computer.
 6. Export current CSV or ZIP all batches → import into OptiCut.
 7. On station: scan barcode or pick batch; check lines; Remove / Add back as needed.
 

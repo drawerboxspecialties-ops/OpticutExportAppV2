@@ -17,7 +17,7 @@ high-risk business rule.
 - Exports cut-list CSV files for OptiCut.
 - Prints landscape cut-list sheets per batch (or all batches) with a 3-column fluid flow, rounded widths, GroupID box counts, Code 128 barcodes, and checkboxes.
 - Prints a **Batch index** (batch name, boxes, orders with group qty in brackets, barcodes) for station scanning.
-- **Station** live queue (`#station`): send from prep, scan barcode, soft-remove / Add back, wipe database (password `dbs`).
+- **Station** live queue (`#station`): **Export ZIP** from prep downloads CSVs and sends all batches; scan barcode on floor; soft-remove / Add back; wipe database (password `dbs`).
 - Cut-list preview shows full imported rows (Scoop, GroupID, etc.); export strips batching columns.
 - Export rounding is checked by default; it rounds `Width` up to whole numbers,
   merges matching rows, and records original width quantities in `Label`.

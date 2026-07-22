@@ -884,22 +884,33 @@ function triggerDownload(content, filename) {
 }
 
 async function downloadAllZip() {
-  const { default: JSZip } = await import('jszip');
-  const zip = new JSZip();
-  let added = false;
-  Object.keys(state.splitGroups).forEach((batchKey) => {
-    const batch = state.splitGroups[batchKey];
-    const cutRows = getCutListRowsForExport(
-      getBatchExportRows(batch),
-      state.colIndices,
-      shouldRoundExportWidths(),
-      state.parsedHeaders
-    );
-    const { headers, rows } = filterForExport(state.parsedHeaders, cutRows);
-    zip.file(`${batchKey}.csv`, convertToCSV(headers, rows));
-    added = true;
-  });
-  if (added) {
+  const keys = Object.keys(state.splitGroups).sort();
+  if (!keys.length) {
+    showToast('No batches to export.', 'warning');
+    return;
+  }
+
+  const zipBtn = $('btn-download-all');
+  const sendBtn = $('btn-send-station');
+  if (zipBtn) zipBtn.disabled = true;
+  if (sendBtn) sendBtn.disabled = true;
+
+  try {
+    const { default: JSZip } = await import('jszip');
+    const zip = new JSZip();
+    keys.forEach((batchKey) => {
+      const batch = state.splitGroups[batchKey];
+      if (!batch) return;
+      const cutRows = getCutListRowsForExport(
+        getBatchExportRows(batch),
+        state.colIndices,
+        shouldRoundExportWidths(),
+        state.parsedHeaders
+      );
+      const { headers, rows } = filterForExport(state.parsedHeaders, cutRows);
+      zip.file(`${batchKey}.csv`, convertToCSV(headers, rows));
+    });
+
     const content = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(content);
     const a = document.createElement('a');
@@ -909,6 +920,22 @@ async function downloadAllZip() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    showToast(`ZIP downloaded · sending ${keys.length} batches to station…`, 'info', 2500);
+    const { sent, failed } = await publishAllStationJobs(keys);
+    if (failed === 0) {
+      showToast(`ZIP ready · ${sent} batches on station.`, 'success', 4500);
+    } else if (sent === 0) {
+      showToast(`ZIP downloaded, but station send failed (${failed}).`, 'danger', 7000);
+    } else {
+      showToast(`ZIP ready · ${sent} sent to station, ${failed} failed.`, 'warning', 7000);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast(err?.message || 'Could not export ZIP.', 'danger', 6000);
+  } finally {
+    if (zipBtn) zipBtn.disabled = false;
+    if (sendBtn) sendBtn.disabled = false;
   }
 }
 
@@ -951,6 +978,15 @@ function printAllCutLists() {
   if (!keys.length) return;
   runPrintJob(() => {
     const fragment = document.createDocumentFragment();
+
+    // Batch index first — lookup page before every cut list.
+    const indexCard = document.createElement('div');
+    indexCard.className = 'print-batch-card print-batch-index-card';
+    indexCard.innerHTML = buildBatchOrdersIndex(state.splitGroups, state.colIndices, {
+      allRows: state.parsedRows,
+    });
+    fragment.appendChild(indexCard);
+
     keys.forEach((batchKey, idx) => {
       const batch = state.splitGroups[batchKey];
       const cardDiv = document.createElement('div');
@@ -1032,9 +1068,9 @@ async function sendActiveBatchToStation() {
   }
 
   const btn = $('btn-send-station');
-  const allBtn = $('btn-send-all-station');
+  const zipBtn = $('btn-download-all');
   if (btn) btn.disabled = true;
-  if (allBtn) allBtn.disabled = true;
+  if (zipBtn) zipBtn.disabled = true;
   try {
     await publishStationJob(buildStationJobPayload(batchKey, batch));
     showToast(`Sent ${batchKey} to station queue.`, 'success');
@@ -1043,7 +1079,7 @@ async function sendActiveBatchToStation() {
     showToast(err?.message || 'Could not send to station.', 'danger', 6000);
   } finally {
     if (btn) btn.disabled = false;
-    if (allBtn) allBtn.disabled = false;
+    if (zipBtn) zipBtn.disabled = false;
   }
 }
 
@@ -1077,43 +1113,28 @@ function buildStationJobPayload(batchKey, batch) {
   };
 }
 
-async function sendAllBatchesToStation() {
-  const keys = Object.keys(state.splitGroups).sort();
-  if (!keys.length) {
-    showToast('No batches to send.', 'warning');
-    return;
-  }
-
-  const btn = $('btn-send-station');
-  const allBtn = $('btn-send-all-station');
-  if (btn) btn.disabled = true;
-  if (allBtn) allBtn.disabled = true;
-
+/**
+ * Publish every batch (or the given keys) to the station queue.
+ * @param {string[]} [batchKeys]
+ * @returns {Promise<{ sent: number, failed: number }>}
+ */
+async function publishAllStationJobs(batchKeys) {
+  const keys = (batchKeys || Object.keys(state.splitGroups)).slice().sort();
   let sent = 0;
   let failed = 0;
-  try {
-    showToast(`Sending ${keys.length} batches to station…`, 'info', 2500);
-    for (const batchKey of keys) {
-      const batch = state.splitGroups[batchKey];
-      if (!batch) continue;
-      try {
-        await publishStationJob(buildStationJobPayload(batchKey, batch), { skipPurge: true });
-        sent += 1;
-      } catch (err) {
-        console.error(batchKey, err);
-        failed += 1;
-      }
+  for (const batchKey of keys) {
+    const batch = state.splitGroups[batchKey];
+    if (!batch) continue;
+    try {
+      await publishStationJob(buildStationJobPayload(batchKey, batch), { skipPurge: true });
+      sent += 1;
+    } catch (err) {
+      console.error(batchKey, err);
+      failed += 1;
     }
-    void purgeExpiredStationJobs().catch((err) => console.warn('Station purge failed:', err));
-    if (failed === 0) {
-      showToast(`Sent all ${sent} batches to station.`, 'success', 4500);
-    } else {
-      showToast(`Sent ${sent} batches; ${failed} failed.`, 'warning', 6000);
-    }
-  } finally {
-    if (btn) btn.disabled = false;
-    if (allBtn) allBtn.disabled = false;
   }
+  void purgeExpiredStationJobs().catch((err) => console.warn('Station purge failed:', err));
+  return { sent, failed };
 }
 
 function scrollSidebarDetailsIntoView(details) {
@@ -1170,9 +1191,6 @@ function wireEvents() {
   $('btn-print-batch-index')?.addEventListener('click', printBatchOrdersIndex);
   $('btn-send-station')?.addEventListener('click', () => {
     void sendActiveBatchToStation();
-  });
-  $('btn-send-all-station')?.addEventListener('click', () => {
-    void sendAllBatchesToStation();
   });
   $('tab-preview-print')?.addEventListener('click', () => setPreviewTab('print'));
   $('tab-preview-import')?.addEventListener('click', () => setPreviewTab('import'));

@@ -2189,17 +2189,19 @@ tbody tr:hover td {
     page-break-after: auto;
   }
 
-  /* New page only between batches when printing all cut lists. */
+  /* New page only between batches when printing all cut lists (index is first card). */
   body.print-all-cutlists-active .print-batch-card:not(:last-child) {
     break-after: page;
     page-break-after: always;
   }
 
-  body.print-batch-index-active .batch-orders-index {
+  body.print-batch-index-active .batch-orders-index,
+  body.print-all-cutlists-active .print-batch-index-card .batch-orders-index {
     padding: 0;
   }
 
-  body.print-batch-index-active .batch-index-table tr {
+  body.print-batch-index-active .batch-index-table tr,
+  body.print-all-cutlists-active .print-batch-index-card .batch-index-table tr {
     break-inside: avoid;
     page-break-inside: avoid;
   }
