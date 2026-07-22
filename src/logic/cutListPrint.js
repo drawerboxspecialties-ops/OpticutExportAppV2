@@ -737,40 +737,22 @@ export function getBatchDisplayBoxInfo(batch, colIndices, options = {}) {
 }
 
 /**
- * Header / sidebar label. *DFM drawer-count sheets show front qty and matl boxes when they differ.
- * @param {{ displayBoxes: number, materialBoxes: number, usesDrawerBoxCount?: boolean, isFrontOnlyDfm?: boolean }} info
+ * Header / sidebar label — drawer box count for the sheet.
+ * @param {{ displayBoxes: number }} info
  * @returns {string}
  */
 export function formatBatchBoxesTotalLabel(info) {
   const n = Number(info?.displayBoxes) || 0;
-  const word = n === 1 ? 'Box' : 'Boxes';
-  const material = Number(info?.materialBoxes) || 0;
-  const showMatl =
-    (info?.usesDrawerBoxCount || info?.isFrontOnlyDfm || info?.isSideOnlyDfm) &&
-    material > 0 &&
-    material !== n;
-  if (showMatl) {
-    return `${n} ${word} (${material} matl)`;
-  }
-  return `${n} ${word}`;
+  return `${n} ${n === 1 ? 'Box' : 'Boxes'}`;
 }
 
 /**
- * Batch-index Boxes cell HTML (drawer count, with matl note when *DFM differs).
- * @param {{ displayBoxes: number, materialBoxes: number, usesDrawerBoxCount?: boolean, isFrontOnlyDfm?: boolean, isSideOnlyDfm?: boolean }} info
+ * Batch-index Boxes cell — drawer box count only.
+ * @param {{ displayBoxes: number }} info
  * @returns {string}
  */
 export function formatBatchIndexBoxesCell(info) {
-  const n = Number(info?.displayBoxes) || 0;
-  const material = Number(info?.materialBoxes) || 0;
-  const showMatl =
-    (info?.usesDrawerBoxCount || info?.isFrontOnlyDfm || info?.isSideOnlyDfm) &&
-    material > 0 &&
-    material !== n;
-  if (showMatl) {
-    return `${n} <span class="batch-index-matl">(${material} matl)</span>`;
-  }
-  return String(n);
+  return String(Number(info?.displayBoxes) || 0);
 }
 
 /**

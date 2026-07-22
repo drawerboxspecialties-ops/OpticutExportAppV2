@@ -486,7 +486,7 @@ describe('different front material (*DFM)', () => {
     expect(info.isSideOnlyDfm).toBe(true);
     expect(info.displayBoxes).toBe(4);
     expect(info.materialBoxes).toBe(3);
-    expect(formatBatchBoxesTotalLabel(info)).toBe('4 Boxes (3 matl)');
+    expect(formatBatchBoxesTotalLabel(info)).toBe('4 Boxes');
   });
 
   it('side-only *DFM keeps separate sizes (no Width-only collapse)', () => {
@@ -631,9 +631,8 @@ describe('different front material (*DFM)', () => {
     expect(info.isFrontOnlyDfm).toBe(true);
     expect(info.displayBoxes).toBe(5);
     expect(info.materialBoxes).toBe(2);
-    expect(formatBatchBoxesTotalLabel(info)).toBe('5 Boxes (2 matl)');
-    expect(formatBatchIndexBoxesCell(info)).toContain('5');
-    expect(formatBatchIndexBoxesCell(info)).toContain('2 matl');
+    expect(formatBatchBoxesTotalLabel(info)).toBe('5 Boxes');
+    expect(formatBatchIndexBoxesCell(info)).toBe('5');
     expect(formatFrontOnlyDfmOrderGroupLabel('602648', info)).toBe('3-5');
   });
 });

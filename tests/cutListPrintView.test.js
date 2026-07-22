@@ -268,7 +268,8 @@ describe('buildCutListPrintCard', () => {
     const html = buildCutListPrintCard('TEST', batch, cols, null, { allRows });
     expect(html).toContain('*DFM');
     expect(html).toContain('cutlist-dfm-mark');
-    expect(html).toContain('2 Boxes (1 matl)');
+    expect(html).toContain('2 Boxes');
+    expect(html).not.toContain('matl');
     expect(html).toContain('Order 602648 · Grp 3 · 2 boxes');
   });
 });
@@ -537,7 +538,8 @@ describe('buildBatchOrdersIndex', () => {
       cols,
       { allRows }
     );
-    expect(html).toContain('5 <span class="batch-index-matl">(2 matl)</span>');
+    expect(html).toContain('>5</td>');
+    expect(html).not.toContain('matl');
     expect(html).toContain('(3-5)');
   });
 });
